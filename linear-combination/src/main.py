@@ -1,13 +1,11 @@
 import tensorflow as tf
+import train
 
-print('starting')
 
-a = tf.constant(3)
-b = tf.constant(4)
+def main(args=None):
+    tf.logging.set_verbosity(tf.logging.INFO)
+    train.train()
 
-c = a + b
 
-with tf.Session() as sess:
-    print('before file writer')
-    File_Writer = tf.summary.FileWriter('../tf_logs', sess.graph)
-    print(sess.run(c))
+if __name__ == '__main__':
+    tf.app.run()

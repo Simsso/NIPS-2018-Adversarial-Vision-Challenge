@@ -105,4 +105,5 @@ venv.bak/
 
 
 # custom
-/tf_logs
+tf_logs/
+.idea/
