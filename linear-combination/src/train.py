@@ -6,13 +6,13 @@ import tensorflow as tf
 LEARNING_RATE = 3e-4
 STEPS = 200
 BATCH_SIZE = 100
-MODEL_NAME = '5'
+MODEL_NAME = '6'
 
 
 def train():
     # computational graph
-    img_batch = tf.placeholder(tf.float32, shape=[BATCH_SIZE, 28*28], name='img_batch')
-    labels_batch = tf.placeholder(tf.float32, shape=[BATCH_SIZE, 10], name='labels_batch')
+    img_batch = tf.placeholder(tf.float32, shape=[None, 28*28], name='img_batch')
+    labels_batch = tf.placeholder(tf.float32, shape=[None, 10], name='labels_batch')
     out = model.cnn(img_batch)
     logits = out.get('logits')
     probabilities = out.get('probabilities')
