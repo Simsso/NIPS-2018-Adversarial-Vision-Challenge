@@ -7,7 +7,7 @@ import linear_combination as lc
 def main(args=None):
     tf.logging.set_verbosity(tf.logging.INFO)
     #train.train()
-    lc.run_analysis(train.MODEL_NAME)
+    #lc.run_analysis(train.MODEL_NAME)
     attack.run_fgsm(train.MODEL_NAME)
 
 
