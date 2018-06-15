@@ -5,8 +5,8 @@ import linear_combination as lc
 
 def main(args=None):
     tf.logging.set_verbosity(tf.logging.INFO)
-    # train.train()
-    lc.run_analysis('4')
+    train.train()
+    lc.run_analysis(train.MODEL_NAME)
 
 
 if __name__ == '__main__':

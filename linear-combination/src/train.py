@@ -6,7 +6,7 @@ import tensorflow as tf
 LEARNING_RATE = 3e-4
 STEPS = 200
 BATCH_SIZE = 100
-MODEL_NAME = '4'
+MODEL_NAME = '5'
 
 
 def train():
