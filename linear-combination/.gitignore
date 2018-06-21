@@ -105,6 +105,5 @@ venv.bak/
 
 
 # custom
-tf_logs/
-model_dir/
+out/
 .idea/

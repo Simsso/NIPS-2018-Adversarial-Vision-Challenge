@@ -6,6 +6,10 @@ import scipy.misc
 import tensorflow as tf
 
 
+MODEL_DIR = 'out' + os.sep + 'model_dir'
+LC_OUT_DIR = 'out' + os.sep + 'lc'
+
+
 def interpolate(a, b, x):
     return (1 - x) * a + x * b
 
@@ -21,6 +25,11 @@ def log_csv(m, path):
 
 
 def run_analysis(model_name):
+    if not os.path.exists(MODEL_DIR):
+        os.makedirs(MODEL_DIR)
+    if not os.path.exists(LC_OUT_DIR):
+        os.makedirs(LC_OUT_DIR)
+
     tf.reset_default_graph()
 
     # computational graph
@@ -30,13 +39,13 @@ def run_analysis(model_name):
 
     saver = tf.train.Saver()
     with tf.Session() as sess:
-        saver.restore(sess, "./model_dir" + os.sep + "model_" + model_name + ".ckpt")
+        saver.restore(sess, "./" + MODEL_DIR + os.sep + "model_" + model_name + ".ckpt")
         a = data.getClassSample(4)
         b = data.getClassSample(2)
         result = sess.run(probabilities, feed_dict={
             img_batch: linear_combinations(a, b, 50)
         })
-        log_csv(result, './tf_logs/lc/four2two.csv')
-        scipy.misc.imsave('./tf_logs/lc/four.png', np.reshape(a, [28, 28]))
-        scipy.misc.imsave('./tf_logs/lc/two.png', np.reshape(b, [28, 28]))
-        scipy.misc.imsave('./tf_logs/lc/four2two.png', result)
+        log_csv(result, './' + LC_OUT_DIR + '/four2two.csv')
+        scipy.misc.imsave('./' + LC_OUT_DIR + '/four.png', np.reshape(a, [28, 28]))
+        scipy.misc.imsave('./' + LC_OUT_DIR + '/two.png', np.reshape(b, [28, 28]))
+        scipy.misc.imsave('./' + LC_OUT_DIR + '/four2two.png', result)

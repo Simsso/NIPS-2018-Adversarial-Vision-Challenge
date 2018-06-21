@@ -8,6 +8,9 @@ STEPS = 200
 BATCH_SIZE = 100
 MODEL_NAME = '6'
 
+LOG_PATH = 'out' + os.sep + 'tf_logs'
+MODEL_DIR = 'out' + os.sep + 'model_dir'
+
 
 def train():
     # computational graph
@@ -30,7 +33,9 @@ def train():
     init_op = tf.global_variables_initializer()
     sess = tf.Session()
     sess.run(init_op)
-    log_writer = tf.summary.FileWriter('tf_logs' + os.sep + MODEL_NAME, sess.graph)
+    if not os.path.exists(LOG_PATH):
+        os.makedirs(LOG_PATH)
+    log_writer = tf.summary.FileWriter(LOG_PATH + os.sep + MODEL_NAME, sess.graph)
 
     for step in range(STEPS):
         print(step)
@@ -45,5 +50,5 @@ def train():
 
     print("completed gradient descend")
 
-    save_path = saver.save(sess, "model_dir/model_" + MODEL_NAME + ".ckpt")
+    save_path = saver.save(sess, MODEL_DIR + "/model_" + MODEL_NAME + ".ckpt")
     print("model saved at %s" % save_path)
