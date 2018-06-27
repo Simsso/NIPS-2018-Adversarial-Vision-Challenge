@@ -1,10 +1,7 @@
 import tensorflow as tf
 
-LEARNING_RATE = 0.01
-
-# TODO import these from data folder (wasn't able to get it to work properly yet)
-CLASS_COUNT = 200
-IMAGE_SIZE = 64
+from ..data.tiny_image_net import CLASS_COUNT
+from ..data.tiny_image_net import IMAGE_SIZE
 
 
 # helper function to construct a convolution layer followed by a pooling layer

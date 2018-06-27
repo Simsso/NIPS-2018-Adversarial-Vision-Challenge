@@ -29,7 +29,7 @@ def load_train_file_names(class_ids, images_per_class=TRAIN_COUNT_PER_CLASS):
     total_images_count = CLASS_COUNT * images_per_class
 
     files = []
-    labels = np.zeros(total_images_count, dtype=np.int)
+    labels = np.zeros(total_images_count, dtype=np.int32)
     for index in range(len(class_ids)):
         # load image paths
         class_id = class_ids[index]
