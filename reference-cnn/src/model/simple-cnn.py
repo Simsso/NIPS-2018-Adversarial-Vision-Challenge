@@ -30,7 +30,7 @@ Inputs:
 - mode
 
 Return Value:
-- if mode == TRAIN      returns a train_op
+- if mode == TRAIN      returns the loss so it can be optimized
 - if mode == PREDICT    returns a dictionary with classes (argmax) and probabilities (softmax over logits)
 - if mode == EVAL       returns a dictionary with the loss and the accuracy
 """
@@ -73,7 +73,5 @@ def simple_cnn(input_x, labels, mode):
             "accuracy": tf.metrics.accuracy(labels=labels, predictions=classes)
         }
 
-    # otherwise: TRAIN mode => return training op
-    optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
-    train_op = optimizer.minimize(loss)
-    return train_op
+    # otherwise: TRAIN mode => return loss only
+    return loss
