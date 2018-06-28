@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from ..data.tiny_image_net import CLASS_COUNT
-from ..data.tiny_image_net import IMAGE_SIZE
+from data.tiny_image_net import CLASS_COUNT
+from data.tiny_image_net import IMAGE_SIZE
 
 
 # helper function to construct a convolution layer followed by a pooling layer
@@ -22,8 +22,8 @@ def conv_pool_layer(inputs, filters=64, kernel_size=[5, 5], padding="same",
 Defines a simple CNN to classify images of shape [IMAGE_SIZE, IMAGE_SIZE, 3] in CLASS_COUNT classes
 
 Inputs:
-- input_x should be a tensor of shape [N, IMAGE_SIZE, IMAGE_SIZE, 3]
-- labels  should be a tensor of shape [N]
+- input_x should be a tensor of shape [N, IMAGE_SIZE, IMAGE_SIZE, 3] and type tf.float32
+- labels  should be a tensor of shape [N] and type tf.int32
 - mode
 
 Return Value:
@@ -36,7 +36,8 @@ def simple_cnn(input_x, labels, mode):
     conv2 = conv_pool_layer(conv1, filters=64)
     conv3 = conv_pool_layer(conv2, filters=64)
 
-    conv3_flat = tf.reshape(conv3, [-1, (IMAGE_SIZE / 4) * (IMAGE_SIZE / 4) * 64])
+    image_size = int(IMAGE_SIZE / 8)   # after 2x2 pooling from conv3, 2 and 1
+    conv3_flat = tf.reshape(conv3, [-1, image_size * image_size * 64])
 
     dense = tf.layers.dense(
         inputs=conv3_flat,

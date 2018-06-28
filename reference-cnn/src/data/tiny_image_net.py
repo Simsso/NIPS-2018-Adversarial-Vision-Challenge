@@ -3,7 +3,7 @@ import numpy as np
 import glob
 from random import shuffle
 
-DATASET_ROOT = "tiny_image_net"
+DATASET_ROOT = "data/tiny_image_net"
 
 WNIDS_PATH = DATASET_ROOT + "/wnids.txt"
 TRAIN_FOLDER = DATASET_ROOT + "/train"
@@ -26,7 +26,7 @@ def train_path_for_class_id(class_id):
 
 
 def load_train_file_names(class_ids, images_per_class=TRAIN_COUNT_PER_CLASS):
-    total_images_count = CLASS_COUNT * images_per_class
+    total_images_count = len(class_ids) * images_per_class
 
     files = []
     labels = np.zeros(total_images_count, dtype=np.int32)
