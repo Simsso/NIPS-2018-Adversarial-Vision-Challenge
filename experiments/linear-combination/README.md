@@ -6,7 +6,7 @@ This module package contains functionality for three different things:
  * loading the weights and computing an adversarial example using a FGSM-like attack
 
 
-Start a Docker container, which mounts volumes to persist the model, outputs, and TensorBoard logging.
+Start a Docker container, which mounts volumes to persist the model, outputs, and TensorBoard logging. Update the volume directory in `start.sh` (Docker requires an absolute path, here) to match this folder's location. (Previously: `/Users/timodenk/Development/nips-2018/linear-combination`)
 ```bash
 ./start.sh
 ```
