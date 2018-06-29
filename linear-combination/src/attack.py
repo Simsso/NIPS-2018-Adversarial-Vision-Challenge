@@ -18,6 +18,8 @@ def log_output(i, grad, img):
 def fgsm(model_name):
     """
     Loads the given model and computes an adversarial example using FGSM (fast gradient sign method).
+    Instead of computing the gradient of the loss we use the element of the probability output vector that corresponds
+    to the sample class.
     """
     if not os.path.exists(FGSM_DIR):
         os.makedirs(FGSM_DIR)
