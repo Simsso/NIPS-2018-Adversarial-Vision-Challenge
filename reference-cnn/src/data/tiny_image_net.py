@@ -3,7 +3,7 @@ import numpy as np
 import glob
 from random import shuffle
 
-DATASET_ROOT = "data/tiny_image_net"
+DATASET_ROOT = "/tmp/data/tiny_image_net"
 
 WNIDS_PATH = DATASET_ROOT + "/wnids.txt"
 TRAIN_FOLDER = DATASET_ROOT + "/train"

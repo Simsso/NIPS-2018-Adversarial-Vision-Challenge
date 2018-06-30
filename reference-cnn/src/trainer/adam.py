@@ -4,12 +4,11 @@ from data.tiny_image_net import IMAGE_SIZE
 
 LEARNING_RATE = 0.005
 BATCH_SIZE = 20
-NUM_STEPS = 10
 
 save_path = "checkpoints/simple-cnn-model.ckpt"
 
 
-def train(train_images, train_labels):
+def train(train_images, train_labels, num_steps):
     optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
 
     x = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 3])
@@ -20,25 +19,20 @@ def train(train_images, train_labels):
 
     saver = tf.train.Saver()
 
-    with tf.Session() as session:
-        session.run(tf.global_variables_initializer())
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
 
-        #saver.restore(session, save_path)
-        for i in range(NUM_STEPS):
+        # saver.restore(sess, save_path)
+        for i in range(num_steps):
             batch_x = train_images[(i * BATCH_SIZE):((i+1)*BATCH_SIZE), :, :, :]
             batch_y = train_labels[(i * BATCH_SIZE):((i+1)*BATCH_SIZE)]
 
-            session.run(train_op, feed_dict={
-                x: batch_x,
-                y: batch_y
-            })
-
-            loss_value = session.run(loss, feed_dict={
+            _, loss_value = sess.run([train_op, loss], feed_dict={
                 x: batch_x,
                 y: batch_y
             })
 
             print("Loss in iteration %d: %f" % (i, loss_value))
 
-        saver.save(session, save_path)
+        saver.save(sess, save_path)
 
