@@ -62,3 +62,7 @@ def fgsm(model_name):
         scipy.misc.imsave(pp + FGSM_DIR + '/probabilities.png', probabilities_out)
         print probabilities_out
         print np.argmax(probabilities_out, axis=1)
+
+
+def get_attacks():
+    return ["img_1"], ["img_adv_1"]
