@@ -11,7 +11,7 @@ def get_perturbation(layers, batch_size):
     layer_perturbations = []
     for layer in layers:
         act, act_adv = tf.split(layer, [batch_size, batch_size], axis=0)
-        diff = tf.subtract(act - act_adv)
+        diff = tf.subtract(act, act_adv)
         pert_abs = tf.norm(diff, 'euclidean', axis=1)
         pert_rel = pert_abs / tf.norm(act, 'euclidean', axis=1)
         pert_mean = tf.reduce_mean(pert_rel, axis=0)
