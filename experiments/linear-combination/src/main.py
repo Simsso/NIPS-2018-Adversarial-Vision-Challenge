@@ -16,7 +16,7 @@ def main(args=None):
     # train.train()
     # lc.run_analysis(train.MODEL_NAME)
     # attack.fgsm(train.MODEL_NAME)
-    img, adv = attack.get_attack_batch(train.MODEL_NAME, 10)
+    img, adv = attack.get_attack_batch(train.MODEL_NAME, 100)
     pert.run_analysis(train.MODEL_NAME, img, adv)
 
 

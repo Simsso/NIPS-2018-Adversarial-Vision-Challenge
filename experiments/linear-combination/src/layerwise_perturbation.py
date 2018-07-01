@@ -10,6 +10,7 @@ MODEL_DIR = 'out' + os.sep + 'model_dir'
 def get_perturbation(layers, batch_size):
     layer_perturbations = []
     for layer in layers:
+        layer = tf.reshape(layer, [batch_size * 2, -1])  # flatten layer output
         act, act_adv = tf.split(layer, [batch_size, batch_size], axis=0)
         diff = tf.subtract(act, act_adv)
         pert_abs = tf.norm(diff, 'euclidean', axis=1)
