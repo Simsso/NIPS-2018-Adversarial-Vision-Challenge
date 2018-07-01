@@ -1,9 +1,12 @@
-# Linear Combination Experiments
+# MNIST CNN Tinkering
 
-This module package contains functionality for three different things:
+
+This module package contains functionality for the following things:
  * training a CNN on MNIST and storing the weights (+ logging to TensorBoard)
  * loading the weights and analyzing the classification of linear combinations between two input samples
  * loading the weights and computing an adversarial example using a FGSM-like attack
+ * generating adversarial attacks using FGSM
+ * computing the layerwise perturbation cause by attacks
 
 
 Start a Docker container, which mounts volumes to persist the model, outputs, and TensorBoard logging. Update the volume directory in `start.sh` (Docker requires an absolute path, here) to match this folder's location. (Previously: `/Users/timodenk/Development/nips-2018/linear-combination`)
@@ -24,5 +27,5 @@ For these _n_ linear combinations, we run the classification and observe how smo
 We found that this method is not feasible for the detection of vulnerabilities, without significant changes.
 
 ## FGSM
-To ensure that the model is vulnerable at all we have search for adversarial examples using an FGSM-like attack and were successful.
-Our attack differs slightly from FGSM as it does not compute the gradient based on the loss but the probability output for the sample class.
+To ensure that the model is vulnerable at all we have search for adversarial examples using an FGSM-like attack (and the real FGSM) and were successful.
+Our first attack differs slightly from FGSM as it does not compute the gradient based on the loss but the probability output for the sample class.
