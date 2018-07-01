@@ -63,7 +63,8 @@ def cnn(img):
     return {
         "classes": tf.argmax(input=logits, axis=1),
         "probabilities": tf.nn.softmax(logits, name="softmax_tensor"),
-        "logits": logits
+        "logits": logits,
+        "layers": [img, conv1, conv2, dense, logits]
     }
 
 

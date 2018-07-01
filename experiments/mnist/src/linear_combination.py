@@ -40,8 +40,8 @@ def run_analysis(model_name):
     saver = tf.train.Saver()
     with tf.Session() as sess:
         saver.restore(sess, "./" + MODEL_DIR + os.sep + "model_" + model_name + ".ckpt")
-        a = data.getClassSample(4)
-        b = data.getClassSample(2)
+        a = data.get_class_sample(4)
+        b = data.get_class_sample(2)
         result = sess.run(probabilities, feed_dict={
             img_batch: linear_combinations(a, b, 50)
         })

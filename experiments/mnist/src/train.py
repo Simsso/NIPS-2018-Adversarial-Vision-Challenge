@@ -6,7 +6,7 @@ import tensorflow as tf
 LEARNING_RATE = 3e-4
 STEPS = 200
 BATCH_SIZE = 100
-MODEL_NAME = '6'
+MODEL_NAME = '7'
 
 LOG_PATH = 'out' + os.sep + 'tf_logs'
 MODEL_DIR = 'out' + os.sep + 'model_dir'
