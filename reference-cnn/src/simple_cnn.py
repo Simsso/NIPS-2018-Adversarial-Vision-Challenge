@@ -1,7 +1,5 @@
 import tensorflow as tf
-
-from data.tiny_image_net import CLASS_COUNT
-from data.tiny_image_net import IMAGE_SIZE
+from src.utils import config
 
 
 # helper function to construct a convolution layer followed by a pooling layer
@@ -31,12 +29,14 @@ Return Value:
 - if mode == PREDICT    returns a dictionary with classes (argmax) and probabilities (softmax over logits)
 - if mode == EVAL       returns a dictionary with the loss and the accuracy
 """
+
+
 def simple_cnn(input_x, labels, mode):
     conv1 = conv_pool_layer(input_x, filters=32)
     conv2 = conv_pool_layer(conv1, filters=64)
     conv3 = conv_pool_layer(conv2, filters=64)
 
-    image_size = int(IMAGE_SIZE / 8)   # after 2x2 pooling from conv3, 2 and 1
+    image_size = int(config['image_size'] / 8)  # after 2x2 pooling from conv3, 2 and 1
     conv3_flat = tf.reshape(conv3, [-1, image_size * image_size * 64])
 
     dense = tf.layers.dense(
@@ -52,7 +52,7 @@ def simple_cnn(input_x, labels, mode):
 
     logits = tf.layers.dense(
         inputs=dropout,
-        units=CLASS_COUNT
+        units=config['class_count']
     )
 
     classes = tf.argmax(input=logits, axis=1)

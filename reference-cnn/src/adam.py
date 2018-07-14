@@ -1,17 +1,14 @@
 import tensorflow as tf
-from model.simple_cnn import simple_cnn
-from data.tiny_image_net import IMAGE_SIZE
+from simple_cnn import simple_cnn
+from utils.config import config
 
-LEARNING_RATE = 0.005
-BATCH_SIZE = 20
-
-save_path = "checkpoints/simple-cnn-model.ckpt"
+save_path = "%s/%s" % (config['checkpoint_save_path'], config['model_name'])
 
 
 def train(train_images, train_labels, num_steps):
-    optimizer = tf.train.AdamOptimizer(LEARNING_RATE)
+    optimizer = tf.train.AdamOptimizer(config['learning_rate'])
 
-    x = tf.placeholder(tf.float32, shape=[None, IMAGE_SIZE, IMAGE_SIZE, 3])
+    x = tf.placeholder(tf.float32, shape=[None, config['image_size'], config['image_size'], 3])
     y = tf.placeholder(tf.int32)
 
     loss = simple_cnn(input_x=x, labels=y, mode=tf.estimator.ModeKeys.TRAIN)
@@ -24,8 +21,8 @@ def train(train_images, train_labels, num_steps):
 
         # saver.restore(sess, save_path)
         for i in range(num_steps):
-            batch_x = train_images[(i * BATCH_SIZE):((i+1)*BATCH_SIZE), :, :, :]
-            batch_y = train_labels[(i * BATCH_SIZE):((i+1)*BATCH_SIZE)]
+            batch_x = train_images[(i * config['batch_size']):((i + 1) * config['batch_size']), :, :, :]
+            batch_y = train_labels[(i * config['batch_size']):((i + 1) * config['batch_size'])]
 
             _, loss_value = sess.run([train_op, loss], feed_dict={
                 x: batch_x,
@@ -35,4 +32,3 @@ def train(train_images, train_labels, num_steps):
             print("Loss in iteration %d: %f" % (i, loss_value))
 
         saver.save(sess, save_path)
-
