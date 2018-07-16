@@ -21,19 +21,22 @@ import random
 import numpy as np
 
 NUM_CLASSES = 200
+NUM_TRAIN_SAMPLES = 500*NUM_CLASSES
+IMG_DIM = 56
+IMG_CHANNELS = 3
 PATH = '/tmp/data/tiny-imagenet-200'
 
 
 def load_filenames_labels(mode):
     """Gets filenames and labels
 
-  Args:
-    mode: 'train' or 'val'
-      (Directory structure and file naming different for
-      train and val datasets)
+    Args:
+        mode: 'train' or 'val'
+            (Directory structure and file naming different for
+            train and val datasets)
 
-  Returns:
-    list of tuples: (jpeg filename with path, label)
+    Returns:
+        list of tuples: (jpeg filename with path, label)
   """
     label_dict, class_description = build_label_dicts()
     filenames_labels = []
@@ -57,18 +60,18 @@ def load_filenames_labels(mode):
 def build_label_dicts():
     """Build look-up dictionaries for class label, and class description
 
-  Class labels are 0 to 199 in the same order as
+    Class labels are 0 to 199 in the same order as
     tiny-imagenet-200/wnids.txt. Class text descriptions are from
     tiny-imagenet-200/words.txt
 
-  Returns:
-    tuple of dicts
-      label_dict:
-        keys = synset (e.g. "n01944390")
-        values = class integer {0 .. 199}
-      class_desc:
-        keys = class integer {0 .. 199}
-        values = text description from words.txt
+    Returns:
+        tuple of dicts
+        label_dict:
+            keys = synset (e.g. "n01944390")
+            values = class integer {0 .. 199}
+        class_desc:
+            keys = class integer {0 .. 199}
+            values = text description from words.txt
   """
     label_dict, class_description = {}, {}
     with open(PATH + '/wnids.txt', 'r') as f:
@@ -87,20 +90,20 @@ def build_label_dicts():
 
 def read_image(filename_q, mode):
     """Load next jpeg file from filename / label queue
-  Randomly applies distortions if mode == 'train' (including a
-  random crop to [56, 56, 3]). Standardizes all images.
+    Randomly applies distortions if mode == 'train' (including a
+    random crop to [56, 56, 3]). Standardizes all images.
 
-  Args:
-    filename_q: Queue with 2 columns: filename string and label string.
-     filename string is relative path to jpeg file. label string is text-
-     formatted integer between '0' and '199'
-    mode: 'train' or 'val'
+    Args:
+        filename_q: Queue with 2 columns: filename string and label string.
+            filename string is relative path to jpeg file. label string is text-
+            formatted integer between '0' and '199'
+            mode: 'train' or 'val'
 
-  Returns:
-    [img, label]:
-      img = tf.uint8 tensor [height, width, channels]  (see tf.image.decode.jpeg())
-      label = tf.unit8 target class label: {0 .. 199}
-  """
+    Returns:
+        [img, label]:
+            img = tf.uint8 tensor [height, width, channels]  (see tf.image.decode.jpeg())
+            label = tf.unit8 target class label: {0 .. 199}
+    """
     item = filename_q.dequeue()
     filename = item[0]
     label = item[1]
@@ -122,12 +125,13 @@ def read_image(filename_q, mode):
     return [img, label]
 
 
-def batch_q(mode, config):
+def batch_q(mode, batch_size, num_epochs):
     """Return batch of images using filename Queue
 
     Args:
         mode: 'train' or 'val'
-        config: training configuration object
+        batch_size: number of samples per batch
+        num_epochs: number of epochs
 
     Returns:
         imgs: tf.uint8 tensor [batch_size, height, width, channels]
@@ -136,12 +140,9 @@ def batch_q(mode, config):
     """
     filenames_labels = load_filenames_labels(mode)
     random.shuffle(filenames_labels)
-    filename_q = tf.train.input_producer(filenames_labels,
-                                         num_epochs=config['num_epochs'],
-                                         shuffle=True)
+    filename_q = tf.train.input_producer(filenames_labels, shuffle=True)
 
     # 2 read_image threads to keep batch_join queue full:
     result = tf.train.batch_join([read_image(filename_q, mode) for i in range(2)],
-                                 config['batch_size'], shapes=[(56, 56, 3), ()],
-                                 capacity=2048)
+                                 batch_size, shapes=[(56, 56, 3), ()], capacity=2048)
     return result
