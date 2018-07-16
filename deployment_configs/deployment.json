@@ -1,0 +1,20 @@
+{
+    "steps": [
+        {
+            "name":"gcr.io/cloud-builders/docker",
+            "args": [
+                "build",
+                "-t",
+                "gcr.io/my-nips-2018-207619-id/$TAG_NAME",
+                "."
+            ]
+        },
+        {
+            "name":"gcr.io/cloud-builders/docker",
+            "args": [
+                "push",
+                "gcr.io/my-nips-2018-207619-id/$TAG_NAME:$SHORT_SHA"
+            ]
+        }
+    ]
+}

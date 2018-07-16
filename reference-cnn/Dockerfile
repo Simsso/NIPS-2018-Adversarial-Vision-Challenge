@@ -1,11 +1,5 @@
 FROM tensorflow/tensorflow:latest
 
-# download dataset
-RUN mkdir /tmp/data && \
-    cd /tmp/data && \
-    curl -O http://cs231n.stanford.edu/tiny-imagenet-200.zip && \
-    unzip tiny-imagenet-200.zip
-
 WORKDIR /opt/app
 
 COPY requirements.txt /opt/app
