@@ -6,7 +6,7 @@
                 "build",
                 "-t",
                 "gcr.io/my-nips-2018-207619-id/$TAG_NAME",
-                "."
+                "../models/$TAG_NAME"
             ]
         },
         {
