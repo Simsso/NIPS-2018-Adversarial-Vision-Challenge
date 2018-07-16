@@ -1,11 +1,11 @@
 import data.tiny_imagenet as data
-import model.multinomial_logistic_regression as mlr
+import model.deep_cnn as cnn
 import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = 1e-2
-TRAINING_RUN_NAME = 'mlr_001c'
+LEARNING_RATE = 1e-4
+TRAINING_RUN_NAME = 'cnn_001c'
 NUM_EPOCHS = 10
 TRAIN_BATCH_SIZE = 100
 VALID_BATCH_SIZE = 1000
@@ -21,13 +21,13 @@ def train():
         labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
 
         # data set
-        train = data.batch_q('train', TRAIN_BATCH_SIZE, NUM_EPOCHS)
-        valid = data.batch_q('val', VALID_BATCH_SIZE, NUM_EPOCHS)
+        train_batch = data.batch_q('train', TRAIN_BATCH_SIZE, NUM_EPOCHS)
+        valid_batch = data.batch_q('val', VALID_BATCH_SIZE, NUM_EPOCHS)
 
-        logits, softmax = mlr.model(tf.cast(images, tf.float32))
-        loss = mlr.loss(labels, logits)
+        logits, softmax = cnn.model(tf.cast(images, tf.float32))
+        loss = cnn.loss(labels, logits)
         tf.summary.scalar('loss', loss)
-        acc = mlr.accuracy(labels, softmax)
+        acc = cnn.accuracy(labels, softmax)
         tf.summary.scalar('accuracy', acc)
         optimizer = get_optimization_op(loss)
 
@@ -49,17 +49,18 @@ def train():
         try:
             while not coord.should_stop():
                 for epoch in range(NUM_EPOCHS):
-                    valid_images, valid_labels = sess.run(valid)
+                    valid_images, valid_labels = sess.run(valid_batch)
                     summary, acc_val = sess.run([summary_merged, acc],
                                                 feed_dict={images: valid_images, labels: valid_labels})
                     valid_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH)
                     print(acc_val)
 
                     for step in range(STEPS_PER_EPOCH):
-                        train_images, train_labels = sess.run(train)
+                        train_images, train_labels = sess.run(train_batch)
                         summary, _ = sess.run([summary_merged, optimizer],
                                               feed_dict={images: train_images, labels: train_labels})
                         train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
+                break
         except tf.errors.OutOfRangeError as e:
             coord.request_stop(e)
         finally:
