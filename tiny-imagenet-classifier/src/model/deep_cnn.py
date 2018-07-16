@@ -5,12 +5,18 @@ import data.tiny_imagenet as data
 def model(x):
     tf.summary.image('input_image', x)
 
-    conv1 = tf.layers.conv2d(x, 256, [5, 5], activation=tf.nn.relu)
+    conv1 = tf.layers.conv2d(x, 512, [3, 3])
+    conv1 = tf.layers.batch_normalization(conv1)
+    conv1 = tf.nn.relu(conv1)
 
-    conv2 = tf.layers.conv2d(conv1, 128, [5, 5], strides=[2, 2], activation=tf.nn.relu)
-    pool2 = tf.layers.max_pooling2d(conv2, 3, strides=[2, 2])
+    conv2 = tf.layers.conv2d(conv1, 265, [5, 5], strides=[2, 2])
+    conv2 = tf.layers.batch_normalization(conv2)
+    conv2 = tf.nn.relu(conv2)
+    conv2 = tf.layers.max_pooling2d(conv2, 4, strides=[2, 2])
 
-    conv3 = tf.layers.conv2d(pool2, 64, [6, 6], strides=[2, 2], activation=tf.nn.relu)
+    conv3 = tf.layers.conv2d(conv2, 256, [6, 6], strides=[2, 2])
+    conv3 = tf.layers.batch_normalization(conv3)
+    conv3 = tf.nn.relu(conv3)
 
     conv_flat = tf.reshape(conv3, [-1, conv3.shape[1] * conv3.shape[2] * conv3.shape[3]])
 

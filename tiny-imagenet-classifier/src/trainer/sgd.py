@@ -5,9 +5,9 @@ import tensorflow as tf
 import util.file_system
 
 LEARNING_RATE = 1e-4
-TRAINING_RUN_NAME = 'cnn_001c'
+TRAINING_RUN_NAME = 'cnn_002a'
 NUM_EPOCHS = 10
-TRAIN_BATCH_SIZE = 100
+TRAIN_BATCH_SIZE = 250
 VALID_BATCH_SIZE = 1000
 STEPS_PER_EPOCH = int(data.NUM_TRAIN_SAMPLES / TRAIN_BATCH_SIZE)
 TF_LOGS = os.path.join('..', 'tf_logs')
