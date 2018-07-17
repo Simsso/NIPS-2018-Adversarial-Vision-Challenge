@@ -2,6 +2,10 @@
 
 TERRAFORM = "terraform_0.11.7_darwin_amd64"
 
+echo "Install curl .."
+sudo apt-get update
+sudo apt-get install curl
+
 echo "Downloading Terraform .."
 curl -O "https://releases.hashicorp.com/terraform/0.11.7/$TERRAFORM.zip"
 
