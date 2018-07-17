@@ -125,13 +125,12 @@ def read_image(filename_q, mode):
     return [img, label]
 
 
-def batch_q(mode, batch_size, num_epochs):
+def batch_q(mode, batch_size):
     """Return batch of images using filename Queue
 
     Args:
         mode: 'train' or 'val'
         batch_size: number of samples per batch
-        num_epochs: number of epochs
 
     Returns:
         imgs: tf.uint8 tensor [batch_size, height, width, channels]
