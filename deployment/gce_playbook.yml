@@ -1,0 +1,6 @@
+- hosts: '{{ host }}'
+  remote_user: root
+  tasks:
+  - name: Update apt-repositories 
+    command: apt-get update
+    become: yes
