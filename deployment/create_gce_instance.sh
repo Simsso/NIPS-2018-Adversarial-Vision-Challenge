@@ -13,3 +13,9 @@ rm "$TERRAFORM.zip"
 
 echo "Initializing Terraform .."
 terraform init
+
+echo "Planning Terraform .."
+terraform plan
+
+echo "Applying Terraform plan .."
+terraform apply -auto-approve -var "instance_name=$1"
