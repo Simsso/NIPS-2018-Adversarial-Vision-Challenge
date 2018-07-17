@@ -4,9 +4,9 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .05
-TRAINING_RUN_NAME = 'cnn_003g'
-VALIDATIONS_PER_EPOCH = 25
+LEARNING_RATE = .005
+TRAINING_RUN_NAME = 'cnn_004c'
+VALIDATIONS_PER_EPOCH = 50
 NUM_EPOCHS = 10
 TRAIN_BATCH_SIZE = 100
 VALID_BATCH_SIZE = 1000
@@ -56,7 +56,7 @@ def train():
                             valid_images, valid_labels = sess.run(valid_batch)
                             summary, acc_val = sess.run([summary_merged, acc],
                                                         feed_dict={images: valid_images, labels: valid_labels})
-                            valid_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH)
+                            valid_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
                             print(acc_val)
 
                         train_images, train_labels = sess.run(train_batch)

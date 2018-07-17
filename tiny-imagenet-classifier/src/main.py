@@ -1,6 +1,5 @@
 import tensorflow as tf
 import trainer.sgd as sgd_trainer
-import data.tiny_imagenet as data
 
 
 def main(args=None):
