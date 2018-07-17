@@ -18,7 +18,7 @@
         },
         {
             "name": "ubuntu",
-            "args": ["bash", "./create_gce_instance.sh"] 
+            "args": ["bash", "deployment/create_gce_instance.sh"] 
         }
     ]
 }
