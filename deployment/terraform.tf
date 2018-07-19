@@ -4,7 +4,7 @@ provider "google" {
   region      = "${var.region}"
 }
 
-resource "google_compute_instance" "gce_instance" {
+resource "google_compute_instance" "gce-instance" {
   name         = "${var.instance_name}"
   machine_type = "${var.machine_type}"
   zone         = "${var.zone}"
@@ -20,11 +20,11 @@ resource "google_compute_instance" "gce_instance" {
   }
 
   /*
-                          guest_accelerator {
-                            type = "nvidia-tesla-k80"
-                            count = 1
-                          }  
-                        */
+                            guest_accelerator {
+                              type = "nvidia-tesla-k80"
+                              count = 1
+                            }  
+                          */
   network_interface {
     network       = "default"
     access_config = {}
