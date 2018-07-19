@@ -17,7 +17,6 @@ chmod +x /usr/local/bin/terraform
 rm "$TERRAFORM.zip"
 
 echo "Initializing Terraform .."
-mv cloudbuild-service-account.json deployment/
 cd deployment
 terraform init
 
