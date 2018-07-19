@@ -5,6 +5,7 @@ TERRAFORM="terraform_0.11.7_linux_amd64"
 echo "Install curl .."
 apt-get update -y
 apt-get install -y curl
+apt-get install -y zip
 
 echo "Downloading Terraform .."
 curl -O "https://releases.hashicorp.com/terraform/0.11.7/$TERRAFORM.zip"
