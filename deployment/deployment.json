@@ -30,7 +30,7 @@
         },
         {
             "name": "ubuntu",
-            "args": ["bash", "deployment/create_gce_instance.sh"] 
+            "args": ["bash", "deployment/create_gce_instance.sh $TAG_NAME-$SHORT_SHA"] 
         }
     ]
 }
