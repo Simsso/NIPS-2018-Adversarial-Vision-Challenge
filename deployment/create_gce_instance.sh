@@ -16,7 +16,10 @@ mv terraform /usr/local/bin
 chmod +x /usr/local/bin/terraform
 rm "$TERRAFORM.zip"
 
+
+
 echo "Initializing Terraform .."
+cd deployment
 terraform init
 
 echo "Planning Terraform .."
