@@ -1,4 +1,4 @@
 
 reference-cnn/\.idea/
 .DS_Store
-deployment/account.json
+deployment/cloudbuild-service-account\.json

@@ -1,5 +1,5 @@
 provider "google" {
-  credentials = "${file("account.json")}"
+  credentials = "${file("cloudbuild-service-account.json")}"
   project     = "${var.project}"
   region      = "${var.region}"
 }
@@ -20,11 +20,11 @@ resource "google_compute_instance" "gce_instance" {
   }
 
   /*
-                        guest_accelerator {
-                          type = "nvidia-tesla-k80"
-                          count = 1
-                        }  
-                      */
+                          guest_accelerator {
+                            type = "nvidia-tesla-k80"
+                            count = 1
+                          }  
+                        */
   network_interface {
     network       = "default"
     access_config = {}

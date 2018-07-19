@@ -2,7 +2,7 @@
 
 TERRAFORM="terraform_0.11.7_linux_amd64"
 
-echo "Install curl .."
+echo "Install required packages .."
 apt-get update -y
 apt-get install -y curl
 apt-get install -y zip
@@ -16,9 +16,8 @@ mv terraform /usr/local/bin
 chmod +x /usr/local/bin/terraform
 rm "$TERRAFORM.zip"
 
-
-
 echo "Initializing Terraform .."
+mv cloudbuild-service-account.json deployment/
 cd deployment
 terraform init
 
