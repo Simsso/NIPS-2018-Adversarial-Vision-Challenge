@@ -1,4 +1,4 @@
-- hosts: '{{ host }}'
+- hosts: nips_training
   remote_user: root
   tasks:
   - name: Update apt-repositories 
