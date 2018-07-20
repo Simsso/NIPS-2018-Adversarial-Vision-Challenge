@@ -62,14 +62,14 @@ def train():
                             summary, acc_val = sess.run([summary_merged, acc],
                                                         feed_dict={images: valid_images, labels: valid_labels})
                             valid_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
-                            print("Currently: step %d in epoch %d" % (step, epoch))
+                            print("Currently: step %d/%d in epoch %d/%d" % (step, STEPS_PER_EPOCH, (epoch+1), NUM_EPOCHS))
 
                         train_images, train_labels = sess.run(train_batch)
                         summary, _ = sess.run([summary_merged, optimizer],
                                               feed_dict={images: train_images, labels: train_labels})
                         train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
                         
-                    print("---- Epoch %d/%d completed." % (epoch, NUM_EPOCHS))
+                    print("---- Epoch %d/%d completed. ----" % ((epoch + 1), NUM_EPOCHS))
                 saver.save(sess, SAVER_PATH)
                 print("Done. Saved model to %s" % (SAVER_PATH))
                 break
