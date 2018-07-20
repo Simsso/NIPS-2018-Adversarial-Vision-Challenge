@@ -6,8 +6,7 @@ apt-add-repository ppa:ansible/ansible
 apt-get install -y ansible
 
 echo "Configure GCE Instance SSH Keys .."
-cp nips-cloudbuilding $HOME/.ssh/nips-cloudbuilding
-eval "$(ssh-agent -s)" 
+cp nips-cloudbuilder $HOME/.ssh/nips-cloudbuilder
 
 echo "Generate Ansible Host Inventory .."
 printf "[nips_training]\n $1\n" > gcp-hosts
