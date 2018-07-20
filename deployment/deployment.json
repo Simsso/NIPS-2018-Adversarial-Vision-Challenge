@@ -29,6 +29,18 @@
             ]
         },
         {
+            "name":"gcr.io/cloud-builders/gcloud",
+            "args": [
+                "kms",
+                "decrypt",
+                "--ciphertext-file=deployment/nips-cloudbuilder.enc",
+                "--plaintext-file=deployment/nips-cloudbuilder",
+                "--location=global",
+                "--keyring=nips-2018-challenge-keyring",
+                "--key=nips-2018-challenge-key"
+            ]
+        },
+        {
             "name": "ubuntu",
             "args": [
                 "bash",
