@@ -39,9 +39,10 @@ def train():
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         summary_merged = tf.summary.merge_all()
 
-    util.file_system.create_dir(TF_LOGS)
+        saver = tf.train.Saver()
 
-    saver = tf.train.Saver()
+    util.file_system.create_dir(TF_LOGS)
+    
     sess = tf.Session(graph=graph)
     with sess.as_default():
         train_log_writer = tf.summary.FileWriter(os.path.join(TF_LOGS, '%s_train' % TRAINING_RUN_NAME), sess.graph)
@@ -69,14 +70,14 @@ def train():
                         train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
                         
                     print("---- Epoch %d/%d completed." % (epoch, NUM_EPOCHS))
+                saver.save(sess, SAVER_PATH)
+                print("Done. Saved model to %s" % (SAVER_PATH))
                 break
         except tf.errors.OutOfRangeError as e:
             coord.request_stop(e)
         finally:
             coord.request_stop()
             coord.join(threads)
-            saver.save(sess, SAVER_PATH)
-            print("Done. Saved model to %s" % (SAVER_PATH))
 
 
 def get_optimization_op(loss):
