@@ -53,6 +53,8 @@ def train():
 
         sess.run(init)
 
+        saver.restore(sess, SAVER_PATH)
+
         try:
             while not coord.should_stop():
                 for epoch in range(NUM_EPOCHS):
