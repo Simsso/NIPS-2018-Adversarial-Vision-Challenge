@@ -1,6 +1,6 @@
 import tensorflow as tf
 import trainer.sgd as sgd_trainer
-import trainer.sgd_resnet as resnet_trainer
+import trainer.adam_resnet as resnet_trainer
 
 
 def main(args=None):

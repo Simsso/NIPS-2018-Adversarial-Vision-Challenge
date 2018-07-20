@@ -13,6 +13,7 @@ VALID_BATCH_SIZE = 1000
 STEPS_PER_EPOCH = int(data.NUM_TRAIN_SAMPLES / TRAIN_BATCH_SIZE)
 STEPS_PER_VALIDATION = int(STEPS_PER_EPOCH / VALIDATIONS_PER_EPOCH)
 TF_LOGS = os.path.join('..', 'tf_logs')
+SAVER_PATH = "checkpoints/" + TRAINING_RUN_NAME + "_model.ckpt"
 
 def train():
     graph = tf.Graph()
@@ -40,6 +41,7 @@ def train():
 
     util.file_system.create_dir(TF_LOGS)
 
+    saver = tf.train.Saver()
     sess = tf.Session(graph=graph)
     with sess.as_default():
         train_log_writer = tf.summary.FileWriter(os.path.join(TF_LOGS, '%s_train' % TRAINING_RUN_NAME), sess.graph)
@@ -59,17 +61,22 @@ def train():
                             summary, acc_val = sess.run([summary_merged, acc],
                                                         feed_dict={images: valid_images, labels: valid_labels})
                             valid_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
+                            print("Currently: step %d in epoch %d" % (step, epoch))
 
                         train_images, train_labels = sess.run(train_batch)
                         summary, _ = sess.run([summary_merged, optimizer],
                                               feed_dict={images: train_images, labels: train_labels})
                         train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
+                        
+                    print("---- Epoch %d/%d completed." % (epoch, NUM_EPOCHS))
                 break
         except tf.errors.OutOfRangeError as e:
             coord.request_stop(e)
         finally:
             coord.request_stop()
             coord.join(threads)
+            saver.save(sess, SAVER_PATH)
+            print("Done. Saved model to %s" % (SAVER_PATH))
 
 
 def get_optimization_op(loss):
