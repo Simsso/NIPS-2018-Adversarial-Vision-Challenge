@@ -1,10 +1,10 @@
 #!/bin/sh
 
-DIRECTORY=/tmp/data/tiny-imagenet-200
+DIRECTORY=~/.data/tiny-imagenet-200
 
 if [ ! -d "$DIRECTORY" ]; then
-    mkdir /tmp/data
-    cd /tmp/data
+    mkdir ~/.data 
+    cd ~/.data
     echo "Download started..."
     curl -sS http://cs231n.stanford.edu/tiny-imagenet-200.zip > tiny-imagenet-200.zip
     echo "Unzipping..."

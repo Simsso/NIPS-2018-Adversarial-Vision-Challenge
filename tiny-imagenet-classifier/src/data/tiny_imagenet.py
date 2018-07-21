@@ -19,13 +19,13 @@ import re
 import tensorflow as tf
 import random
 import numpy as np
+import os
 
 NUM_CLASSES = 200
 NUM_TRAIN_SAMPLES = 500*NUM_CLASSES
 IMG_DIM = 56
 IMG_CHANNELS = 3
-PATH = '/tmp/data/tiny-imagenet-200'
-
+PATH = os.path.expanduser('~/.data/tiny-imagenet-200')
 
 def load_filenames_labels(mode):
     """Gets filenames and labels
