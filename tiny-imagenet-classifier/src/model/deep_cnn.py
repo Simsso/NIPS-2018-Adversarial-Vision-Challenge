@@ -16,12 +16,20 @@ def model(x):
     conv1 = tf.layers.batch_normalization(conv1)
     conv1 = tf.layers.max_pooling2d(conv1, pool_size=[3, 3], strides=[2, 2], padding='valid')
 
-    conv2 = tf.layers.conv2d(conv1, 256, [5, 5], padding='valid', kernel_initializer=k_in(5e-2))
+    conv2 = tf.layers.conv2d(conv1, 256, [4, 4], padding='valid', kernel_initializer=k_in(5e-2))
     conv2 = tf.nn.relu(conv2)
     conv2 = tf.layers.batch_normalization(conv2)
-    conv2 = tf.layers.max_pooling2d(conv2, 3, strides=[2, 2], padding='valid')
 
-    conv_flat = tf.reshape(conv2, [-1, np.product(conv2.shape[1:])])
+    conv3 =  tf.layers.conv2d(conv2, 512, [3, 3], padding='valid', kernel_initializer=k_in(5e-2))
+    conv3 = tf.nn.relu(conv3)
+    conv3 = tf.layers.batch_normalization(conv3)
+
+    conv4 = tf.layers.conv2d(conv3, 1024, [2, 2], padding='valid', kernel_initializer=k_in(5e-2))
+    conv4 = tf.nn.relu(conv4)
+    conv4 = tf.layers.batch_normalization(conv4)
+    conv4 = tf.layers.max_pooling2d(conv4, 3, strides=[2, 2], padding='valid')
+
+    conv_flat = tf.reshape(conv4, [-1, np.product(conv4.shape[1:])])
 
     dense1 = tf.layers.dense(conv_flat, 1024, activation=tf.nn.relu, kernel_initializer=k_in(.004))
     dense1 = tf.layers.batch_normalization(dense1)

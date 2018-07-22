@@ -1,10 +1,10 @@
 import tensorflow as tf
-import trainer.sgd as sgd_trainer
-import trainer.adam_resnet as resnet_trainer
+import trainer.sgd as trainer
+#import trainer.adam_resnet as trainer
 
 
 def main(args=None):
-    resnet_trainer.train()
+    trainer.train()
 
 
 if __name__ == '__main__':
