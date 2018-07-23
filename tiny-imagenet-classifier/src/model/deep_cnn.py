@@ -4,7 +4,7 @@ import data.tiny_imagenet as data
 
 
 def k_in(stddev):
-    """ Kernel initializier with given standard deviation. """
+    """ Kernel initializer with given standard deviation. """
     return tf.truncated_normal_initializer(mean=0, stddev=stddev, dtype=tf.float32)
 
 

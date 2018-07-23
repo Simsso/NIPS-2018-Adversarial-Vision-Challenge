@@ -1,10 +1,10 @@
 import tensorflow as tf
 import trainer.sgd as trainer
-#import trainer.adam_resnet as trainer
+import model.inception_ish as model
 
 
 def main(args=None):
-    trainer.train()
+    trainer.train(model)
 
 
 if __name__ == '__main__':
