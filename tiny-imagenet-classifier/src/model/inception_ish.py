@@ -57,7 +57,15 @@ def graph(x, drop_prob, wd):
         incep3 = inception_layer(incep2, 'incep3', wd)
         incep4 = inception_layer(incep3, 'incep4', wd)
 
-        conv_flat = tf.reshape(incep4, [-1, np.product(incep4.shape[1:])])
+        pool1 = tf.layers.max_pooling2d(incep4, (3, 3), (2, 2))
+
+        conv2 = add_wd(tf.layers.conv2d(pool1, 256, [5, 5], strides=(2, 2)), wd)
+        conv2 = tf.nn.relu(conv2)
+        conv2 = tf.layers.batch_normalization(conv2)
+
+        pool2 = tf.layers.max_pooling2d(conv2, (3, 3), (2, 2))
+
+        conv_flat = tf.reshape(pool2, [-1, np.product(pool2.shape[1:])])
         conv_flat = tf.layers.dropout(conv_flat, rate=drop_prob)
 
         dense1 = add_wd(tf.layers.dense(conv_flat, 1024, activation=tf.nn.relu, kernel_initializer=k_in(.004)), wd)
