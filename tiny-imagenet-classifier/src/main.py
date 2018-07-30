@@ -1,6 +1,6 @@
 import tensorflow as tf
 import trainer.sgd as trainer
-import model.inception_ish as model
+import model.tf_cifar10 as model
 
 
 def main(args=None):

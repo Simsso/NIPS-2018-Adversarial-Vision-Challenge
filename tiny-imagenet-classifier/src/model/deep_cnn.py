@@ -3,12 +3,15 @@ import tensorflow as tf
 import data.tiny_imagenet as data
 
 
+NAME = 'deep_cnn_b'
+
+
 def k_in(stddev):
     """ Kernel initializer with given standard deviation. """
     return tf.truncated_normal_initializer(mean=0, stddev=stddev, dtype=tf.float32)
 
 
-def model(x):
+def graph(x, drop_prob, wd):
     tf.summary.image('input_image', x)
 
     conv1 = tf.layers.conv2d(x, 256, [5, 5], kernel_initializer=k_in(5e-2))
@@ -20,7 +23,7 @@ def model(x):
     conv2 = tf.nn.relu(conv2)
     conv2 = tf.layers.batch_normalization(conv2)
 
-    conv3 =  tf.layers.conv2d(conv2, 512, [3, 3], padding='valid', kernel_initializer=k_in(5e-2))
+    conv3 = tf.layers.conv2d(conv2, 512, [3, 3], padding='valid', kernel_initializer=k_in(5e-2))
     conv3 = tf.nn.relu(conv3)
     conv3 = tf.layers.batch_normalization(conv3)
 

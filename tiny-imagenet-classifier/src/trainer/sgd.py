@@ -4,10 +4,10 @@ import tensorflow as tf
 import util.file_system
 
 LEARNING_RATE = .0005
-VALIDATIONS_PER_EPOCH = 20
+VALIDATIONS_PER_EPOCH = 4
 NUM_EPOCHS = 1000
-TRAIN_BATCH_SIZE = 80
-VALID_BATCH_SIZE = 400  # does not affect training results; adjustment based on GPU RAM
+TRAIN_BATCH_SIZE = 32
+VALID_BATCH_SIZE = 1000  # does not affect training results; adjustment based on GPU RAM
 STEPS_PER_EPOCH = int(data.NUM_TRAIN_SAMPLES / TRAIN_BATCH_SIZE)
 STEPS_PER_VALIDATION = int(STEPS_PER_EPOCH / VALIDATIONS_PER_EPOCH)
 TF_LOGS = os.path.join('..', 'tf_logs')
@@ -39,7 +39,9 @@ def train(model_def):
 
     util.file_system.create_dir(TF_LOGS)
 
-    sess = tf.Session(graph=graph)
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
+    sess = tf.Session(graph=graph, config=config)
     with sess.as_default():
         train_log_writer = tf.summary.FileWriter(os.path.join(TF_LOGS, '%s_train' % model_def.NAME), sess.graph)
         valid_log_writer = tf.summary.FileWriter(os.path.join(TF_LOGS, '%s_valid' % model_def.NAME), sess.graph)
@@ -71,7 +73,8 @@ def train(model_def):
                                                   labels: train_labels,
                                                   drop_prob: DROPOUT
                                               })
-                        train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
+                        if step % STEPS_PER_VALIDATION == 0:
+                            train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
                 break
         except tf.errors.OutOfRangeError as e:
             coord.request_stop(e)
@@ -81,5 +84,5 @@ def train(model_def):
 
 
 def get_optimization_op(loss):
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
+    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
     return optimizer.minimize(loss)
