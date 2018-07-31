@@ -46,8 +46,6 @@ def graph(x, drop_prob, wd):
     with tf.variable_scope('', reuse=tf.AUTO_REUSE):
         tf.summary.image('input_image', x)
 
-        x *= 1 / 255.
-
         conv1 = add_wd(tf.layers.conv2d(x, 256, [5, 5]), wd)
         conv1 = tf.nn.relu(conv1)
         conv1 = tf.layers.batch_normalization(conv1)

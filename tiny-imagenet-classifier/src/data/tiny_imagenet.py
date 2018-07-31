@@ -119,6 +119,8 @@ def read_image(filename_q, mode):
     else:
         img = tf.image.crop_to_bounding_box(img, 4, 4, 56, 56)
 
+    img = tf.image.per_image_standardization(img)
+
     label = tf.string_to_number(label, tf.int32)
     label = tf.cast(label, tf.uint8)
 

@@ -4,8 +4,6 @@ import data.tiny_imagenet as data
 
 
 def model(x):
-    #x = (x / 255.0) - tf.reduce_mean(x)
-
     conv1 = tf.layers.conv2d(x, filters=32, kernel_size=[7, 7], strides=[2, 2], padding='same', activation=tf.nn.relu)
     conv1 = tf.layers.max_pooling2d(conv1, pool_size=[2, 2], strides=[2, 2], padding='valid')
 
