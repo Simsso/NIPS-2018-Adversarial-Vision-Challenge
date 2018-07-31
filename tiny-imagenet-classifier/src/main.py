@@ -1,6 +1,6 @@
 import tensorflow as tf
 import trainer.sgd as trainer
-import model.tf_cifar10 as model
+import model.sep_cnn as model
 
 
 def main(args=None):

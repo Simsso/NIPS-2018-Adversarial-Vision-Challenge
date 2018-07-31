@@ -3,7 +3,7 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .0005
+LEARNING_RATE = .005
 VALIDATIONS_PER_EPOCH = 1
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 32
