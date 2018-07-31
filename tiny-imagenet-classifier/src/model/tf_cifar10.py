@@ -4,7 +4,7 @@ import tensorflow as tf
 import data.tiny_imagenet as data
 
 # modified version of https://github.com/tensorflow/models/blob/master/tutorials/image/cifar10/cifar10.py
-NAME = 'tf_cifar10_c'
+NAME = 'tf_cifar10_d'
 
 
 def _activation_summary(x):

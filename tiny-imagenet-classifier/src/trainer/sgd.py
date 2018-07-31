@@ -4,7 +4,7 @@ import tensorflow as tf
 import util.file_system
 
 LEARNING_RATE = .0005
-VALIDATIONS_PER_EPOCH = 4
+VALIDATIONS_PER_EPOCH = 1
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 32
 VALID_BATCH_SIZE = 1000  # does not affect training results; adjustment based on GPU RAM
@@ -84,5 +84,5 @@ def train(model_def):
 
 
 def get_optimization_op(loss):
-    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
     return optimizer.minimize(loss)
