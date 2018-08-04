@@ -1,6 +1,6 @@
 import tensorflow as tf
 import trainer.sgd as trainer
-import model.sep_cnn as model
+import model.tf_resnet as model
 
 
 def main(args=None):
