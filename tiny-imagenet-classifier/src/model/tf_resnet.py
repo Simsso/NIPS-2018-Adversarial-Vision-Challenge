@@ -480,11 +480,28 @@ class Model(object):
         return inputs
 
 
-NAME = 'resnet001'
+NAME = 'resnet003'
 
 
 def graph(x, drop_prob, wd):
-    resnet = Model(2, False, data.NUM_CLASSES, 128, 5, 2, 3, 3, 3, 3, [3, 3], [1, 1], 256)
+    #resnet = Model(4, False, data.NUM_CLASSES, 256, 5, 2, 3, 3, 3, 3, [3, 3, 3], [1, 2, 3], 256)
+    resnet = Model(
+            resnet_size=18,
+            bottleneck=False,
+            num_classes=200,
+            num_filters=64,
+            kernel_size=3,
+            conv_stride=1,
+            first_pool_size=0,
+            first_pool_stride=2,
+            second_pool_size=7,
+            second_pool_stride=1,
+            block_sizes=[2, 2, 2, 2],
+            block_strides=[1, 2, 2, 2],
+            final_size=512,
+            version=2,
+            data_format=None)
+
     dense_out = resnet(x, True)
     return dense_out, tf.nn.softmax(dense_out, axis=1)
 
