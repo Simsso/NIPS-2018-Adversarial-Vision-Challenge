@@ -23,6 +23,7 @@ import os
 
 NUM_CLASSES = 200
 NUM_TRAIN_SAMPLES = 500*NUM_CLASSES
+NUM_VALIDATION_SAMPLES = 50*NUM_CLASSES
 IMG_DIM = 56
 IMG_CHANNELS = 3
 PATH = os.path.expanduser('~/.data/tiny-imagenet-200')
