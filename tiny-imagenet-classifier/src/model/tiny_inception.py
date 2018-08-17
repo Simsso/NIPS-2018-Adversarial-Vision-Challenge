@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import data.tiny_imagenet as data
 
-NAME = 'tiny_inception_001a'
+NAME = 'tiny_inception_001-aux'
 
 
 def get_params(x):
