@@ -4,10 +4,10 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .005
+LEARNING_RATE = .002
 NUM_EPOCHS = 1000
-TRAIN_BATCH_SIZE = 32
-VALIDATION_BATCH_SIZE = 100  # does not affect training results; adjustment based on GPU RAM
+TRAIN_BATCH_SIZE = 64
+VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
 STEPS_PER_EPOCH = min(data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
 TF_LOGS = os.path.join('..', 'tf_logs')
 WEIGHT_DECAY = 1e-4

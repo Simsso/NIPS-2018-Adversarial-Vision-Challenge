@@ -3,11 +3,11 @@ import data.tiny_imagenet as data
 import util.tf_summary as summary_util
 
 
-NAME = 'resnet_t01'
+NAME = 'resnet_t01_pool_lg'
 
 
 def conv2d(inputs, filters, kernel_size, strides):
-    return tf.layers.conv2d(inputs, filters, kernel_size, strides, padding='same', use_bias=False,
+    return tf.layers.conv2d(inputs, filters, kernel_size, strides, padding='same', use_bias=True,
                             kernel_initializer=tf.variance_scaling_initializer())
 
 
@@ -54,10 +54,10 @@ def building_block_v2(x, filters, is_training, projection_shortcut, strides):
 
 def graph(x, is_training, drop_prob, wd):
     # parametrization
-    num_filters_base = 64
+    num_filters_base = 128
     kernel_size = 3
     conv_stride = 1
-    first_pool_size = 0
+    first_pool_size = 2
     first_pool_stride = 2
     block_sizes = [2, 2, 2, 2]
     block_strides = [1, 2, 2, 2]
