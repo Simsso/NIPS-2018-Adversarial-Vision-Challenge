@@ -1,6 +1,6 @@
 import tensorflow as tf
 import trainer.sgd as trainer
-import model.tf_resnet as model
+import model.tiny_inception as model
 
 
 def main(args=None):
