@@ -2,7 +2,7 @@ import tensorflow as tf
 import data.tiny_imagenet as data
 
 
-NAME = 'resnet_x01'
+NAME = 'resnet_y01'
 
 
 def conv2d(inputs, filters, kernel_size, strides):

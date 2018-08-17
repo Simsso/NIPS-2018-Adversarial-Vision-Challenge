@@ -1,6 +1,6 @@
 import tensorflow as tf
 import trainer.sgd as trainer
-import model.resnet_selfmade as model
+import model.resnet as model
 
 
 def main(args=None):

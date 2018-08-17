@@ -83,5 +83,7 @@ def train(model_def):
 
 
 def get_optimization_op(loss):
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
-    return optimizer.minimize(loss)
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
+        return optimizer.minimize(loss)
