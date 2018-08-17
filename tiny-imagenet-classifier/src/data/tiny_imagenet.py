@@ -27,6 +27,7 @@ IMG_DIM = 56
 IMG_CHANNELS = 3
 PATH = os.path.expanduser('~/.data/tiny-imagenet-200')
 
+
 def load_filenames_labels(mode):
     """Gets filenames and labels
 
@@ -115,7 +116,7 @@ def read_image(filename_q, mode):
         img = tf.image.random_flip_left_right(img)
         # val accuracy improved without random hue
         # img = tf.image.random_hue(img, 0.05)
-        img = tf.image.random_saturation(img, 0.5, 2.0)
+        img = tf.image.random_saturation(img, 0.5, 1.5)
     else:
         img = tf.image.crop_to_bounding_box(img, 4, 4, 56, 56)
 

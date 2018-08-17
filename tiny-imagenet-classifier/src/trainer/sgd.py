@@ -21,13 +21,13 @@ def train(model_def):
         # inputs (images and labels)
         images = tf.placeholder(tf.float32, shape=[None, data.IMG_DIM, data.IMG_DIM, data.IMG_CHANNELS], name='images')
         labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
-        drop_prob = tf.placeholder(tf.float32, name='dropout_probability')
+        is_training = tf.placeholder_with_default(False, (), 'is_training')
 
         # data set
         train_batch = data.batch_q('train', TRAIN_BATCH_SIZE)
         valid_batch = data.batch_q('val', VALID_BATCH_SIZE)
 
-        logits, softmax = model_def.graph(tf.cast(images, tf.float32), drop_prob, WEIGHT_DECAY)
+        logits, softmax = model_def.graph(tf.cast(images, tf.float32), is_training, DROPOUT, WEIGHT_DECAY)
         loss = model_def.loss(labels, logits)
         tf.summary.scalar('loss', loss)
         acc = model_def.accuracy(labels, softmax)
@@ -60,8 +60,7 @@ def train(model_def):
                             summary, acc_val = sess.run([summary_merged, acc],
                                                         feed_dict={
                                                             images: valid_images,
-                                                            labels: valid_labels,
-                                                            drop_prob: 0
+                                                            labels: valid_labels
                                                         })
                             valid_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
                             print(acc_val)
@@ -71,7 +70,7 @@ def train(model_def):
                                               feed_dict={
                                                   images: train_images,
                                                   labels: train_labels,
-                                                  drop_prob: DROPOUT
+                                                  is_training: True
                                               })
                         if step % STEPS_PER_VALIDATION == 0:
                             train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
