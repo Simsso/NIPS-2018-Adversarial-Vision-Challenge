@@ -8,7 +8,7 @@ LEARNING_RATE = .005
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 32
 VALIDATION_BATCH_SIZE = 100  # does not affect training results; adjustment based on GPU RAM
-STEPS_PER_EPOCH = int(data.NUM_TRAIN_SAMPLES / TRAIN_BATCH_SIZE)
+STEPS_PER_EPOCH = min(data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
 TF_LOGS = os.path.join('..', 'tf_logs')
 WEIGHT_DECAY = 1e-4
 DROPOUT = .5
@@ -17,15 +17,21 @@ DROPOUT = .5
 def train(model_def):
     def run_validation():
         vals = []
-        for _ in range(data.NUM_VALIDATION_SAMPLES // VALIDATION_BATCH_SIZE):
+        for _ in range(min(data.NUM_VALIDATION_SAMPLES // VALIDATION_BATCH_SIZE, data.NUM_VALIDATION_SAMPLES)):
             valid_images, valid_labels = sess.run(valid_batch)
             vals.append(sess.run([acc, loss], feed_dict={images: valid_images, labels: valid_labels}))
         acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
         summary = tf.Summary(value=[
-            tf.Summary.Value(tag='loss', simple_value=loss_mean_val),
             tf.Summary.Value(tag='accuracy', simple_value=acc_mean_val),
+            tf.Summary.Value(tag='loss', simple_value=loss_mean_val),
         ])
-        valid_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH)
+        valid_log_writer.add_summary(summary, global_step=(epoch - 1) * STEPS_PER_EPOCH)
+
+        # log the non-artificial summary as well
+        valid_images, valid_labels = sess.run(valid_batch)
+        summary = sess.run(summary_merged, feed_dict={images: valid_images, labels: valid_labels})
+        valid_log_writer.add_summary(summary, global_step=(epoch - 1) * STEPS_PER_EPOCH)
+
         return acc_mean_val, loss_mean_val
 
     def run_training():
@@ -37,8 +43,8 @@ def train(model_def):
             vals.append([acc_val, loss_val])
         acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
         summary = tf.Summary(value=[
-            tf.Summary.Value(tag='loss', simple_value=loss_mean_val),
             tf.Summary.Value(tag='accuracy', simple_value=acc_mean_val),
+            tf.Summary.Value(tag='loss', simple_value=loss_mean_val),
         ])
         train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH)
 
@@ -81,8 +87,12 @@ def train(model_def):
             while not coord.should_stop():
                 for i in range(NUM_EPOCHS):
                     epoch = i + 1
-                    run_validation()
-                    run_training()
+                    print("Starting epoch #{}".format(epoch))
+                    valid_acc, valid_loss = run_validation()
+                    print("Validation data: accuracy {}, loss {}".format(valid_acc, valid_loss))
+
+                    valid_acc, valid_loss = run_training()
+                    print("Training data (with batch norm): accuracy {}, loss {}".format(valid_acc, valid_loss))
                 break
         except tf.errors.OutOfRangeError as e:
             coord.request_stop(e)

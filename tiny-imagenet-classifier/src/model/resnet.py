@@ -1,8 +1,9 @@
 import tensorflow as tf
 import data.tiny_imagenet as data
+import util.tf_summary as summary_util
 
 
-NAME = 'resnet_y01'
+NAME = 'resnet_t01'
 
 
 def conv2d(inputs, filters, kernel_size, strides):
@@ -34,6 +35,7 @@ def building_block_v2(x, filters, is_training, projection_shortcut, strides):
     shortcut = x
     x = batch_norm(x, is_training)
     x = tf.nn.relu(x)
+    summary_util.activation_summary(x)
 
     # The projection shortcut should come after the first batch norm and ReLU
     # since it performs a 1x1 convolution.
@@ -44,6 +46,7 @@ def building_block_v2(x, filters, is_training, projection_shortcut, strides):
 
     x = batch_norm(x, is_training)
     x = tf.nn.relu(x)
+    summary_util.activation_summary(x)
     x = conv2d(x, filters, kernel_size=3, strides=1)
 
     return x + shortcut
@@ -69,12 +72,15 @@ def graph(x, is_training, drop_prob, wd):
 
     x = batch_norm(x, is_training)
     x = tf.nn.relu(x)
+    summary_util.activation_summary(x)
 
     x = tf.reduce_mean(x, [1, 2], keepdims=True)  # global average pooling
     x = tf.layers.flatten(x)
 
     x = tf.layers.dropout(x, rate=drop_prob, training=is_training)
     x = tf.layers.dense(x, units=data.NUM_CLASSES)
+
+    summary_util.weight_summary_for_all()
 
     return x, tf.nn.softmax(x, axis=1)
 
