@@ -62,6 +62,18 @@ def inception_layer(value, name, wd, reduction_filter_counts, conv_filter_counts
     return post_act
 
 
+def auxiliary_softmax_branch(inputs, name, is_training, avg_pool_size=[5, 5], avg_pool_strides=3):
+    softmax_aux = tf.layers.average_pooling2d(inputs, pool_size=avg_pool_size, strides=avg_pool_strides)
+    softmax_aux = tf.layers.conv2d(softmax_aux, filters=256, kernel_size=[1, 1], strides=1, name=("%s/conv-1x1" % name))
+    softmax_aux = tf.nn.relu(softmax_aux)
+    print(("after %s-pool: " % name), softmax_aux.get_shape().as_list())
+    softmax_aux = tf.reshape(softmax_aux, [-1, np.product(softmax_aux.shape[1:])])
+    softmax_aux = tf.layers.dense(softmax_aux, units=256, activation=tf.nn.relu, name=("%s/dense-1-256" % name))
+    softmax_aux = tf.layers.dropout(softmax_aux, rate=0.7, training=is_training)
+    softmax_aux = tf.layers.dense(softmax_aux, units=data.NUM_CLASSES, activation=tf.nn.relu, name=("%s/dense-out" % name))
+    softmax_aux = tf.nn.softmax(softmax_aux, axis=1, name=("%s/softmax" % name))
+    return softmax_aux
+
 def graph(inputs, dropout_prob, is_training, wd):
     with tf.variable_scope('', reuse=tf.AUTO_REUSE):
         tf.summary.image('input_image', inputs)
@@ -89,14 +101,7 @@ def graph(inputs, dropout_prob, is_training, wd):
         # Some more inception goodness
         incep4a = inception_layer(maxpool1, 'incep4a', wd, reduction_filter_counts=[96, 16, 64],  conv_filter_counts=[192, 208, 48])
         # -------------- auxiliary softmax output branch 1 ---------------
-        softmax_aux_1 = tf.layers.average_pooling2d(incep4a, pool_size=[5, 5], strides=3)
-        softmax_aux_1 = tf.layers.conv2d(softmax_aux_1, filters=256, kernel_size=[1, 1], strides=1, name="softmax_aux_1/conv-1x1")
-        softmax_aux_1 = tf.nn.relu(softmax_aux_1)
-        print("after softmax_aux_1-pool: ", softmax_aux_1.get_shape().as_list())
-        softmax_aux_1 = tf.layers.dense(softmax_aux_1, units=256, activation=tf.nn.relu, name="softmax_aux_1/dense-1-256")
-        softmax_aux_1 = tf.layers.dropout(softmax_aux_1, rate=0.7, training=is_training)
-        softmax_aux_1 = tf.layers.dense(softmax_aux_1, units=data.NUM_CLASSES, activation=tf.nn.relu, name="softmax_aux_1/dense-out")
-        softmax_aux_1 = tf.nn.softmax(softmax_aux_1, axis=1, name="softmax_aux_1/softmax")
+        softmax_aux_1 = auxiliary_softmax_branch(incep4a, name="softmax_aux_1", is_training=is_training)
         # ----------------------------------------------------------------
         incep4b = inception_layer(incep4a,  'incep4b', wd, reduction_filter_counts=[112, 24, 64], conv_filter_counts=[160, 224, 64])
         incep4c = inception_layer(incep4b,  'incep4c', wd, reduction_filter_counts=[128, 24, 64], conv_filter_counts=[128, 256, 64])
@@ -105,14 +110,8 @@ def graph(inputs, dropout_prob, is_training, wd):
 
         incep5a = inception_layer(maxpool2, 'incep5a', wd, reduction_filter_counts=[160, 32, 128], conv_filter_counts=[256, 320, 128])
         # -------------- auxiliary softmax output branch 2 ---------------
-        softmax_aux_2 = tf.layers.average_pooling2d(incep5a, pool_size=[4, 4], strides=1)
-        softmax_aux_2 = tf.layers.conv2d(softmax_aux_2, filters=256, kernel_size=[1, 1], strides=1, name="softmax_aux_2/conv-1x1")
-        softmax_aux_2 = tf.nn.relu(softmax_aux_2)
-        print("after softmax_aux_2-pool: ", softmax_aux_2.get_shape().as_list())
-        softmax_aux_2 = tf.layers.dense(softmax_aux_2, units=256, activation=tf.nn.relu, name="softmax_aux_2/dense-1-256")
-        softmax_aux_2 = tf.layers.dropout(softmax_aux_2, rate=0.7, training=is_training)
-        softmax_aux_2 = tf.layers.dense(softmax_aux_2, units=data.NUM_CLASSES, activation=tf.nn.relu, name="softmax_aux_2/dense-out")
-        softmax_aux_2 = tf.nn.softmax(softmax_aux_2, axis=1, name="softmax_aux_2/softmax")
+        softmax_aux_2 = auxiliary_softmax_branch(incep5a, name="softmax_aux_2", is_training=is_training,
+                                                 avg_pool_size=[4, 4], avg_pool_strides=1)
         # ----------------------------------------------------------------
         incep5b = inception_layer(incep5a,  'incep5b', wd, reduction_filter_counts=[192, 48, 128], conv_filter_counts=[384, 384, 128])
         # output has 384 + 384 + 128 + 128 = 1024 channels
@@ -134,6 +133,7 @@ def graph(inputs, dropout_prob, is_training, wd):
         softmax = tf.cond(pred=is_training,
                           true_fn=lambda: (0.7 * softmax + 0.15 * (softmax_aux_1 + softmax_aux_2)),
                           false_fn=lambda: softmax)
+        softmax = tf.identity(softmax, name="softmax")
 
     return logits, softmax
 
