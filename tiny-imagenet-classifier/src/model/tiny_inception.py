@@ -67,7 +67,7 @@ def auxiliary_softmax_branch(inputs, name, is_training, avg_pool_size=[5, 5], av
     softmax_aux = tf.layers.conv2d(softmax_aux, filters=256, kernel_size=[1, 1], strides=1, name=("%s/conv-1x1" % name))
     softmax_aux = tf.nn.relu(softmax_aux)
     print(("after %s-pool: " % name), softmax_aux.get_shape().as_list())
-    softmax_aux = tf.reshape(softmax_aux, [-1, np.product(softmax_aux.shape[1:])])
+    softmax_aux = tf.layers.flatten(softmax_aux)
     softmax_aux = tf.layers.dense(softmax_aux, units=256, activation=tf.nn.relu, name=("%s/dense-1-256" % name))
     softmax_aux = tf.layers.dropout(softmax_aux, rate=0.7, training=is_training)
     softmax_aux = tf.layers.dense(softmax_aux, units=data.NUM_CLASSES, activation=tf.nn.relu, name=("%s/dense-out" % name))
@@ -119,14 +119,13 @@ def graph(inputs, dropout_prob, is_training, wd):
         # average pooling (reduce to spatial 1x1)
         avgpool = tf.layers.average_pooling2d(incep5b, pool_size=[4, 4], strides=1)
         print("after incep5a / 5b / avgpool: ", avgpool.get_shape().as_list())
+        flat = tf.layers.flatten(avgpool)
         
         # dropout
-        dropout = tf.layers.dropout(avgpool, rate=dropout_prob, training=is_training)
+        dropout = tf.layers.dropout(flat, rate=dropout_prob, training=is_training)
 
         # one dense layer
-        flat = tf.reshape(dropout, [-1, np.product(dropout.shape[1:])])
-        logits = add_wd(tf.layers.dense(flat, units=data.NUM_CLASSES), wd)
-
+        logits = add_wd(tf.layers.dense(dropout, units=data.NUM_CLASSES), wd)
         softmax = tf.nn.softmax(logits, axis=1)
 
         # weight output with auxiliary softmax outputs, but only at training time, not at inference time
