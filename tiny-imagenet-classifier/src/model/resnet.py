@@ -2,7 +2,7 @@ import tensorflow as tf
 import data.tiny_imagenet as data
 import util.tf_summary as summary_util
 
-NAME = 'resnet_t34a_adam_wd'
+NAME = 'resnet_t34a_prelu'
 
 
 def get_params(x):
@@ -24,9 +24,21 @@ def add_wd(op, wd):
     return op
 
 
+def prelu(val: tf.Tensor) -> tf.Tensor:
+    """
+    Adds a PReLU activation to the tensor.
+    PReLU paper: https://arxiv.org/abs/1502.01852
+    """
+    alphas = tf.get_variable(val.op.name + '/prelu_alpha', val.get_shape()[-1],
+                             initializer=tf.constant_initializer(0.0), dtype=tf.float32)
+    pos = tf.nn.relu(val)
+    neg = alphas * (val - tf.abs(val)) * 0.5
+    return pos + neg
+
+
 def conv2d(inputs, filters, kernel_size, strides, wd):
-    return add_wd(tf.layers.conv2d(inputs, filters, kernel_size, strides, padding='same', use_bias=False,
-                                   kernel_initializer=tf.variance_scaling_initializer()), wd)
+    return tf.layers.conv2d(inputs, filters, kernel_size, strides, padding='same', use_bias=False,
+                            kernel_initializer=tf.variance_scaling_initializer())
 
 
 def block_layer(x, filters, blocks, strides, is_training, wd):
@@ -52,7 +64,7 @@ def batch_norm(inputs, is_training):
 def building_block_v2(x, filters, is_training, projection_shortcut, strides, wd):
     shortcut = x
     x = batch_norm(x, is_training)
-    x = tf.nn.relu(x)
+    x = prelu(x)
     summary_util.activation_summary(x)
 
     # The projection shortcut should come after the first batch norm and ReLU
@@ -63,7 +75,7 @@ def building_block_v2(x, filters, is_training, projection_shortcut, strides, wd)
     x = conv2d(x, filters, kernel_size=3, strides=strides, wd=wd)
 
     x = batch_norm(x, is_training)
-    x = tf.nn.relu(x)
+    x = prelu(x)
     summary_util.activation_summary(x)
     x = conv2d(x, filters, kernel_size=3, strides=1, wd=wd)
 
@@ -89,14 +101,14 @@ def graph(x, is_training, drop_prob, wd):
         x = block_layer(x, num_filters, num_blocks, block_strides[i], is_training, wd)
 
     x = batch_norm(x, is_training)
-    x = tf.nn.relu(x)
+    x = prelu(x)
     summary_util.activation_summary(x)
 
     x = tf.reduce_mean(x, [1, 2], keepdims=True)  # global average pooling
     x = tf.layers.flatten(x)
 
     x = tf.layers.dropout(x, rate=drop_prob, training=is_training)
-    x = add_wd(tf.layers.dense(x, units=data.NUM_CLASSES), wd)
+    x = tf.layers.dense(x, units=data.NUM_CLASSES)
 
     summary_util.weight_summary_for_all()
 
