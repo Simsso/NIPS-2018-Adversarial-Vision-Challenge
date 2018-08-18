@@ -1,38 +1,69 @@
 import data.tiny_imagenet as data
+import numpy as np
 import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .005
-VALIDATIONS_PER_EPOCH = 1
+LEARNING_RATE = .002
 NUM_EPOCHS = 1000
-TRAIN_BATCH_SIZE = 32
-VALID_BATCH_SIZE = 1000  # does not affect training results; adjustment based on GPU RAM
-STEPS_PER_EPOCH = int(data.NUM_TRAIN_SAMPLES / TRAIN_BATCH_SIZE)
-STEPS_PER_VALIDATION = int(STEPS_PER_EPOCH / VALIDATIONS_PER_EPOCH)
+TRAIN_BATCH_SIZE = 64
+VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
+STEPS_PER_EPOCH = min(data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
 TF_LOGS = os.path.join('..', 'tf_logs')
 WEIGHT_DECAY = 1e-4
 DROPOUT = .5
 
 
 def train(model_def):
+    def run_validation():
+        vals = []
+        for _ in range(min(data.NUM_VALIDATION_SAMPLES // VALIDATION_BATCH_SIZE, data.NUM_VALIDATION_SAMPLES)):
+            valid_images, valid_labels = sess.run(valid_batch)
+            vals.append(sess.run([acc, loss], feed_dict={images: valid_images, labels: valid_labels}))
+        acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
+        summary = tf.Summary(value=[
+            tf.Summary.Value(tag='accuracy', simple_value=acc_mean_val),
+            tf.Summary.Value(tag='loss', simple_value=loss_mean_val),
+        ])
+        valid_log_writer.add_summary(summary, global_step=(epoch - 1) * STEPS_PER_EPOCH)
+
+        # log the non-artificial summary as well
+        valid_images, valid_labels = sess.run(valid_batch)
+        summary = sess.run(summary_merged, feed_dict={images: valid_images, labels: valid_labels})
+        valid_log_writer.add_summary(summary, global_step=(epoch - 1) * STEPS_PER_EPOCH)
+
+        return acc_mean_val, loss_mean_val
+
+    def run_training():
+        vals = []
+        for _ in range(STEPS_PER_EPOCH):
+            train_images, train_labels = sess.run(train_batch)
+            _, acc_val, loss_val = sess.run([optimizer, acc, loss],
+                                            feed_dict={images: train_images, labels: train_labels, is_training: True})
+            vals.append([acc_val, loss_val])
+        acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
+        summary = tf.Summary(value=[
+            tf.Summary.Value(tag='accuracy', simple_value=acc_mean_val),
+            tf.Summary.Value(tag='loss', simple_value=loss_mean_val),
+        ])
+        train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH)
+
+        return acc_mean_val, loss_mean_val
+
     graph = tf.Graph()
     with graph.as_default():
         # inputs (images and labels)
         images = tf.placeholder(tf.float32, shape=[None, data.IMG_DIM, data.IMG_DIM, data.IMG_CHANNELS], name='images')
         labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
-        drop_prob = tf.placeholder(tf.float32, name='dropout_probability')
-        is_training = tf.placeholder(tf.bool, shape=(), name="is_training")
+        is_training = tf.placeholder_with_default(False, (), 'is_training')
 
         # data set
         train_batch = data.batch_q('train', TRAIN_BATCH_SIZE)
-        valid_batch = data.batch_q('val', VALID_BATCH_SIZE)
+        valid_batch = data.batch_q('val', VALIDATION_BATCH_SIZE)
 
-        logits, softmax = model_def.graph(tf.cast(images, tf.float32), drop_prob, is_training, WEIGHT_DECAY)
+        logits, softmax = model_def.graph(tf.cast(images, tf.float32), is_training, DROPOUT, WEIGHT_DECAY)
         loss = model_def.loss(labels, logits)
-        tf.summary.scalar('loss', loss)
         acc = model_def.accuracy(labels, softmax)
-        tf.summary.scalar('accuracy', acc)
         optimizer = get_optimization_op(loss)
 
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
@@ -54,30 +85,14 @@ def train(model_def):
 
         try:
             while not coord.should_stop():
-                for epoch in range(NUM_EPOCHS):
-                    for step in range(STEPS_PER_EPOCH):
-                        if step % STEPS_PER_VALIDATION == 0:
-                            valid_images, valid_labels = sess.run(valid_batch)
-                            summary, acc_val = sess.run([summary_merged, acc],
-                                                        feed_dict={
-                                                            images: valid_images,
-                                                            labels: valid_labels,
-                                                            drop_prob: 0,
-                                                            is_training: False
-                                                        })
-                            valid_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
-                            print(acc_val)
+                for i in range(NUM_EPOCHS):
+                    epoch = i + 1
+                    print("Starting epoch #{}".format(epoch))
+                    valid_acc, valid_loss = run_validation()
+                    print("Validation data: accuracy {}, loss {}".format(valid_acc, valid_loss))
 
-                        train_images, train_labels = sess.run(train_batch)
-                        summary, _ = sess.run([summary_merged, optimizer],
-                                              feed_dict={
-                                                  images: train_images,
-                                                  labels: train_labels,
-                                                  drop_prob: DROPOUT,
-                                                  is_training: True
-                                              })
-                        if step % STEPS_PER_VALIDATION == 0:
-                            train_log_writer.add_summary(summary, global_step=epoch * STEPS_PER_EPOCH + step)
+                    valid_acc, valid_loss = run_training()
+                    print("Training data (with batch norm): accuracy {}, loss {}".format(valid_acc, valid_loss))
                 break
         except tf.errors.OutOfRangeError as e:
             coord.request_stop(e)
@@ -87,5 +102,7 @@ def train(model_def):
 
 
 def get_optimization_op(loss):
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
-    return optimizer.minimize(loss)
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
+        return optimizer.minimize(loss)

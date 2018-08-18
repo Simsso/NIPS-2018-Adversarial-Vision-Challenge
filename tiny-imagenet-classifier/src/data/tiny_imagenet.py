@@ -23,9 +23,11 @@ import os
 
 NUM_CLASSES = 200
 NUM_TRAIN_SAMPLES = 500*NUM_CLASSES
-IMG_DIM = 56
+NUM_VALIDATION_SAMPLES = 50*NUM_CLASSES
+IMG_DIM = 56  # after cropping
 IMG_CHANNELS = 3
 PATH = os.path.expanduser('~/.data/tiny-imagenet-200')
+
 
 def load_filenames_labels(mode):
     """Gets filenames and labels
@@ -115,7 +117,7 @@ def read_image(filename_q, mode):
         img = tf.image.random_flip_left_right(img)
         # val accuracy improved without random hue
         # img = tf.image.random_hue(img, 0.05)
-        img = tf.image.random_saturation(img, 0.5, 2.0)
+        img = tf.image.random_saturation(img, 0.5, 1.5)
     else:
         img = tf.image.crop_to_bounding_box(img, 4, 4, 56, 56)
 
