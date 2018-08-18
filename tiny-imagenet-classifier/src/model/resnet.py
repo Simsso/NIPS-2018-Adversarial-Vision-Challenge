@@ -2,7 +2,7 @@ import tensorflow as tf
 import data.tiny_imagenet as data
 import util.tf_summary as summary_util
 
-NAME = 'resnet_t34a_prelu'
+NAME = 'resnet_t34_sepconv'
 
 
 def get_params(x):
@@ -37,8 +37,9 @@ def prelu(val: tf.Tensor) -> tf.Tensor:
 
 
 def conv2d(inputs, filters, kernel_size, strides, wd):
-    return tf.layers.conv2d(inputs, filters, kernel_size, strides, padding='same', use_bias=False,
-                            kernel_initializer=tf.variance_scaling_initializer())
+    return tf.layers.separable_conv2d(inputs, filters, kernel_size, strides, padding='same', use_bias=False,
+                                      depthwise_initializer=tf.variance_scaling_initializer(),
+                                      pointwise_initializer=tf.variance_scaling_initializer())
 
 
 def block_layer(x, filters, blocks, strides, is_training, wd):
@@ -84,7 +85,7 @@ def building_block_v2(x, filters, is_training, projection_shortcut, strides, wd)
 
 def graph(x, is_training, drop_prob, wd):
     # parametrization
-    num_filters_base = 64
+    num_filters_base = 128
     kernel_size = 3
     conv_stride = 1
     first_pool_size = 0
