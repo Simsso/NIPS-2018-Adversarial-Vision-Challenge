@@ -42,7 +42,7 @@ def train(model_def):
             train_images, train_labels = sess.run(train_batch)
             _, acc_val, loss_val = sess.run([optimizer, acc, loss],
                                             feed_dict={images: train_images, labels: train_labels, is_training: True})
-            vals.append([acc_val, loss_val])
+            vals.append([acc_val, loss_val]) 
         acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
         summary = tf.Summary(value=[
             tf.Summary.Value(tag='accuracy', simple_value=acc_mean_val),

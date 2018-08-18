@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import data.tiny_imagenet as data
+import util.tf_summary as summary_util
 
 NAME = 'tiny_inception_002'
 
@@ -64,7 +65,10 @@ def inception_layer(value, name, wd, reduction_filter_counts, conv_filter_counts
     if batch_norm:
         pre_act = tf.layers.batch_normalization(pre_act, training=is_training)
 
-    return tf.nn.relu(pre_act)
+    activations = tf.nn.relu(pre_act, name=("%s-activation" % name))
+    summary_util.activation_summary(activations)
+
+    return activations
 
 
 def auxiliary_softmax_branch(inputs, name, is_training, avg_pool_size=[5, 5], avg_pool_strides=3):
@@ -81,6 +85,9 @@ def auxiliary_softmax_branch(inputs, name, is_training, avg_pool_size=[5, 5], av
     logits = tf.layers.dense(softmax_aux, units=data.NUM_CLASSES, name=("%s/logits-out" % name))
     softmax = tf.nn.softmax(logits, axis=1, name=("%s/softmax" % name))
 
+    summary_util.activation_summary(logits)
+    summary_util.activation_summary(softmax)
+
     return logits, softmax
 
 def graph(inputs, is_training, dropout_prob, wd):
@@ -91,6 +98,7 @@ def graph(inputs, is_training, dropout_prob, wd):
         conv1 = add_wd(tf.layers.conv2d(inputs, filters=64, kernel_size=[5, 5], strides=2, name="conv-initial-1"), wd)
         conv1 = tf.nn.relu(conv1)
         conv1 = tf.layers.max_pooling2d(conv1, pool_size=[2, 2], strides=1)
+        summary_util.activation_summary(conv1)
 
         print("after conv1: ", conv1.get_shape().as_list())
 
@@ -101,6 +109,7 @@ def graph(inputs, is_training, dropout_prob, wd):
         conv2 = tf.layers.batch_normalization(conv2, training=is_training)
         conv2 = tf.nn.relu(conv2)
         conv2 = tf.layers.max_pooling2d(conv2, pool_size=[2, 2], strides=1)
+        summary_util.activation_summary(conv2)
 
         print("after conv2: ", conv2.get_shape().as_list())
 
@@ -141,6 +150,9 @@ def graph(inputs, is_training, dropout_prob, wd):
         # one dense layer
         logits = add_wd(tf.layers.dense(dropout, units=data.NUM_CLASSES), wd)
         softmax = tf.nn.softmax(logits, axis=1, name="softmax")
+
+        summary_util.activation_summary(logits)
+        summary_util.weight_summary_for_all()
 
     return (logits, logits_aux_1, logits_aux_2), softmax
 
