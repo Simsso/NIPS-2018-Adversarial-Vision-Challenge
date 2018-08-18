@@ -97,7 +97,7 @@ def graph(inputs, is_training, dropout_prob, wd):
         # initial conv layer 1
         conv1 = add_wd(tf.layers.conv2d(inputs, filters=128, kernel_size=[5, 5], strides=2, name="conv-initial-1"), wd)
         conv1 = tf.nn.relu(conv1)
-        conv1 = tf.layers.max_pooling2d(conv1, pool_size=[2, 2], strides=1)
+        conv1 = tf.layers.max_pooling2d(conv1, pool_size=[3, 3], strides=1)
         summary_util.activation_summary(conv1)
 
         print("after conv1: ", conv1.get_shape().as_list())
@@ -108,7 +108,7 @@ def graph(inputs, is_training, dropout_prob, wd):
         conv2 = add_wd(tf.layers.conv2d(conv2, filters=128, kernel_size=[3, 3], name="conv-initial-2"), wd)
         conv2 = tf.layers.batch_normalization(conv2, training=is_training)
         conv2 = tf.nn.relu(conv2)
-        conv2 = tf.layers.max_pooling2d(conv2, pool_size=[2, 2], strides=1)
+        conv2 = tf.layers.max_pooling2d(conv2, pool_size=[3, 3], strides=1)
         summary_util.activation_summary(conv2)
 
         print("after conv2: ", conv2.get_shape().as_list())
@@ -116,31 +116,32 @@ def graph(inputs, is_training, dropout_prob, wd):
         # Let's go deeper!
         incep3a = inception_layer(conv2,   'incep3a', wd, reduction_filter_counts=[96, 16, 32],  conv_filter_counts=[64, 128, 32])
         incep3b = inception_layer(incep3a, 'incep3b', wd, reduction_filter_counts=[128, 32, 64], conv_filter_counts=[128, 64, 96])
-        maxpool1 = tf.layers.max_pooling2d(incep3b, pool_size=[3, 3], strides=2)
+        maxpool1 = tf.layers.max_pooling2d(incep3b, pool_size=[3, 3], strides=1)
         print("after incep3a / 3b / maxpool: ", maxpool1.get_shape().as_list())
 
         # Some more inception goodness
         incep4a = inception_layer(maxpool1, 'incep4a', wd, reduction_filter_counts=[96, 16, 64],  conv_filter_counts=[192, 208, 48])
         # -------------- auxiliary softmax output branch 1 ---------------
-        logits_aux_1, _ = auxiliary_softmax_branch(incep4a, name="softmax_aux_1", is_training=is_training)
+        logits_aux_1, _ = auxiliary_softmax_branch(incep4a, name="softmax_aux_1", is_training=is_training,
+                                                   avg_pool_size=[7, 7], avg_pool_strides=2)
         # ----------------------------------------------------------------
         incep4b = inception_layer(incep4a,  'incep4b', wd, reduction_filter_counts=[112, 24, 64], conv_filter_counts=[128, 128, 64])
         incep4c = inception_layer(incep4b,  'incep4c', wd, reduction_filter_counts=[128, 24, 64], conv_filter_counts=[128, 256, 64],
                                   batch_norm=True, is_training=is_training)
-        maxpool2 = tf.layers.max_pooling2d(incep4c, pool_size=[3, 3], strides=2)
+        maxpool2 = tf.layers.max_pooling2d(incep4c, pool_size=[2, 2], strides=1)
         print("after incep4a / 4b / 4c / maxpool: ", maxpool2.get_shape().as_list())
 
         incep5a = inception_layer(maxpool2, 'incep5a', wd, reduction_filter_counts=[160, 32, 128], conv_filter_counts=[128, 256, 128])
         # -------------- auxiliary softmax output branch 2 ---------------
         logits_aux_2, _ = auxiliary_softmax_branch(incep5a, name="softmax_aux_2", is_training=is_training,
-                                                   avg_pool_size=[4, 4], avg_pool_strides=1)
+                                                   avg_pool_size=[7, 7], avg_pool_strides=2)
         # ----------------------------------------------------------------  
         incep5b = inception_layer(incep5a,  'incep5b', wd, reduction_filter_counts=[128, 48, 128], conv_filter_counts=[256, 256, 128], 
                                   batch_norm=True, is_training=is_training)
         # output has 256 + 256 + 128 + 128 = 768 channels
 
-        # average pooling (reduce to spatial 1x1)
-        avgpool = tf.layers.average_pooling2d(incep5b, pool_size=[4, 4], strides=1)
+        # average pooling 
+        avgpool = tf.layers.average_pooling2d(incep5b, pool_size=[7, 7], strides=3)
         print("after incep5a / 5b / avgpool: ", avgpool.get_shape().as_list())
         flat = tf.layers.flatten(avgpool)
         

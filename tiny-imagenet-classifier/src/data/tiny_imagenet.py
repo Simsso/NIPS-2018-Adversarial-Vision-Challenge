@@ -147,5 +147,5 @@ def batch_q(mode, batch_size):
 
     # 2 read_image threads to keep batch_join queue full:
     result = tf.train.batch_join([read_image(filename_q, mode) for i in range(2)],
-                                 batch_size, shapes=[(56, 56, 3), ()], capacity=2048)
+                                 batch_size, shapes=[(IMG_DIM, IMG_DIM, 3), ()], capacity=2048)
     return result
