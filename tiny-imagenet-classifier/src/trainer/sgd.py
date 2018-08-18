@@ -7,7 +7,7 @@ import util.file_system
 LEARNING_RATE = .002
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 64
-VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
+VALIDATION_BATCH_SIZE = 128  # does not affect training results; adjustment based on GPU RAM
 STEPS_PER_EPOCH = min(data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
 TF_LOGS = os.path.join('..', 'tf_logs')
 WEIGHT_DECAY = 1e-4
@@ -104,5 +104,5 @@ def train(model_def):
 def get_optimization_op(loss):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
+        optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
         return optimizer.minimize(loss)
