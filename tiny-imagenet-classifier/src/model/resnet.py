@@ -2,24 +2,42 @@ import tensorflow as tf
 import data.tiny_imagenet as data
 import util.tf_summary as summary_util
 
-
-NAME = 'resnet_t34a_adam'
-
-
-def conv2d(inputs, filters, kernel_size, strides):
-    return tf.layers.conv2d(inputs, filters, kernel_size, strides, padding='same', use_bias=False,
-                            kernel_initializer=tf.variance_scaling_initializer())
+NAME = 'resnet_t34a_adam_wd'
 
 
-def block_layer(x, filters, blocks, strides, is_training):
+def get_params(x):
+    """ Extracts kernel params (not the biases) from a tf.layers.dense or tf.layers.conv2d tensor. """
+    name = x.name.split('/')[0:-1]
+    with tf.variable_scope('', reuse=tf.AUTO_REUSE):
+        return [tf.get_variable('/'.join(name) + '/kernel')]
+
+
+def add_wd(op, wd):
+    """
+    Extracts the parameters from an op and adds weight decay to the losses collection.
+    Return the op for simple chaining.
+    """
+    params = get_params(op)
+    for param in params:
+        weight_decay = tf.multiply(tf.nn.l2_loss(param), wd)
+        tf.add_to_collection('LOSSES', weight_decay)
+    return op
+
+
+def conv2d(inputs, filters, kernel_size, strides, wd):
+    return add_wd(tf.layers.conv2d(inputs, filters, kernel_size, strides, padding='same', use_bias=False,
+                                   kernel_initializer=tf.variance_scaling_initializer()), wd)
+
+
+def block_layer(x, filters, blocks, strides, is_training, wd):
     def projection_shortcut(proj_inputs):
-        return conv2d(proj_inputs, filters, kernel_size=1, strides=strides)
+        return conv2d(proj_inputs, filters, kernel_size=1, strides=strides, wd=wd)
 
     # Only the first block per block_layer uses projection_shortcut and strides
-    x = building_block_v2(x, filters, is_training, projection_shortcut, strides)
+    x = building_block_v2(x, filters, is_training, projection_shortcut, strides, wd)
 
     for _ in range(1, blocks):
-        x = building_block_v2(x, filters, is_training, None, 1)
+        x = building_block_v2(x, filters, is_training, None, 1, wd)
     return x
 
 
@@ -31,7 +49,7 @@ def batch_norm(inputs, is_training):
                                          training=is_training, fused=True)
 
 
-def building_block_v2(x, filters, is_training, projection_shortcut, strides):
+def building_block_v2(x, filters, is_training, projection_shortcut, strides, wd):
     shortcut = x
     x = batch_norm(x, is_training)
     x = tf.nn.relu(x)
@@ -42,12 +60,12 @@ def building_block_v2(x, filters, is_training, projection_shortcut, strides):
     if projection_shortcut is not None:
         shortcut = projection_shortcut(x)
 
-    x = conv2d(x, filters, kernel_size=3, strides=strides)
+    x = conv2d(x, filters, kernel_size=3, strides=strides, wd=wd)
 
     x = batch_norm(x, is_training)
     x = tf.nn.relu(x)
     summary_util.activation_summary(x)
-    x = conv2d(x, filters, kernel_size=3, strides=1)
+    x = conv2d(x, filters, kernel_size=3, strides=1, wd=wd)
 
     return x + shortcut
 
@@ -62,13 +80,13 @@ def graph(x, is_training, drop_prob, wd):
     block_sizes = [3, 4, 6, 3]
     block_strides = [1, 2, 2, 2]
 
-    x = conv2d(x, num_filters_base, kernel_size, conv_stride)
+    x = conv2d(x, num_filters_base, kernel_size, conv_stride, wd)
     if first_pool_size:
         x = tf.layers.max_pooling2d(x, first_pool_size, first_pool_stride, padding='same')
 
     for i, num_blocks in enumerate(block_sizes):
         num_filters = num_filters_base * (2 ** i)
-        x = block_layer(x, num_filters, num_blocks, block_strides[i], is_training)
+        x = block_layer(x, num_filters, num_blocks, block_strides[i], is_training, wd)
 
     x = batch_norm(x, is_training)
     x = tf.nn.relu(x)
@@ -78,7 +96,7 @@ def graph(x, is_training, drop_prob, wd):
     x = tf.layers.flatten(x)
 
     x = tf.layers.dropout(x, rate=drop_prob, training=is_training)
-    x = tf.layers.dense(x, units=data.NUM_CLASSES)
+    x = add_wd(tf.layers.dense(x, units=data.NUM_CLASSES), wd)
 
     summary_util.weight_summary_for_all()
 
@@ -88,8 +106,10 @@ def graph(x, is_training, drop_prob, wd):
 def loss(labels, logits):
     labels_one_hot = tf.one_hot(labels, depth=data.NUM_CLASSES)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels_one_hot, logits=logits)
-    loss_mean = tf.reduce_mean(cross_entropy, name='cross_entropy_loss')
-    return loss_mean
+    cross_entropy_loss = tf.reduce_mean(cross_entropy, name='cross_entropy_loss')
+    tf.add_to_collection('LOSSES', cross_entropy_loss)
+    total_loss = tf.add_n(tf.get_collection('LOSSES'), name='total_loss')  # includes weight decay loss terms
+    return total_loss
 
 
 def accuracy(labels, softmax):
