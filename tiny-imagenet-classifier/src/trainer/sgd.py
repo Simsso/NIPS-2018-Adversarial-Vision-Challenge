@@ -4,14 +4,14 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .002
+LEARNING_RATE = .0025
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 64
 VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
 STEPS_PER_EPOCH = min(data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
 TF_LOGS = os.path.join('..', 'tf_logs')
-WEIGHT_DECAY = 1e-4
-DROPOUT = .5
+WEIGHT_DECAY = 1e-5
+DROPOUT = .35
 
 def saver_path(model_name):
     return "checkpoints/" + model_name + "_model.ckpt"
@@ -103,7 +103,7 @@ def train(model_def):
                     if valid_acc > previous_val_acc:
                         number_of_epochs_decreased = 0
                         previous_val_acc = valid_acc
-                        if valid_acc > 0.2:
+                        if valid_acc > 0.3:
                             saver.save(sess, saver_path(model_def.NAME))
                             print("Saved current weights to %s" % (saver_path(model_def.NAME)))
                     elif number_of_epochs_decreased > 5:

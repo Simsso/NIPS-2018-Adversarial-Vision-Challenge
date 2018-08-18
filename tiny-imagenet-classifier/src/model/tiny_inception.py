@@ -73,7 +73,7 @@ def inception_layer(value, name, wd, reduction_filter_counts, conv_filter_counts
 
 def auxiliary_softmax_branch(inputs, name, is_training, avg_pool_size=[5, 5], avg_pool_strides=3):
     softmax_aux = tf.layers.average_pooling2d(inputs, pool_size=avg_pool_size, strides=avg_pool_strides)
-    softmax_aux = tf.layers.conv2d(softmax_aux, filters=256, kernel_size=[1, 1], strides=1, name=("%s/conv-1x1" % name))
+    softmax_aux = tf.layers.conv2d(softmax_aux, filters=128, kernel_size=[1, 1], strides=1, name=("%s/conv-1x1" % name))
     softmax_aux = tf.layers.batch_normalization(softmax_aux, training=is_training)
     softmax_aux = tf.nn.relu(softmax_aux)
     print(("after %s-pool: " % name), softmax_aux.get_shape().as_list())
@@ -95,7 +95,7 @@ def graph(inputs, is_training, dropout_prob, wd):
         tf.summary.image('input_image', inputs)
 
         # initial conv layer 1
-        conv1 = add_wd(tf.layers.conv2d(inputs, filters=64, kernel_size=[5, 5], strides=2, name="conv-initial-1"), wd)
+        conv1 = add_wd(tf.layers.conv2d(inputs, filters=128, kernel_size=[5, 5], strides=2, name="conv-initial-1"), wd)
         conv1 = tf.nn.relu(conv1)
         conv1 = tf.layers.max_pooling2d(conv1, pool_size=[2, 2], strides=1)
         summary_util.activation_summary(conv1)
@@ -105,7 +105,7 @@ def graph(inputs, is_training, dropout_prob, wd):
         # initial conv layer 2 (with 1x1 reduction as in GoogLeNet)
         conv2 = add_wd(tf.layers.conv2d(conv1, filters=64, kernel_size=[1, 1], name="conv-1x1-reduce-initial-2"), wd)
         conv2 = tf.nn.relu(conv2)
-        conv2 = add_wd(tf.layers.conv2d(conv2, filters=192, kernel_size=[3, 3], name="conv-initial-2"), wd)
+        conv2 = add_wd(tf.layers.conv2d(conv2, filters=128, kernel_size=[3, 3], name="conv-initial-2"), wd)
         conv2 = tf.layers.batch_normalization(conv2, training=is_training)
         conv2 = tf.nn.relu(conv2)
         conv2 = tf.layers.max_pooling2d(conv2, pool_size=[2, 2], strides=1)
@@ -115,7 +115,7 @@ def graph(inputs, is_training, dropout_prob, wd):
 
         # Let's go deeper!
         incep3a = inception_layer(conv2,   'incep3a', wd, reduction_filter_counts=[96, 16, 32],  conv_filter_counts=[64, 128, 32])
-        incep3b = inception_layer(incep3a, 'incep3b', wd, reduction_filter_counts=[128, 32, 64], conv_filter_counts=[128, 192, 96])
+        incep3b = inception_layer(incep3a, 'incep3b', wd, reduction_filter_counts=[128, 32, 64], conv_filter_counts=[128, 64, 96])
         maxpool1 = tf.layers.max_pooling2d(incep3b, pool_size=[3, 3], strides=2)
         print("after incep3a / 3b / maxpool: ", maxpool1.get_shape().as_list())
 
@@ -124,20 +124,20 @@ def graph(inputs, is_training, dropout_prob, wd):
         # -------------- auxiliary softmax output branch 1 ---------------
         logits_aux_1, _ = auxiliary_softmax_branch(incep4a, name="softmax_aux_1", is_training=is_training)
         # ----------------------------------------------------------------
-        incep4b = inception_layer(incep4a,  'incep4b', wd, reduction_filter_counts=[112, 24, 64], conv_filter_counts=[160, 224, 64])
+        incep4b = inception_layer(incep4a,  'incep4b', wd, reduction_filter_counts=[112, 24, 64], conv_filter_counts=[128, 128, 64])
         incep4c = inception_layer(incep4b,  'incep4c', wd, reduction_filter_counts=[128, 24, 64], conv_filter_counts=[128, 256, 64],
                                   batch_norm=True, is_training=is_training)
         maxpool2 = tf.layers.max_pooling2d(incep4c, pool_size=[3, 3], strides=2)
         print("after incep4a / 4b / 4c / maxpool: ", maxpool2.get_shape().as_list())
 
-        incep5a = inception_layer(maxpool2, 'incep5a', wd, reduction_filter_counts=[160, 32, 128], conv_filter_counts=[256, 320, 128])
+        incep5a = inception_layer(maxpool2, 'incep5a', wd, reduction_filter_counts=[160, 32, 128], conv_filter_counts=[128, 256, 128])
         # -------------- auxiliary softmax output branch 2 ---------------
         logits_aux_2, _ = auxiliary_softmax_branch(incep5a, name="softmax_aux_2", is_training=is_training,
                                                    avg_pool_size=[4, 4], avg_pool_strides=1)
         # ----------------------------------------------------------------  
-        incep5b = inception_layer(incep5a,  'incep5b', wd, reduction_filter_counts=[192, 48, 128], conv_filter_counts=[384, 384, 128], 
+        incep5b = inception_layer(incep5a,  'incep5b', wd, reduction_filter_counts=[128, 48, 128], conv_filter_counts=[256, 256, 128], 
                                   batch_norm=True, is_training=is_training)
-        # output has 384 + 384 + 128 + 128 = 1024 channels
+        # output has 256 + 256 + 128 + 128 = 768 channels
 
         # average pooling (reduce to spatial 1x1)
         avgpool = tf.layers.average_pooling2d(incep5b, pool_size=[4, 4], strides=1)
@@ -165,10 +165,10 @@ def loss(labels, logits):
     cross_entropy_aux_1 = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels_one_hot, logits=logits_aux_1)
     cross_entropy_aux_2 = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels_one_hot, logits=logits_aux_2)
 
-    # add auxiliary branches-loss weighted by 0.3 to normal 'out' cross entropy
+    # add auxiliary branches-loss weighted by 0.2 to normal 'out' cross entropy
     cross_entropy_loss = tf.reduce_mean(cross_entropy_main, name='cross_entropy_loss')
-    cross_entropy_loss = cross_entropy_loss + 0.3 * tf.reduce_mean(cross_entropy_aux_1, name='cross_entropy_loss_aux_1')
-    cross_entropy_loss = cross_entropy_loss + 0.3 * tf.reduce_mean(cross_entropy_aux_2, name='cross_entropy_loss_aux_2')
+    cross_entropy_loss = cross_entropy_loss + 0.2 * tf.reduce_mean(cross_entropy_aux_1, name='cross_entropy_loss_aux_1')
+    cross_entropy_loss = cross_entropy_loss + 0.2 * tf.reduce_mean(cross_entropy_aux_2, name='cross_entropy_loss_aux_2')
 
     tf.add_to_collection('losses', cross_entropy_loss)
     total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')  # includes weight decay loss terms
