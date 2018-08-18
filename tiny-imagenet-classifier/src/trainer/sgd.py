@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .005
+LEARNING_RATE = .002
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 64
 VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
@@ -102,8 +102,10 @@ def train(model_def):
 
                     if valid_acc > previous_val_acc:
                         number_of_epochs_decreased = 0
-                        saver.save(sess, saver_path(model_def.NAME))
-                        print("Saved current weights to %s" % (saver_path(model_def.NAME)))
+                        previous_val_acc = valid_acc
+                        if valid_acc > 0.2:
+                            saver.save(sess, saver_path(model_def.NAME))
+                            print("Saved current weights to %s" % (saver_path(model_def.NAME)))
                     elif number_of_epochs_decreased > 5:
                         print("Too many epochs with decreasing validation accuracy. Stopping training.")
                         break

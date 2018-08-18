@@ -89,7 +89,6 @@ def graph(inputs, is_training, dropout_prob, wd):
 
         # initial conv layer 1
         conv1 = add_wd(tf.layers.conv2d(inputs, filters=64, kernel_size=[5, 5], strides=2, name="conv-initial-1"), wd)
-        conv1 = tf.layers.batch_normalization(conv1, training=is_training)
         conv1 = tf.nn.relu(conv1)
         conv1 = tf.layers.max_pooling2d(conv1, pool_size=[2, 2], strides=1)
 
