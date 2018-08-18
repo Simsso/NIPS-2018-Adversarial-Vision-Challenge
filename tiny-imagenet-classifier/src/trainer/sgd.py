@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .002
+LEARNING_RATE = .005
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 64
 VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
@@ -13,6 +13,8 @@ TF_LOGS = os.path.join('..', 'tf_logs')
 WEIGHT_DECAY = 1e-4
 DROPOUT = .5
 
+def saver_path(model_name):
+    return "checkpoints/" + model_name + "_model.ckpt"
 
 def train(model_def):
     def run_validation():
@@ -68,12 +70,18 @@ def train(model_def):
 
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         summary_merged = tf.summary.merge_all()
+        
+        saver = tf.train.Saver()
 
     util.file_system.create_dir(TF_LOGS)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
     sess = tf.Session(graph=graph, config=config)
+
+    previous_val_acc = -1
+    number_of_epochs_decreased = 0
+
     with sess.as_default():
         train_log_writer = tf.summary.FileWriter(os.path.join(TF_LOGS, '%s_train' % model_def.NAME), sess.graph)
         valid_log_writer = tf.summary.FileWriter(os.path.join(TF_LOGS, '%s_valid' % model_def.NAME), sess.graph)
@@ -82,6 +90,7 @@ def train(model_def):
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
         sess.run(init)
+        # saver.restore(sess, saver_path(model_def.NAME))
 
         try:
             while not coord.should_stop():
@@ -90,6 +99,16 @@ def train(model_def):
                     print("Starting epoch #{}".format(epoch))
                     valid_acc, valid_loss = run_validation()
                     print("Validation data: accuracy {}, loss {}".format(valid_acc, valid_loss))
+
+                    if valid_acc > previous_val_acc:
+                        number_of_epochs_decreased = 0
+                        saver.save(sess, saver_path(model_def.NAME))
+                        print("Saved current weights to %s" % (saver_path(model_def.NAME)))
+                    elif number_of_epochs_decreased > 5:
+                        print("Too many epochs with decreasing validation accuracy. Stopping training.")
+                        break
+                    else:
+                        number_of_epochs_decreased += 1
 
                     valid_acc, valid_loss = run_training()
                     print("Training data (with batch norm): accuracy {}, loss {}".format(valid_acc, valid_loss))
@@ -104,5 +123,5 @@ def train(model_def):
 def get_optimization_op(loss):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
+        optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
         return optimizer.minimize(loss)
