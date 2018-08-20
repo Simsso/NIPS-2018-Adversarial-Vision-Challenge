@@ -18,14 +18,18 @@ def load_image(filename):
     img = cv2.imread(filename)
     return img
 
-def load_tiny_image_net(mode, limit=None):
+def load_tiny_image_net(mode, labels_only=False, limit=None):
     filenames_labels = data.load_filenames_labels(mode)
     # import: don't shuffle here, otherwise the cached transfer values will be useless!
     if limit:
         filenames_labels = filenames_labels[:limit]
-    images = np.array([load_image(img) for img, _ in filenames_labels])
+
     labels = np.array([label for _, label in filenames_labels])
     labels = labels.astype(np.uint8)
+    if labels_only:
+        return [], labels 
+    else:
+        images = np.array([load_image(img) for img, _ in filenames_labels])
     return images, labels
 #########################################################################
 
@@ -88,9 +92,12 @@ def inference_in_batches(all_images, batch_size):
     return result
 
 
+def activations_are_cached(cache_path):
+    return os.path.exists(cache_path)
+
 def read_cache_or_generate_activations(cache_path, all_images, batch_size=64):
     # If the cache-file exists
-    if os.path.exists(cache_path):
+    if activations_are_cached(cache_path):
         # Load the cached data from the file
         with open(cache_path, mode='rb') as file:
             activations = pickle.load(file)

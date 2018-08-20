@@ -10,8 +10,11 @@ NUM_TRAIN_SAMPLES = tiny_imagenet.NUM_TRAIN_SAMPLES
 
 
 def get_activations_labels(mode):
-    images, labels = cache.load_tiny_image_net(mode=mode)
-    activations = cache.read_cache_or_generate_activations(cache_path=cache.get_cache_path(mode), all_images=images, batch_size=500)
+    cache_path = cache.activations_are_cached(mode)
+    already_cached = cache.activations_are_cached(cache_path)
+
+    images, labels = cache.load_tiny_image_net(labels_only=already_cached, mode=mode)
+    activations = cache.read_cache_or_generate_activations(cache_path=cache.get_cache_path(mode), all_images=images, batch_size=200)
 
     # shuffle activations and labels (important: only *after* the activation generation!)
     idx = np.random.permutation(len(labels))

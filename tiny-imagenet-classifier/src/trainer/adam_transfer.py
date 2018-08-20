@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .0002
+LEARNING_RATE = .002
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 64
 VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
@@ -13,7 +13,7 @@ TF_LOGS = os.path.join('..', 'tf_logs')
 WEIGHT_DECAY = 1e-5
 
 
-def random_batch(inputs, labels, batch_size):
+def random_batch(inputs, labels, batch_size):  # shuffle and then go through linear
     idx = np.random.choice(len(labels), size=batch_size, replace=False)
     x_batch = inputs[idx]
     y_batch = labels[idx]
@@ -51,8 +51,15 @@ def train(model_def):
 
     def run_training():
         vals = []
-        for _ in range(STEPS_PER_EPOCH):
-            train_features, train_labels = random_batch(inputs=all_activations_train, labels=all_labels_train, batch_size=TRAIN_BATCH_SIZE)
+
+        full_batches = data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE
+        num_batches = full_batches if data.NUM_TRAIN_SAMPLES % TRAIN_BATCH_SIZE == 0 else full_batches + 1
+        for i in range(num_batches):
+            from_idx = i * TRAIN_BATCH_SIZE
+            to_idx = min((i + 1) * TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
+            train_features = all_activations_train[from_idx:to_idx]
+            train_labels = all_labels_train[from_idx:to_idx]
+
             _, acc_val, loss_val = sess.run([optimizer, acc, loss], feed_dict={
                 features: train_features,
                 labels: train_labels,
