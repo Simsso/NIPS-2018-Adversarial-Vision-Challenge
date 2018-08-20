@@ -81,7 +81,7 @@ def inference_in_batches(all_images, batch_size):
                 batch_placeholder: batch_values
             })
 
-            result[from_idx:to_idx] = np.squeeze(batch_result)  # remove 1-d dimensions
+            result[from_idx:to_idx] = np.squeeze(batch_result)  # remove 1x dimensions
         print("") # new line
 
     return result
@@ -108,5 +108,10 @@ def read_cache_or_generate_activations(cache_path, all_images, batch_size=64):
 
 CACHE_DIR = os.path.expanduser("~/.models/cached_activations/")
 
+
 def get_cache_path(mode):
     return os.path.join(CACHE_DIR, "tiny_imagenet_" + mode + ".pkl")
+
+
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
