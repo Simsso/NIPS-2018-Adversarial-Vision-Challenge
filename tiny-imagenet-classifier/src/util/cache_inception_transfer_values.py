@@ -35,6 +35,7 @@ def inception_v3_features(images):
             inputs=images,
             num_classes=1001,
             is_training=False,
+            dropout_keep_prob=1,
             create_aux_logits=False)
     features = endpoints['PreLogits']   # Nx1x1xACTIVATION_DIM
     return features

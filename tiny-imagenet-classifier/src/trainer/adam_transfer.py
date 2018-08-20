@@ -28,6 +28,7 @@ def train(model_def):
         vals = []
         full_batches = data.NUM_VALIDATION_SAMPLES // VALIDATION_BATCH_SIZE
         num_batches = full_batches if data.NUM_VALIDATION_SAMPLES % VALIDATION_BATCH_SIZE == 0 else full_batches + 1
+        
         for i in range(num_batches):
             from_idx = i * VALIDATION_BATCH_SIZE
             to_idx = min((i + 1) * VALIDATION_BATCH_SIZE, data.NUM_VALIDATION_SAMPLES)
