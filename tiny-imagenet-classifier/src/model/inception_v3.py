@@ -412,6 +412,7 @@ def inception_v3_base(inputs,
 
 def inception_v3(inputs,
                  num_classes=1000,
+                 final_endpoint='Mixed_7c',
                  is_training=True,
                  dropout_keep_prob=0.8,
                  min_depth=16,
@@ -473,7 +474,7 @@ def inception_v3(inputs,
     with slim.arg_scope([slim.batch_norm, slim.dropout],
                         is_training=is_training):
       net, end_points = inception_v3_base(
-          inputs, scope=scope, min_depth=min_depth,
+          inputs, final_endpoint=final_endpoint, scope=scope, min_depth=min_depth,
           depth_multiplier=depth_multiplier)
 
       # Auxiliary Head logits
@@ -585,7 +586,9 @@ def graph(inputs, is_training, dropout_prob, wd):
         _, endpoints = inception_v3(
             inputs=scaled_images,
             num_classes=1001,    # otherwise problems with restoring
-            is_training=False
+            is_training=False,
+            dropout_keep_prob=1,
+            create_aux_logits=False
         )
         features = endpoints["PreLogits"] # Nx1x1x2048 feature extractions from the pretrained values
         print("Features shape: ", features.shape)
