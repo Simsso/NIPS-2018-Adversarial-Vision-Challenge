@@ -4,8 +4,11 @@ import data.tiny_imagenet as data
 import pickle 
 import numpy as np
 import os
+import sys
 
 slim = tf.contrib.slim
+
+ACTIVATION_DIM = 2048
 
 ##################### Tiny ImageNet Loading Helper ######################
 import cv2
@@ -33,7 +36,7 @@ def inception_v3_features(images):
             num_classes=1001,
             is_training=False,
             create_aux_logits=False)
-    features = endpoints['PreLogits']   # Nx1x1x2048
+    features = endpoints['PreLogits']   # Nx1x1xACTIVATION_DIM
     return features
 
 
@@ -56,25 +59,31 @@ def inference_in_batches(all_images, batch_size):
         saver = inception_v3.create_saver()
 
     sess = tf.Session(graph=graph)
-    result = []
+    num_images = len(all_images)
+    result = np.ndarray(shape=(num_images, ACTIVATION_DIM))
+    
     with sess.as_default():
         sess.run(init)
         inception_v3.restore(sess, saver)
-        num_batches = max(len(all_images) // batch_size, 1)
+
+        full_batches = num_images // batch_size
+        num_batches = full_batches if num_images % batch_size == 0 else full_batches + 1
+
         for i in range(num_batches):
-            msg = "\r- Processing batch: {0:>6} / {1}".format(i+1, len(all_images))
+            msg = "\r- Processing batch: {0:>6} / {1}".format(i+1, num_batches)
             sys.stdout.write(msg)
             sys.stdout.flush()
 
-            batch_values = all_images[i*batch_size : min((i+1)*batch_size, len(all_images))]
+            from_idx = i*batch_size
+            to_idx = min((i+1)*batch_size, num_images)
+            batch_values = all_images[from_idx:to_idx]
             batch_result = sess.run(activations, feed_dict={
                 batch_placeholder: batch_values
             })
-            result.append(np.squeeze(batch_result))
 
-    # convert to numpy array and squeeze to shape Nx2048
-    result = np.array(result)
-    result = np.squeeze(result)
+            result[from_idx:to_idx] = np.squeeze(batch_result)  # remove 1-d dimensions
+        print("") # new line
+
     return result
 
 
