@@ -1,5 +1,5 @@
 #!/bin/sh
-TF_RECORD_DATASET_DIR=~/.data/tiny-imagenet-tfrecords
+# TF_RECORD_DATASET_DIR=~/.data/tiny-imagenet-tfrecords
 DATASET_DIRECTORY=~/.data/tiny-imagenet-200 # not to be edited
 CHECKPOINT_DIRECTORY=~/.models # not to be edited
 
@@ -18,22 +18,22 @@ else
 fi
 
 # convert it to tf-records format
-if [ ! -d "$TF_RECORD_DATASET_DIR" ]; then
-    echo "Converting Tiny ImageNet to TFRecords format..."
-    python3 convert_tiny_imagenet_tfrecords.py --output_directory=$TF_RECORD_DATASET_DIR
-    echo "Done converting."
-else
-    echo "TFRecords format already existent. Remove $TF_RECORD_DATASET_DIR to convert it again."
-fi
+#if [ ! -d "$TF_RECORD_DATASET_DIR" ]; then
+#    echo "Converting Tiny ImageNet to TFRecords format..."
+#    python3 convert_tiny_imagenet_tfrecords.py --output_directory=$TF_RECORD_DATASET_DIR
+#    echo "Done converting."
+#else
+#    echo "TFRecords format already existent. Remove $TF_RECORD_DATASET_DIR to convert it again."
+#fi
 
 # download the checkpoint file
 if [ ! -d "$CHECKPOINT_DIRECTORY" ]; then
     mkdir ~/.models
     cd ~/.models
     echo "Downloading Inception v3 checkpoint..."
-    curl -O http://download.tensorflow.org/models/image/imagenet/inception-v3-2016-03-01.tar.gz
-    tar xzf inception-v3-2016-03-01.tar.gz
-    rm inception-v3-2016-03-01.tar.gz
+    curl -O http://download.tensorflow.org/models/inception_v3_2016_08_28.tar.gz
+    tar xzf inception_v3_2016_08_28.tar.gz
+    rm inception_v3_2016_08_28.tar.gz
     echo "Done downloading checkpoint."
 else
     echo "Inception v3 checkpoint files already existent. Remove $CHECKPOINT_DIRECTORY to download again."

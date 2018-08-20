@@ -1,6 +1,6 @@
 import tensorflow as tf
 import trainer.sgd as trainer
-import model.tiny_inception as model
+import model.inception_v3 as model
 
 
 def main(args=None):

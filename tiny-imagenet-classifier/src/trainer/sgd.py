@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .0025
+LEARNING_RATE = .0002
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 64
 VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
@@ -71,7 +71,7 @@ def train(model_def):
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         summary_merged = tf.summary.merge_all()
         
-        saver = tf.train.Saver()
+        saver = model_def.create_saver()
 
     util.file_system.create_dir(TF_LOGS)
 
@@ -90,7 +90,7 @@ def train(model_def):
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
         sess.run(init)
-        # saver.restore(sess, saver_path(model_def.NAME))
+        model_def.restore(sess, saver)
 
         try:
             while not coord.should_stop():
