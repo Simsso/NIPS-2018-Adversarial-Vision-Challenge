@@ -11,6 +11,7 @@ VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based
 STEPS_PER_EPOCH = min(data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
 TF_LOGS = os.path.join('..', 'tf_logs')
 WEIGHT_DECAY = 1e-4
+DROPOUT_RATE = 0.2
 
 
 def random_batch(inputs, labels, batch_size):  # shuffle and then go through linear
@@ -29,9 +30,9 @@ def train(model_def):
         full_batches = data.NUM_VALIDATION_SAMPLES // VALIDATION_BATCH_SIZE
         num_batches = full_batches if data.NUM_VALIDATION_SAMPLES % VALIDATION_BATCH_SIZE == 0 else full_batches + 1
         
-        for i in range(num_batches):
-            from_idx = i * VALIDATION_BATCH_SIZE
-            to_idx = min((i + 1) * VALIDATION_BATCH_SIZE, data.NUM_VALIDATION_SAMPLES)
+        for j in range(num_batches):
+            from_idx = j * VALIDATION_BATCH_SIZE
+            to_idx = min((j + 1) * VALIDATION_BATCH_SIZE, data.NUM_VALIDATION_SAMPLES)
             val_features = all_activations_val[from_idx:to_idx]
             val_labels = all_labels_val[from_idx:to_idx]
 
@@ -54,9 +55,9 @@ def train(model_def):
 
         full_batches = data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE
         num_batches = full_batches if data.NUM_TRAIN_SAMPLES % TRAIN_BATCH_SIZE == 0 else full_batches + 1
-        for i in range(num_batches):
-            from_idx = i * TRAIN_BATCH_SIZE
-            to_idx = min((i + 1) * TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
+        for j in range(num_batches):
+            from_idx = j * TRAIN_BATCH_SIZE
+            to_idx = min((j + 1) * TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
             train_features = all_activations_train[from_idx:to_idx]
             train_labels = all_labels_train[from_idx:to_idx]
 
@@ -82,7 +83,7 @@ def train(model_def):
         labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
         is_training = tf.placeholder_with_default(False, (), 'is_training')
 
-        logits, softmax = model_def.graph(features, is_training, WEIGHT_DECAY)
+        logits, softmax = model_def.graph(features, is_training, WEIGHT_DECAY, DROPOUT_RATE)
 
         loss = model_def.loss(labels, logits)
         acc = model_def.accuracy(labels, softmax)
