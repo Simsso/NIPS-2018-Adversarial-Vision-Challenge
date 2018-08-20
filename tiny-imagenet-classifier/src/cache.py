@@ -5,8 +5,8 @@ if __name__ == '__main__':
     if not os.path.exists(cache.CACHE_DIR):
         os.makedirs(cache.CACHE_DIR)
 
-    for mode in ['val']:    # 'train', 
-        limit = 1 # for testing
+    for mode in ['val', 'train']:
+        limit = None
 
         path = cache.get_cache_path(mode)
         labels_only = cache.activations_are_cached(path)
