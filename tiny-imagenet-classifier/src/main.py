@@ -1,6 +1,6 @@
 import tensorflow as tf
-import trainer.sgd as trainer
-import model.inception_v3 as model
+import trainer.adam_transfer as trainer
+import model.inception_transfer as model
 
 
 def main(args=None):
