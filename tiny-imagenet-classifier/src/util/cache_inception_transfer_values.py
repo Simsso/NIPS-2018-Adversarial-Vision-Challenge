@@ -46,7 +46,7 @@ def inception_v3_features(images):
 
 
 def run_batch(batch):
-    scaled_batch = scaled_images = tf.image.resize_images(images=batch, size=[299, 299])
+    scaled_batch = tf.image.resize_images(images=batch, size=[299, 299])
     activations = inception_v3_features(scaled_batch)
     return activations
 

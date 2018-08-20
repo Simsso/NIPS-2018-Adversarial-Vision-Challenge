@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .002
+LEARNING_RATE = .0001
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 64
 VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM

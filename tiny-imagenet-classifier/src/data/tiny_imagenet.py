@@ -44,13 +44,14 @@ def load_filenames_labels(mode):
     filenames_labels = []
     if mode == 'train':
         filenames = glob.glob(PATH + '/train/*/images/*.JPEG')
+        filenames.sort()
         for filename in filenames:
             match = re.search(r'n\d+', filename)
             label = str(label_dict[match.group()])
             filenames_labels.append((filename, label))
     elif mode == 'val':
         with open(PATH + '/val/val_annotations.txt', 'r') as f:
-            for line in f.readlines():
+            for line in f.readlines().sort():
                 split_line = line.split('\t')
                 filename = PATH + '/val/images/' + split_line[0]
                 label = str(label_dict[split_line[1]])
