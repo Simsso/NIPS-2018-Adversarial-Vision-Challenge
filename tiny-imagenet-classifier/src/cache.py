@@ -5,7 +5,7 @@ if __name__ == '__main__':
     if not os.path.exists(cache.CACHE_DIR):
         os.makedirs(cache.CACHE_DIR)
 
-    for mode in ['train', 'val']:
+    for mode in ['val']:    # 'train', 
         limit = 1 # for testing
 
         path = cache.get_cache_path(mode)

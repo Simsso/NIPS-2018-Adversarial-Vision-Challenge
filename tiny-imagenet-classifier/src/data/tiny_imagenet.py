@@ -51,7 +51,9 @@ def load_filenames_labels(mode):
             filenames_labels.append((filename, label))
     elif mode == 'val':
         with open(PATH + '/val/val_annotations.txt', 'r') as f:
-            for line in f.readlines().sort():
+            lines = f.readlines()
+            lines.sort()
+            for line in lines:
                 split_line = line.split('\t')
                 filename = PATH + '/val/images/' + split_line[0]
                 label = str(label_dict[split_line[1]])
