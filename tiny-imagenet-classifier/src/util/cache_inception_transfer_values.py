@@ -150,7 +150,7 @@ def read_cache_or_generate_activations(cache_path, all_images, mode, batch_size=
 
         # Save the data to a cache-file.
         with open(cache_path, mode='wb') as file:
-            pickle.dump(activations, file)
+            pickle.dump(activations, file, protocol=4)
         print("- Activations saved to cache-file: " + cache_path)
     return activations
 
