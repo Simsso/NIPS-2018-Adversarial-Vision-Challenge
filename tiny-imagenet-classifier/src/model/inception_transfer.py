@@ -8,12 +8,13 @@ NAME = "inception_transfer_001"
 
 def graph(transfer_values, is_training, weight_decay, dropout_rate):
     with tf.variable_scope('', reuse=tf.AUTO_REUSE):
-        # simple 2-layer graph (TODO: regularization, ...)
-        fc1 = tf.layers.dropout(transfer_values, dropout_rate, training=is_training)
-        fc1 = add_wd(tf.layers.dense(fc1, units=512, name="classifier/fc1"), weight_decay)
-        fc1 = tf.nn.relu(fc1)
-        fc1 = tf.layers.dropout(fc1, dropout_rate, training=is_training)
+        # simple 2-layer graph
+        transfer_values = tf.layers.batch_normalization(transfer_values, training=is_training)
 
+        fc1 = add_wd(tf.layers.dense(transfer_values, units=512, name="classifier/fc1"), weight_decay)
+        fc1 = tf.nn.relu(fc1)
+
+        fc1 = tf.layers.batch_normalization(fc1, training=is_training)
         logits = add_wd(tf.layers.dense(fc1, units=data.NUM_CLASSES, name="classifier/logits"), weight_decay)
         softmax = tf.nn.softmax(logits, axis=1, name='classifier/softmax')
 
@@ -25,8 +26,7 @@ def graph(transfer_values, is_training, weight_decay, dropout_rate):
 
 def loss(labels, logits):
     labels_one_hot = tf.one_hot(labels, depth=data.NUM_CLASSES)
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels_one_hot, logits=logits)
-    cross_entropy_loss = tf.reduce_mean(cross_entropy, name='cross_entropy_loss')
+    cross_entropy_loss = tf.losses.softmax_cross_entropy(labels_one_hot, logits, label_smoothing=0.1)
 
     tf.add_to_collection('LOSSES', cross_entropy_loss)
     total_loss = tf.add_n(tf.get_collection('LOSSES'), name='total_loss')  # includes weight decay loss terms

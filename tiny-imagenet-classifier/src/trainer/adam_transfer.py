@@ -4,17 +4,18 @@ import os
 import tensorflow as tf
 import util.file_system
 
-LEARNING_RATE = .001
+INITIAL_LEARNING_RATE = 6.5e-4
 NUM_EPOCHS = 1000
 TRAIN_BATCH_SIZE = 64
 VALIDATION_BATCH_SIZE = 64  # does not affect training results; adjustment based on GPU RAM
 STEPS_PER_EPOCH = min(data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
 TF_LOGS = os.path.join('..', 'tf_logs')
-WEIGHT_DECAY = 1e-4
+WEIGHT_DECAY = 0.0116
 DROPOUT_RATE = 0.2
+LR_DECAY_RATE = 0.713
 
 
-def random_batch(inputs, labels, batch_size):  # shuffle and then go through linear
+def random_batch(inputs, labels, batch_size):
     idx = np.random.choice(len(labels), size=batch_size, replace=False)
     x_batch = inputs[idx]
     y_batch = labels[idx]
@@ -38,7 +39,8 @@ def train(model_def):
 
             vals.append(sess.run([acc, loss], feed_dict={
                 features: val_features,
-                labels: val_labels
+                labels: val_labels,
+                is_training: False
             }))
 
         acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
@@ -48,6 +50,15 @@ def train(model_def):
         ])
         valid_log_writer.add_summary(summary, global_step=(epoch - 1) * STEPS_PER_EPOCH)
 
+        # log the non-artificial summary as well (@Simsso don't really know what you meant by this comment)
+        random_batch_x, random_batch_y = random_batch(inputs=all_activations_val, labels=all_labels_val, batch_size=VALIDATION_BATCH_SIZE)
+        summary = sess.run(summary_merged, feed_dict={
+            features: random_batch_x,
+            labels: random_batch_y,
+            is_training: False
+        })
+        valid_log_writer.add_summary(summary, global_step=(epoch - 1) * STEPS_PER_EPOCH)
+
         return acc_mean_val, loss_mean_val
 
     def run_training():
@@ -55,6 +66,7 @@ def train(model_def):
 
         full_batches = data.NUM_TRAIN_SAMPLES // TRAIN_BATCH_SIZE
         num_batches = full_batches if data.NUM_TRAIN_SAMPLES % TRAIN_BATCH_SIZE == 0 else full_batches + 1
+
         for j in range(num_batches):
             from_idx = j * TRAIN_BATCH_SIZE
             to_idx = min((j + 1) * TRAIN_BATCH_SIZE, data.NUM_TRAIN_SAMPLES)
@@ -82,12 +94,15 @@ def train(model_def):
         features = tf.placeholder(tf.float32, shape=[None, data.ACTIVATION_DIM], name='features')
         labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
         is_training = tf.placeholder_with_default(False, (), 'is_training')
+        
+        global_step = tf.Variable(0, trainable=False)
+        learning_rate = tf.train.exponential_decay(INITIAL_LEARNING_RATE, global_step, decay_steps=STEPS_PER_EPOCH, decay_rate=LR_DECAY_RATE)
 
         logits, softmax = model_def.graph(features, is_training, WEIGHT_DECAY, DROPOUT_RATE)
 
         loss = model_def.loss(labels, logits)
         acc = model_def.accuracy(labels, softmax)
-        optimizer = get_optimization_op(loss)
+        optimizer = get_optimization_op(loss, learning_rate, global_step) 
 
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         summary_merged = tf.summary.merge_all()
@@ -126,8 +141,8 @@ def train(model_def):
             coord.join(threads)
 
 
-def get_optimization_op(loss):
+def get_optimization_op(loss, learning_rate, global_step):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE)
-        return optimizer.minimize(loss)
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        return optimizer.minimize(loss, global_step=global_step)    # passing the global step here will increase it at every step
