@@ -2,6 +2,7 @@ import tensorflow as tf
 import model.inception_v3 as inception_v3
 import data.tiny_imagenet as data
 import pickle 
+from util.pickle_load_large_files import load_large_file
 import numpy as np
 import os
 import sys
@@ -140,8 +141,7 @@ def read_cache_or_generate_activations(cache_path, all_images, mode, batch_size=
     # If the cache-file exists
     if activations_are_cached(cache_path):
         # Load the cached data from the file
-        with open(cache_path, mode='rb') as file:
-            activations = pickle.load(file)
+        activations = load_large_file(cache_path)
         print("- Activations loaded from cache-file: " + cache_path)
     else:
         # The cache-file does not exist.
