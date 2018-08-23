@@ -25,9 +25,14 @@
       - software-properties-common
       - docker-ce
     become: true
+  - name: Download CUDA .deb file
+    get_url:
+      url: http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
+      dest: /
+      mode: 0777
   - name: Install CUDA repository meta-data
     apt:
-      deb: cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
+      deb: /cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
       state: present
     become: true
   - name: Install CUDA public GPG key
