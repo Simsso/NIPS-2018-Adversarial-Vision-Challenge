@@ -1,18 +1,16 @@
 - hosts: nips_training
   remote_user: nips-cloudbuilder
+  become: yes
   tasks:
   - name: Update and upgrade apt packages
     apt:
     upgrade: yes
     update_cache: yes
-    become: true
   - name: Add Docker GPG key
     apt_key: url=https://download.docker.com/linux/ubuntu/gpg
-    become: true
   - name: Add Docker APT repository
     apt_repository:
       repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ansible_distribution_release}} stable
-    become: true
   - name: Install list of packages
     apt:
       name: "{{ item }}"
@@ -24,18 +22,15 @@
       - curl
       - software-properties-common
       - docker-ce
-    become: true
   - name: Download CUDA .deb file
     get_url:
       url: http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
       dest: /
       mode: 0777
-    become: yes
   - name: Install CUDA repository meta-data
     apt:
       deb: /cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
       state: present
-    become: true
   - name: Install CUDA public GPG key
     apt_key:
       url: http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
@@ -43,11 +38,9 @@
     apt:
     upgrade: yes
     update_cache: yes
-    become: true
   - name: Install CUDA
     apt:
       name: cuda
       state: present
-    become: yes
   - name: Run nvidia-smi
     command: nvidia-smi
