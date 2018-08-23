@@ -1,5 +1,5 @@
 - hosts: nips_training
-  remote_user: root
+  remote_user: nips-cloudbuilder
   tasks:
   - name: Update apt-repositories 
     command: apt-get update
