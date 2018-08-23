@@ -27,7 +27,7 @@
     become: true
   - name: Install CUDA repository meta-data
     apt:
-      name: cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
+      deb: cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
       state: present
     become: true
   - name: Install CUDA public GPG key
@@ -41,4 +41,7 @@
   - name: Install CUDA
     apt:
       name: cuda
+      state: present
+    become: yes
+  
 
