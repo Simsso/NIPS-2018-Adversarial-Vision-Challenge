@@ -16,7 +16,7 @@
   - name: Install list of packages
     apt:
       name: "{{ item }}"
-      state: installed
+      state: present
       update_cache: yes
     with_items:
       - apt-transport-https
@@ -25,9 +25,20 @@
       - software-properties-common
       - docker-ce
     become: true
-  - name: Install cuda-drivers
+  - name: Install CUDA repository meta-data
     apt:
-      name: cuda-drivers
-      state: latest
+      name: cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
+      state: present
     become: true
+  - name: Install CUDA public GPG key
+    apt_key:
+      url: http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
+  - name: Update and upgrade apt packages
+    apt:
+    upgrade: yes
+    update_cache: yes
+    become: true
+  - name: Install CUDA
+    apt:
+      name: cuda
 
