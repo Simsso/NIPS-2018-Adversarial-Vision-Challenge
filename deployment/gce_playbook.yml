@@ -1,6 +1,29 @@
 - hosts: nips_training
   remote_user: nips-cloudbuilder
   tasks:
-  - name: Update apt-repositories 
-    command: apt-get update
-    become: yes
+  - name: Update and upgrade apt packages
+    apt:
+    upgrade: yes
+    update_cache: yes
+    become: true
+  - name: Add Docker GPG key
+    apt_key: url=https://download.docker.com/linux/ubuntu/gpg
+  - name: Add Docker APT repository
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ansible_distribution_release}} stable
+  - name: Install list of packages
+    apt:
+      name: "{{ item }}"
+      state: installed
+      update_cache: yes
+    with_items:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - docker-ce
+  - name: Install cuda-drivers
+    apt:
+      name: cuda-drivers
+      state: latest
+
