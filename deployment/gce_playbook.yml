@@ -30,6 +30,7 @@
       url: http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
       dest: /
       mode: 0777
+    become: yes
   - name: Install CUDA repository meta-data
     apt:
       deb: /cuda-repo-ubuntu1604_9.2.148-1_amd64.deb
@@ -48,5 +49,5 @@
       name: cuda
       state: present
     become: yes
-  
-
+  - name: Run nvidia-smi
+    command: nvidia-smi
