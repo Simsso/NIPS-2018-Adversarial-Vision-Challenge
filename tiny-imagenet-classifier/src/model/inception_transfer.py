@@ -28,8 +28,8 @@ def loss(labels, logits):
     labels_one_hot = tf.one_hot(labels, depth=data.NUM_CLASSES)
     cross_entropy_loss = tf.losses.softmax_cross_entropy(labels_one_hot, logits, label_smoothing=0.1)
 
-    tf.add_to_collection('LOSSES', cross_entropy_loss)
-    total_loss = tf.add_n(tf.get_collection('LOSSES'), name='total_loss')  # includes weight decay loss terms
+    tf.add_to_collection(tf.GraphKeys.LOSSES, cross_entropy_loss)
+    total_loss = tf.add_n(tf.get_collection(tf.GraphKeys.LOSSES), name='total_loss')  # includes weight decay loss terms
     return total_loss
 
 

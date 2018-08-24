@@ -24,7 +24,7 @@ import os
 NUM_CLASSES = 200
 NUM_TRAIN_SAMPLES = 500*NUM_CLASSES
 NUM_VALIDATION_SAMPLES = 50*NUM_CLASSES
-IMG_DIM = 64  # not cropping (experiment)
+IMG_DIM = 56
 IMG_CHANNELS = 3
 PATH = os.path.expanduser('~/.data/tiny-imagenet-200')
 
@@ -116,13 +116,13 @@ def read_image(filename_q, mode):
     img = tf.image.decode_jpeg(file, channels=3)
     # image distortions: left/right, random hue, random color saturation
     if mode == 'train':
-        # img = tf.random_crop(img, np.array([56, 56, 3]))
+        img = tf.random_crop(img, np.array([IMG_DIM, IMG_DIM, 3]))
         img = tf.image.random_flip_left_right(img)
-        # val accuracy improved without random hue
-        # img = tf.image.random_hue(img, 0.05)
-        # img = tf.image.random_saturation(img, 0.5, 1.5)
-    #else:
-    #    img = tf.image.crop_to_bounding_box(img, 4, 4, 56, 56)
+        # val accuracy improved without random hue (?)
+        img = tf.image.random_hue(img, 0.05)
+        img = tf.image.random_saturation(img, 0.5, 1.5)
+    else:
+        img = tf.image.crop_to_bounding_box(img, 4, 4, IMG_DIM, IMG_DIM)
 
     img = tf.image.per_image_standardization(img)
 

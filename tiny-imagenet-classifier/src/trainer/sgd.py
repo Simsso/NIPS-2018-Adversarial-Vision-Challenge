@@ -3,6 +3,7 @@ import numpy as np
 import os
 import tensorflow as tf
 import util.file_system
+from util.custom_graph_keys import CLASSIFIER_TRAIN_VARIABLES
 
 LEARNING_RATE = .0002
 NUM_EPOCHS = 1000
@@ -126,4 +127,4 @@ def get_optimization_op(loss):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
-        return optimizer.minimize(loss)
+        return optimizer.minimize(loss, var_list=tf.get_collection(CLASSIFIER_TRAIN_VARIABLES))

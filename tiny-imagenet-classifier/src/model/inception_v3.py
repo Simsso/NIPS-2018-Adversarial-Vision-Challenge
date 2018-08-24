@@ -566,7 +566,11 @@ import data.tiny_imagenet as data
 import tensorflow as tf
 import os
 
-NAME = "inception-v3-001"
+from util.weight_decay import add_wd
+from util.weight_decay import get_all_params
+from util.custom_graph_keys import CLASSIFIER_TRAIN_VARIABLES
+
+NAME = "inception_v3_001_wd"
 RESTORE_PATH = os.path.expanduser("~/.models/inception_v3.ckpt")
 
 def create_saver():
@@ -599,23 +603,30 @@ def graph(inputs, is_training, dropout_prob, wd):
 
         # simple 2-layer graph
         features_flat = tf.layers.flatten(features)
-        fc1 = tf.layers.dense(features_flat, units=1024, name="classifier/fc1")
+        fc1 = add_wd(tf.layers.dense(features_flat, units=1024, name="classifier/fc1"), wd)
+        for param in get_all_params(fc1):
+          tf.add_to_collection(CLASSIFIER_TRAIN_VARIABLES, param)
         fc1 = tf.nn.relu(fc1)
 
-        logits = tf.layers.dense(fc1, units=data.NUM_CLASSES, name="classifier/logits")
-        softmax = tf.nn.softmax(logits, axis=1, name='classifier/softmax')
+        fc1 = tf.layers.batch_normalization(fc1, training=is_training)
 
-        print("Logits shape: ", logits.shape)
-        print("Softmax shape: ", softmax.shape)
+        logits = add_wd(tf.layers.dense(fc1, units=data.NUM_CLASSES, name="classifier/logits"), wd)
+        for param in get_all_params(logits):
+          tf.add_to_collection(CLASSIFIER_TRAIN_VARIABLES, param)
+          
+        softmax = tf.nn.softmax(logits, axis=1, name='classifier/softmax')
 
         return logits, softmax
 
 def loss(labels, logits):
     labels_one_hot = tf.one_hot(labels, depth=data.NUM_CLASSES)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels_one_hot, logits=logits)
-    loss_mean = tf.reduce_mean(cross_entropy, name='cross_entropy_loss')
-    return loss_mean
+    cross_entropy_loss = tf.reduce_mean(cross_entropy, name='cross_entropy_loss')
 
+    tf.add_to_collection(tf.GraphKeys.LOSSES, cross_entropy_loss)
+    total_loss = tf.add_n(tf.get_collection(tf.GraphKeys.LOSSES), name='total_loss')  # includes weight decay loss terms
+
+    return total_loss
 
 def accuracy(labels, softmax):
     correct = tf.cast(tf.equal(tf.argmax(softmax, axis=1), tf.cast(labels, tf.int64)), dtype=tf.float32)
