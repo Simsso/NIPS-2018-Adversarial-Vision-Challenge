@@ -14,9 +14,13 @@ resource "google_compute_instance" "gce_instance" {
       image = "nips-2018-adversarial-vision-challenge-base-image"
     }
   }
-
+  
   scheduling {
     on_host_maintenance = "TERMINATE"
+  }
+
+  service_account {
+    scopes = ["storage-ro"]
   }
 
    guest_accelerator {

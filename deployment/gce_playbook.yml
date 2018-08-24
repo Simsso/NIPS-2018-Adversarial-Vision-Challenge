@@ -1,10 +1,10 @@
 - hosts: nips_training
   vars:
-    model_docker_image: "{{ model_docker_image }}"
+      model_docker_image: "{{ model_docker_image }}"
   remote_user: nips-cloudbuilder
   become: yes
   tasks:
-  - name: Pull docker model image
-  command: docker pull gcr.io/nips-2018-207619/{{ model_docker_image }}
+    - name: Pull docker model image
+      command: docker pull gcr.io/nips-2018-207619/{{ model_docker_image }}
 
     
