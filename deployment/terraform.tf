@@ -11,7 +11,7 @@ resource "google_compute_instance" "gce_instance" {
 
   boot_disk {
     initialize_params {
-      image = "ubuntu-os-cloud/ubuntu-1604-lts"
+      image = "nips-2018-adversarial-vision-challenge-base-image"
     }
   }
 
@@ -19,12 +19,11 @@ resource "google_compute_instance" "gce_instance" {
     on_host_maintenance = "TERMINATE"
   }
 
-  /*
-                                  guest_accelerator {
-                                    type = "nvidia-tesla-k80"
-                                    count = 1
-                                  }  
-                                */
+   guest_accelerator {
+    type = "nvidia-tesla-k80"
+    count = 1
+  }  
+  
   network_interface {
     network       = "default"
     access_config = {}
@@ -33,7 +32,7 @@ resource "google_compute_instance" "gce_instance" {
 
 resource "null_resource" "setup-gce" {
   provisioner "local-exec" {
-    command = "./configure_gce_instance.sh ${google_compute_instance.gce_instance.network_interface.0.access_config.0.assigned_nat_ip}"
+    command = "./configure_gce_instance.sh ${google_compute_instance.gce_instance.network_interface.0.access_config.0.assigned_nat_ip} ${var.model_docker_image}"
   }
 
   depends_on = ["google_compute_instance.gce_instance"]

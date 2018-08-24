@@ -24,4 +24,4 @@ echo "Planning Terraform .."
 terraform plan
 
 echo "Applying Terraform plan .."
-terraform apply -auto-approve -var "instance_name=$1"
+terraform apply -auto-approve -var "instance_name=$1" -var "model_docker_image=$2"

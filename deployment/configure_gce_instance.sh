@@ -11,5 +11,5 @@ printf "[nips_training]\n $1\n" > gcp-hosts
 echo "Disable Ansible Host Key Checking .."
 export ANSIBLE_HOST_KEY_CHECKING=false
 
-echo "Configure Google Compute Engine Instance at $1 .."
-ansible-playbook -i gcp-hosts gce_playbook.yml --key-file nips-cloudbuilder
+echo "Configure Instance at $1 and start model training .."
+ansible-playbook -i gcp-hosts gce_playbook.yml --key-file nips-cloudbuilder --extra-vars "model_docker_image=$2"

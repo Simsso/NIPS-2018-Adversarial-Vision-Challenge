@@ -45,7 +45,8 @@
             "args": [
                 "bash",
                 "deployment/create_gce_instance.sh",
-                "$TAG_NAME-$SHORT_SHA"
+                "$TAG_NAME-$SHORT_SHA",
+                "$TAG_NAME:$SHORT_SHA"
             ] 
         }
     ]
