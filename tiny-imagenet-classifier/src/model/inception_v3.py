@@ -584,7 +584,7 @@ def restore(sess, saver):
 def graph(inputs, is_training, dropout_prob, wd):
     scope = tf.variable_scope('', reuse=tf.AUTO_REUSE)
     with scope:
-        scaled_images = tf.image.resize_images(images=inputs, size=[299, 299])
+        scaled_images = tf.image.resize_images(images=inputs, size=[299, 299]) * 255.0
 
     with slim.arg_scope(inception_v3_arg_scope()):
         _, endpoints = inception_v3(
@@ -599,8 +599,6 @@ def graph(inputs, is_training, dropout_prob, wd):
         features = tf.stop_gradient(features, name="inception_v3_transfer_values")
 
     with scope:
-        scaled_images = tf.image.resize_images(images=inputs, size=[299, 299])
-
         # simple 2-layer graph
         features_flat = tf.layers.flatten(features)
         fc1 = add_wd(tf.layers.dense(features_flat, units=1024, name="classifier/fc1"), wd)
