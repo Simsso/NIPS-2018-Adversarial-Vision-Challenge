@@ -1,5 +1,5 @@
 import tensorflow as tf
-from src.utils import config
+from utils import config
 
 
 # helper function to construct a convolution layer followed by a pooling layer

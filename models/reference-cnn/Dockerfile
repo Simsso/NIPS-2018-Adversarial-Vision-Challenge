@@ -13,4 +13,7 @@ COPY . /opt/app
 
 EXPOSE 6006:6006
 
+COPY cloudbuild-service-account.json cloudbuild-service-account.json
+ENV GOOGLE_APPLICATION_CREDENTIALS cloudbuild-service-account.json
+
 CMD ["python", "./src/main.py"]
