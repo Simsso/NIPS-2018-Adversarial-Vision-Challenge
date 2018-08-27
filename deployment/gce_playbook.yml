@@ -5,4 +5,4 @@
   become: yes
   tasks:
     - name: Pull and start training of model image
-      command: docker run -i -t gcr.io/nips-2018-207619/{{ model_docker_image }}
+      command: docker run gcr.io/nips-2018-207619/{{ model_docker_image }}
