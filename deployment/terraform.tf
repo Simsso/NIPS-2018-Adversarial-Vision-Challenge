@@ -11,7 +11,7 @@ resource "google_compute_instance" "gce_instance" {
 
   boot_disk {
     initialize_params {
-      image = "nips-2018-adversarial-vision-challenge-base-image"
+      image = "nips-2018-adversarial-visionchallenge-base-image-large"
     }
   }
   
