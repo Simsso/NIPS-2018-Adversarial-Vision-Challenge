@@ -49,5 +49,6 @@
                 "$TAG_NAME:$SHORT_SHA"
             ] 
         }
-    ]
+    ],
+    "timeout": "1500s"
 }
