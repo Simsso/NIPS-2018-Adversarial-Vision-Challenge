@@ -9,7 +9,7 @@ RUN apt update && apt install -y libsm6 libxext6 && apt-get install -y libgtk2.0
 RUN mkdir ~/.data && \
     cd ~/.data && \
     curl -O http://cs231n.stanford.edu/tiny-imagenet-200.zip && \
-    unzip tiny-imagenet-200.zip
+    unzip tiny-imagenet-200.zip -qq
 
 COPY requirements.txt /opt/app
 RUN pip install -r requirements.txt
