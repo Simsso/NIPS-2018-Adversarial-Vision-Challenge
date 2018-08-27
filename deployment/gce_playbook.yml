@@ -4,5 +4,7 @@
   remote_user: nips-cloudbuilder
   become: yes
   tasks:
+    - name: Login into GCR Docker Registry
+      command: docker login -u oauth2accesstoken -p "$(gcloud auth print-access-token)" https://gcr.io
     - name: Pull and start training of model image
-      command: docker run gcr.io/nips-2018-207619/{{ model_docker_image }}
+      command: docker run --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 gcr.io/nips-2018-207619/{{ model_docker_image }}
