@@ -10,8 +10,8 @@ from datetime import datetime
 
 slim = tf.contrib.slim
 
-ACTIVATION_DIM = 2048
-NUMBER_OF_AUGMENTATION_EPOCHS = 3
+ACTIVATION_DIM = 1001
+NUMBER_OF_AUGMENTATION_EPOCHS = 1
 CROP_DIM = 56
 
 ##################### Tiny ImageNet Loading Helper ######################
@@ -49,6 +49,18 @@ def inception_v3_features(images):
     return features
 
 
+# alternative:
+def inception_v3_logits(images):
+    with slim.arg_scope(inception_v3.inception_v3_arg_scope()):
+        logits, _ = inception_v3.inception_v3(
+            inputs=images,
+            num_classes=1001,
+            is_training=False,
+            dropout_keep_prob=1,
+            create_aux_logits=False)
+    return logits
+
+
 def augment_normalize(image, mode):
     image = tf.image.per_image_standardization(image)
 
@@ -76,12 +88,12 @@ def inference_in_batches(all_images, batch_size, mode):
     with graph.as_default():
         images = tf.placeholder(tf.float32, shape=[None, data.IMG_DIM, data.IMG_DIM, data.IMG_CHANNELS])
 
-        # random augmentation & non-random normalization
+        # random augmentation & deterministic normalization
         augmented_images = tf.map_fn(lambda img: augment_normalize(img, mode), images)
 
         # rescale to Inception-expected size
         rescaled_batch = tf.image.resize_images(augmented_images, size=[299, 299])
-        activations = inception_v3_features(rescaled_batch)
+        activations = inception_v3_logits(rescaled_batch)
 
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         saver = inception_v3.create_saver()
