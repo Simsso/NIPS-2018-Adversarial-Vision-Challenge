@@ -1,20 +1,12 @@
-FROM tensorflow/tensorflow:latest-gpu
+FROM gcr.io/nips-2018-207619/nips-tensorflow-base-image:latest
 
 WORKDIR /opt/app
-
-# load Tiny ImageNet
-RUN mkdir ~/.data && \
-    cd ~/.data && \
-    curl -O http://cs231n.stanford.edu/tiny-imagenet-200.zip && \
-    unzip -qq tiny-imagenet-200.zip 
 
 # install python requirements
 COPY requirements.txt /opt/app
 RUN pip install -r requirements.txt
 
-# add CUDA path
-RUN export LD_LIBRARY_PATH=/usr/local/cuda/lib64/
-
+# copy python project
 COPY . /opt/app
 
 #expose port for tensorboard
