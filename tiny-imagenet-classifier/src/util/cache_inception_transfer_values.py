@@ -12,7 +12,7 @@ slim = tf.contrib.slim
 
 ACTIVATION_DIM = 1001
 NUMBER_OF_AUGMENTATION_EPOCHS = 1
-CROP_DIM = 56
+CROP_DIM = data.IMG_DIM
 
 ##################### Tiny ImageNet Loading Helper ######################
 import cv2
@@ -82,11 +82,11 @@ def augment_normalize(image, mode):
 
 def inference_in_batches(all_images, batch_size, mode):
     """Returns a numpy array of the activations of shape len(all_images)x2048
-    - all_images: 2d numpy array of shape Nx(data.IMG_DIM)x(data.IMG_DIM)x(data.IMG_CHANNELS)
+    - all_images: 2d numpy array of shape Nx(data.ORIGINAL_IMG_DIM)x(data.ORIGINAL_IMG_DIM)x(data.IMG_CHANNELS)
     """
     graph = tf.Graph()
     with graph.as_default():
-        images = tf.placeholder(tf.float32, shape=[None, data.IMG_DIM, data.IMG_DIM, data.IMG_CHANNELS])
+        images = tf.placeholder(tf.float32, shape=[None, data.ORIGINAL_IMG_DIM, data.ORIGINAL_IMG_DIM, data.IMG_CHANNELS], name="input-images")
 
         # random augmentation & deterministic normalization
         augmented_images = tf.map_fn(lambda img: augment_normalize(img, mode), images)
