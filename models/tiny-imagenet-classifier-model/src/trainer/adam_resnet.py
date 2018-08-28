@@ -12,7 +12,7 @@ TRAIN_BATCH_SIZE = 50
 VALID_BATCH_SIZE = 1000
 STEPS_PER_EPOCH = int(data.NUM_TRAIN_SAMPLES / TRAIN_BATCH_SIZE)
 STEPS_PER_VALIDATION = int(STEPS_PER_EPOCH / VALIDATIONS_PER_EPOCH)
-TF_LOGS = os.path.join('..', 'tf_logs')
+TF_LOGS = os.path.join('tf_logs')
 SAVER_PATH = "checkpoints/" + TRAINING_RUN_NAME + "_model.ckpt"
 
 def train():

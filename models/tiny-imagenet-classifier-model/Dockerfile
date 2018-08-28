@@ -12,4 +12,6 @@ COPY . /opt/app
 #expose port for tensorboard
 EXPOSE 6006:6006
 
-CMD ["python", "./src/main.py"]
+RUN chmod +x ./start.sh
+
+CMD "./start.sh"
