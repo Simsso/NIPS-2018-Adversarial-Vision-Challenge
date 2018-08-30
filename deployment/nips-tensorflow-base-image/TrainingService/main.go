@@ -1,7 +1,8 @@
-package Training
+package main
 
 import (
-	"context"
+	"fmt"
+	"github.com/NIPS-2018-Adversarial-Vision-Challenge/deployment/nips-tensorflow-base-image/TrainingProto"
 	"google.golang.org/grpc"
 	"log"
 	"os"
@@ -9,12 +10,12 @@ import (
 )
 
 // For the generation of protobuf:
-// protoc -I  . Training.proto --go_out=plugins=grpc:./TrainingManager
+// protoc -I  . TrainingProto.proto --go_out=plugins=grpc:./TrainingManager/TrainingProto
 
-var trainingJob TrainingJob
-var client TrainingClient
+var trainingJob TrainingProto.TrainingJob
+var client TrainingProto.TrainingProtoClient
 
-func Main() {
+func main() {
 	modelId := os.Getenv("MODEL_ID")
 	if len(modelId) == 0 {
 		log.Fatalf("no model id specified")
@@ -27,7 +28,7 @@ func Main() {
 		return
 	}
 
-	conn, err := grpc.Dial(serverAddr)
+	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -36,18 +37,25 @@ func Main() {
 	trainingJob.StartTime = time.Now().Unix()
 	trainingJob.TrainingId = modelId
 
-	client = NewTrainingClient(conn)
+	client = TrainingProto.NewTrainingProtoClient(conn)
 
-	response, err := client.RegisterTraining(context.Background(), &trainingJob)
+	go EventListener(&client);
+	/* response, err := client.RegisterTraining(context.Background(), &trainingJob)
 	if err != nil || !response.Success {
-		log.Fatalf("couldn't register %s at TrainingManager", modelId)
+		log.Fatalf("Couldn't register %s at TrainingManager (%s)", modelId, serverAddr)
 		return
 	}
 
 	response2, err := client.UpdateTraining(context.Background(), &trainingJob)
 	if err != nil || !response2.Success {
-		log.Fatalf(" couldn't register %s at TrainingManager", modelId)
+		log.Fatalf("Couldn't update %s at TrainingManager (%s)", modelId, serverAddr)
 		return
 	}
-	defer conn.Close()
+	defer conn.Close() */
+}
+
+func EventListener(client *TrainingProto.TrainingProtoClient) {
+	fmt.Println("Listening for incoming event from the server ..")
+
+
 }

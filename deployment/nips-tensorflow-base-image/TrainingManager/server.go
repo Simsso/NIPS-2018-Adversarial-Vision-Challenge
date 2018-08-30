@@ -1,24 +1,41 @@
-package Training
+package main
 
 import (
 	"context"
 	"fmt"
+	"github.com/NIPS-2018-Adversarial-Vision-Challenge/deployment/nips-tensorflow-base-image/TrainingProto"
+	"strconv"
 )
 
 type trainingManagerServer struct {
-	trainingJobs map[string]*TrainingJob;
+	trainingJobs map[string]*TrainingProto.TrainingJob
 }
 
-func (s *trainingManagerServer) RegisterTraining(ctx context.Context, trainingJob *TrainingJob) (*Response, error) {
-	fmt.Printf("Register %s", trainingJob.TrainingId)
-
-	s.trainingJobs[trainingJob.TrainingId] = trainingJob
-	return &Response{Success: true}, nil
+func (s *trainingManagerServer) Init() {
+	if s.trainingJobs == nil {
+		s.trainingJobs = map[string]*TrainingProto.TrainingJob{}
+	}
 }
 
-func (s *trainingManagerServer) UpdateTraining(ctx context.Context, trainingJob *TrainingJob) (*Response, error) {
-	fmt.Printf("Update %s", trainingJob.TrainingId)
+func (s *trainingManagerServer) RegisterTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
+	fmt.Printf("Register %s\n", trainingJob.TrainingId)
 
 	s.trainingJobs[trainingJob.TrainingId] = trainingJob
-	return &Response{Success: true}, nil
+	return &TrainingProto.Response{Success: true}, nil
+}
+
+func (s *trainingManagerServer) UpdateTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
+	fmt.Printf("Update %s\n", trainingJob.TrainingId)
+
+	s.trainingJobs[trainingJob.TrainingId] = trainingJob
+	return &TrainingProto.Response{Success: true}, nil
+}
+
+func (s *trainingManagerServer) ReceiveEvent(rect *TrainingProto.TrainingJob, stream TrainingProto.TrainingProto_ReceiveEventsServer) error {
+
+	for i := 0; i < 100; i++ {
+		stream.Send(&TrainingProto.Event{"DATA", []byte(strconv.Itoa(i))},)
+	}
+
+	return nil
 }
