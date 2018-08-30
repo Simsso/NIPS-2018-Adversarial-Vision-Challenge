@@ -1,2 +1,4 @@
-
-\.DS_Store
+reference-cnn/\.idea/
+.DS_Store
+deployment/cloudbuild-service-account\.json
+**/tf_logs/
