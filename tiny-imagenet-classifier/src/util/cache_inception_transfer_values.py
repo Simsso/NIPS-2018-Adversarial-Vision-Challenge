@@ -10,7 +10,7 @@ from datetime import datetime
 
 slim = tf.contrib.slim
 
-ACTIVATION_DIM = 1001
+ACTIVATION_DIM = 2048
 NUMBER_OF_AUGMENTATION_EPOCHS = 1
 CROP_DIM = data.IMG_DIM
 
@@ -62,7 +62,7 @@ def inception_v3_logits(images):
 
 
 def augment_normalize(image, mode):
-    image = tf.image.per_image_standardization(image)
+    # image = tf.image.per_image_standardization(image)
 
     if mode is not 'train':
         # no further modifications other than deterministic cropping
@@ -81,7 +81,7 @@ def augment_normalize(image, mode):
 
 
 def inference_in_batches(all_images, batch_size, mode):
-    """Returns a numpy array of the activations of shape len(all_images)x2048
+    """Returns a numpy array of the activations of shape len(all_images)xACTIVATION_DIM
     - all_images: 2d numpy array of shape Nx(data.ORIGINAL_IMG_DIM)x(data.ORIGINAL_IMG_DIM)x(data.IMG_CHANNELS)
     """
     graph = tf.Graph()
@@ -91,9 +91,16 @@ def inference_in_batches(all_images, batch_size, mode):
         # random augmentation & deterministic normalization
         augmented_images = tf.map_fn(lambda img: augment_normalize(img, mode), images)
 
+        # preprocessing (values taken from crowdai ResNet model)
+        _R_MEAN = 123.68
+        _G_MEAN = 116.78
+        _B_MEAN = 103.94
+        _CHANNEL_MEANS = [_R_MEAN, _G_MEAN, _B_MEAN]
+        normalized_images = augmented_images - tf.constant(_CHANNEL_MEANS)
+
         # rescale to Inception-expected size
-        rescaled_batch = tf.image.resize_images(augmented_images, size=[299, 299])
-        activations = inception_v3_logits(rescaled_batch)
+        rescaled_batch = tf.image.resize_images(normalized_images, size=[299, 299])
+        activations = inception_v3_features(rescaled_batch)
 
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         saver = inception_v3.create_saver()
@@ -155,6 +162,7 @@ def read_cache_or_generate_activations(cache_path, all_images, mode, batch_size=
         # Load the cached data from the file
         activations = load_large_file(cache_path)
         print("- Activations loaded from cache-file: " + cache_path)
+        print("- Shape: ", activations.shape)
     else:
         # The cache-file does not exist.
         # Generate activations
@@ -164,6 +172,7 @@ def read_cache_or_generate_activations(cache_path, all_images, mode, batch_size=
         with open(cache_path, mode='wb') as file:
             pickle.dump(activations, file, protocol=4)
         print("- Activations saved to cache-file: " + cache_path)
+        print("- Shape: ", activations.shape)
     return activations
 
 

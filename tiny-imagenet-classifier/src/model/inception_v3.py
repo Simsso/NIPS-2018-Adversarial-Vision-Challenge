@@ -570,7 +570,7 @@ from util.weight_decay import add_wd
 from util.weight_decay import get_all_params
 from util.custom_graph_keys import CLASSIFIER_TRAIN_VARIABLES
 
-NAME = "inception_v3_001_wd"
+NAME = "inception_v3_002"
 RESTORE_PATH = os.path.expanduser("~/.models/inception_v3.ckpt")
 
 def create_saver():
@@ -584,7 +584,7 @@ def restore(sess, saver):
 def graph(inputs, is_training, dropout_prob, wd):
     scope = tf.variable_scope('', reuse=tf.AUTO_REUSE)
     with scope:
-        scaled_images = tf.image.resize_images(images=inputs, size=[299, 299]) * 255.0
+        scaled_images = tf.image.resize_images(images=inputs, size=[299, 299])
 
     with slim.arg_scope(inception_v3_arg_scope()):
         _, endpoints = inception_v3(

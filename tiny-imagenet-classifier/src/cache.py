@@ -1,7 +1,7 @@
 import util.cache_inception_transfer_values as cache
 import os
 
-LIMIT = None  # for testing
+LIMIT = None  # for local testing
 BATCH_SIZE = 100
 
 if __name__ == '__main__':
