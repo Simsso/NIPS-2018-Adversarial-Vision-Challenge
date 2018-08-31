@@ -3,7 +3,7 @@ import data.tiny_imagenet as data
 import util.tf_summary as summary_util
 
 
-NAME = 'resnet_t101a'
+NAME = 'resnet_crowdai'
 
 
 def conv2d(inputs, filters, kernel_size, strides):
@@ -57,7 +57,7 @@ def graph(x, is_training, drop_prob, wd):
     num_filters_base = 64
     kernel_size = 3
     conv_stride = 1
-    block_sizes = [3, 4, 23, 3]
+    block_sizes = [2, 2, 2, 2]
     block_strides = [1, 2, 2, 2]
 
     x = conv2d(x, num_filters_base, kernel_size, conv_stride)

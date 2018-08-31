@@ -61,7 +61,7 @@ def train(model_def):
         train_batch = data.batch_q('train', TRAIN_BATCH_SIZE)
         valid_batch = data.batch_q('val', VALIDATION_BATCH_SIZE)
 
-        logits, softmax = model_def.graph(tf.cast(images, tf.float32), is_training, DROPOUT, WEIGHT_DECAY)
+        logits, softmax = model_def.graph(images, is_training, DROPOUT, WEIGHT_DECAY)
         loss = model_def.loss(labels, logits)
         acc = model_def.accuracy(labels, softmax)
         optimizer = get_optimization_op(loss)
