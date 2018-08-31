@@ -3,7 +3,8 @@ import data.tiny_imagenet as data
 import util.tf_summary as summary_util
 
 
-NAME = 'resnet_crowdai'
+# cpp = custom pre-processing
+NAME = 'resnet_crowdai_cpp'
 
 
 def conv2d(inputs, filters, kernel_size, strides):

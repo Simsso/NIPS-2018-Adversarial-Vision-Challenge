@@ -25,7 +25,7 @@ DATASET_DIVISOR = 1
 NUM_CLASSES = 200
 NUM_TRAIN_SAMPLES = 500*NUM_CLASSES // DATASET_DIVISOR
 NUM_VALIDATION_SAMPLES = 50*NUM_CLASSES // DATASET_DIVISOR
-IMG_DIM = 64  # after cropping
+IMG_DIM = 59  # after cropping
 IMG_CHANNELS = 3
 PATH = os.path.expanduser('~/.data/tiny-imagenet-200')
 
@@ -111,13 +111,22 @@ def read_image(filename_q, mode):
     filename = item[0]
     label = item[1]
     file = tf.read_file(filename)
-    img = tf.image.decode_jpeg(file, IMG_CHANNELS)
+    img = tf.image.decode_jpeg(file, IMG_CHANNELS)  # uint8 [0, 255]
+    img = tf.cast(img, tf.float32) / 255  # float32 [0., 1.]
 
-    _R_MEAN = 123.68
-    _G_MEAN = 116.78
-    _B_MEAN = 103.94
-    _CHANNEL_MEANS = [_R_MEAN, _G_MEAN, _B_MEAN]
-    img = tf.cast(img, tf.float32) - tf.constant(_CHANNEL_MEANS)
+    if mode == 'train':
+        # image distortions: left/right, random hue, random color saturation
+        img = tf.random_crop(img, np.array([IMG_DIM, IMG_DIM, IMG_CHANNELS]))
+        img = tf.image.random_flip_left_right(img)
+        # val accuracy improved without random hue (?)
+        img = tf.image.random_hue(img, 0.05)
+        img = tf.image.random_saturation(img, 0.5, 1.5)
+    else:
+        img = tf.image.crop_to_bounding_box(img, 4, 4, IMG_DIM, IMG_DIM)
+
+    # consider replacing this step with tf.per_image_standardization
+    # which performs (x - mean) / adjusted_stddev
+    img = img * 2. - 1.  # float32 [-1., 1]
 
     label = tf.string_to_number(label, tf.int32)
     label = tf.cast(label, tf.uint8)
