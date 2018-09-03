@@ -62,22 +62,23 @@ def inception_v3_logits(images):
 
 
 def augment_normalize(image, mode):
-    # image = tf.image.per_image_standardization(image)
+    img = tf.image.decode_jpeg(file, IMG_CHANNELS)  # uint8 [0, 255]
+    img = tf.cast(img, tf.float32) / 255  # float32 [0., 1.]
 
-    if mode is not 'train':
-        # no further modifications other than deterministic cropping
-        return tf.image.crop_to_bounding_box(image, 4, 4, CROP_DIM, CROP_DIM)  
+    #if mode is not 'train':
+        # no further modifications
+    return 2. * img - 1.
 
-    image = tf.random_crop(image, np.array([CROP_DIM, CROP_DIM, data.IMG_CHANNELS]))
+    #img = tf.random_crop(img, np.array([CROP_DIM, CROP_DIM, data.IMG_CHANNELS]))
 
     # adjust number of augmentations based on augmentation epoch count 
-    if NUMBER_OF_AUGMENTATION_EPOCHS > 1:
-        image = tf.image.random_flip_left_right(image)
+    """if NUMBER_OF_AUGMENTATION_EPOCHS > 1:
+        img = tf.image.random_flip_left_right(img)
 
     if NUMBER_OF_AUGMENTATION_EPOCHS > 2:
-        image = tf.image.random_saturation(image, lower=0.6, upper=1.4)
+        img = tf.image.random_saturation(img, lower=0.6, upper=1.4)
     
-    return image
+    return img"""
 
 
 def inference_in_batches(all_images, batch_size, mode):
