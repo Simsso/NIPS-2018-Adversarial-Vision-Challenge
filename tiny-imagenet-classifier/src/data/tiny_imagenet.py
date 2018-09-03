@@ -114,8 +114,6 @@ def read_image(filename_q, mode):
     filename = item[0]
     label = item[1]
     file = tf.read_file(filename)
-    img = tf.image.decode_jpeg(file, channels=3)
-
 
     img = tf.image.decode_jpeg(file, IMG_CHANNELS)  # uint8 [0, 255]
     img = tf.cast(img, tf.float32) / 255  # float32 [0., 1.]

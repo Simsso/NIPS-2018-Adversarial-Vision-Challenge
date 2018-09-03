@@ -62,7 +62,7 @@ def inception_v3_logits(images):
 
 
 def augment_normalize(image, mode):
-    img = tf.image.decode_jpeg(file, IMG_CHANNELS)  # uint8 [0, 255]
+    img = image  # uint8 [0, 255]
     img = tf.cast(img, tf.float32) / 255  # float32 [0., 1.]
 
     #if mode is not 'train':
@@ -92,15 +92,8 @@ def inference_in_batches(all_images, batch_size, mode):
         # random augmentation & deterministic normalization
         augmented_images = tf.map_fn(lambda img: augment_normalize(img, mode), images)
 
-        # preprocessing (values taken from crowdai ResNet model)
-        _R_MEAN = 123.68
-        _G_MEAN = 116.78
-        _B_MEAN = 103.94
-        _CHANNEL_MEANS = [_R_MEAN, _G_MEAN, _B_MEAN]
-        normalized_images = augmented_images - tf.constant(_CHANNEL_MEANS)
-
         # rescale to Inception-expected size
-        rescaled_batch = tf.image.resize_images(normalized_images, size=[299, 299])
+        rescaled_batch = tf.image.resize_images(augmented_images, size=[299, 299])
         activations = inception_v3_features(rescaled_batch)
 
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
