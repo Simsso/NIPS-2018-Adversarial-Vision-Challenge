@@ -4,7 +4,7 @@ import util.tf_summary as summary_util
 
 
 # cpp = custom pre-processing
-NAME = 'resnet_crowdai_cpp'
+NAME = 'resnet_crowdai_dr0.8'
 
 
 def conv2d(inputs, filters, kernel_size, strides):
@@ -55,10 +55,10 @@ def building_block_v2(x, filters, is_training, projection_shortcut, strides):
 
 def graph(x, is_training, drop_prob, wd):
     # parametrization
-    num_filters_base = 64
+    num_filters_base = 128
     kernel_size = 3
     conv_stride = 1
-    block_sizes = [2, 2, 2, 2]
+    block_sizes = [2, 4, 8, 2]
     block_strides = [1, 2, 2, 2]
 
     x = conv2d(x, num_filters_base, kernel_size, conv_stride)
