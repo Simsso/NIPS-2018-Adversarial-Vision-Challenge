@@ -1,8 +1,7 @@
-# MNIST CNN Tinkering
-
+# MNIST CNN Experiments
 
 This module package contains functionality for the following things:
- * training a CNN on MNIST and storing the weights (+ logging to TensorBoard)
+ * training of a CNN on MNIST and storing the weights (+ logging to TensorBoard)
  * loading the weights and analyzing the classification of linear combinations between two input samples
  * loading the weights and computing an adversarial example using a FGSM-like attack
  * generating adversarial attacks using FGSM
