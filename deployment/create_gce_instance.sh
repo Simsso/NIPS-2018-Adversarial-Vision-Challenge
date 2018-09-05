@@ -6,7 +6,7 @@ MODEL_VERSION=$( echo $2 | grep -o '[0-9.]*$')
 MODEL_FOLDER=${2%-$MODEL_VERSION}
 
 echo "Generate GCE instance name .."
-INSTANCE_NAME= echo $2 | sed 's/\./-/g'
+INSTANCE_NAME=$( echo $2 | sed 's/\./-/g')
 
 TERRAFORM="terraform_0.11.7_linux_amd64"
 
