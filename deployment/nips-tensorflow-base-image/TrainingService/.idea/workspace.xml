@@ -26,6 +26,7 @@
     <session id="1005143517">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
+          <entry key="project.closed" value="1" />
           <entry key="project.open.time.0" value="1" />
           <entry key="project.opened" value="1" />
         </counts>
@@ -61,7 +62,7 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="447">
+            <state relative-caret-position="678">
               <caret line="59" selection-start-line="59" selection-end-line="59" />
               <folding>
                 <element signature="e#18#86#0" expanded="true" />
@@ -168,7 +169,7 @@
       <window_info anchor="bottom" id="Event Log" sideWeight="0.50143063" side_tool="true" weight="0.28554216" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.4985694" visible="true" weight="0.32771084" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.4985694" weight="0.32771084" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -198,7 +199,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="447">
+        <state relative-caret-position="678">
           <caret line="59" selection-start-line="59" selection-end-line="59" />
           <folding>
             <element signature="e#18#86#0" expanded="true" />
