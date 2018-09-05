@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"github.com/NIPS-2018-Adversarial-Vision-Challenge/deployment/nips-tensorflow-base-image/TrainingProto"
-	"strconv"
 )
 
 type trainingManagerServer struct {
@@ -33,8 +34,12 @@ func (s *trainingManagerServer) UpdateTraining(ctx context.Context, trainingJob 
 
 func (s *trainingManagerServer) ReceiveEvent(rect *TrainingProto.TrainingJob, stream TrainingProto.TrainingProto_ReceiveEventsServer) error {
 
+	buf := new(bytes.Buffer)
+	event := "EVENT"
+
 	for i := 0; i < 100; i++ {
-		stream.Send(&TrainingProto.Event{"DATA", []byte(strconv.Itoa(i))},)
+		binary.Write(buf, binary.LittleEndian, i)
+		stream.Send(&TrainingProto.Event{ event,  buf.Bytes()  })
 	}
 
 	return nil

@@ -20,7 +20,7 @@ resource "google_compute_instance" "gce_instance" {
   }
 
   service_account {
-    scopes = ["storage-ro"]
+    scopes = ["storage-rw"]
   }
 
    guest_accelerator {
