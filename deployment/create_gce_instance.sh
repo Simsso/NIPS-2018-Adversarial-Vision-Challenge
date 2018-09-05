@@ -5,6 +5,9 @@ echo "Retrieving model version and model folder name .."
 MODEL_VERSION=$( echo $2 | grep -o '[0-9.]*$')
 MODEL_FOLDER=${2%-$MODEL_VERSION}
 
+echo "Generate GCE instance name .."
+INSTANCE_NAME= echo $2 | sed 's/\./-/g'
+
 TERRAFORM="terraform_0.11.7_linux_amd64"
 
 echo "Install required packages .."
@@ -29,4 +32,4 @@ echo "Planning Terraform .."
 terraform plan
 
 echo "Applying Terraform plan .."
-terraform apply -auto-approve -var "instance_name=$2" -var "model_docker_image=$MODEL_FOLDER:$MODEL_VERSION"
+terraform apply -auto-approve -var "instance_name=$INSTANCE_NAME" -var "model_docker_image=$MODEL_FOLDER:$MODEL_VERSION"
