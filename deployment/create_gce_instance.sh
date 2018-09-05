@@ -1,5 +1,10 @@
 #!/bin/bash
 
+echo "Retrieving model version and model folder name .."
+
+MODEL_VERSION=$( echo $2 | grep -o '[0-9.]*$')
+MODEL_FOLDER=${2%-$MODEL_VERSION}
+
 TERRAFORM="terraform_0.11.7_linux_amd64"
 
 echo "Install required packages .."
@@ -24,4 +29,4 @@ echo "Planning Terraform .."
 terraform plan
 
 echo "Applying Terraform plan .."
-terraform apply -auto-approve -var "instance_name=$1" -var "model_docker_image=$2"
+terraform apply -auto-approve -var "instance_name=$2" -var "model_docker_image=$MODEL_FOLDER:$MODEL_VERSION"

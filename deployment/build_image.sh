@@ -1,4 +1,6 @@
 
+#!/bin/bash
+
 echo "Retrieving model version and model folder name .."
 
 MODEL_VERSION=$( echo $2 | grep -o '[0-9.]*$')

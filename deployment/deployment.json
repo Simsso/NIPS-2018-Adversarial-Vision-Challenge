@@ -5,8 +5,8 @@
             "args": [
                 "bash",
                 "deployment/build_image.sh",
-                "nips-2018-207619",
-                "tiny-imagenet-classifier-model-1.2"
+                "$PROJECT_ID",
+                "$TAG_NAME"
             ]
         },
         {
@@ -38,8 +38,8 @@
             "args": [
                 "bash",
                 "deployment/create_gce_instance.sh",
-                "$TAG_NAME-$SHORT_SHA",
-                "$TAG_NAME:$SHORT_SHA"
+                "$PROJECT_ID",
+                "$TAG_NAME"
             ] 
         }
     ],
