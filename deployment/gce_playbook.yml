@@ -16,8 +16,6 @@
         update_cache: yes
     - name: Login into GCR Docker Registry
       shell: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://gcr.io
-    - name: Add current user to fuse group
-      shell: usermod -a -G fuse nips-cloudbuilder
     - name: Make folder for mount
       shell: mkdir /nips-2018-adversarial-vision-challenge-data
     - name: Mount GCS Bucket
