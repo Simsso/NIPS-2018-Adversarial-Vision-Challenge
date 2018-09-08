@@ -2,18 +2,20 @@
   vars:
       model_docker_image: "{{ model_docker_image }}"
   remote_user: nips-cloudbuilder
-  become: yes
   tasks:
     - name: Add the gcsfuse distribution URL as a package source and import its public key (2)
       shell: echo "deb http://packages.cloud.google.com/apt gcsfuse-xenial main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list
+      become: yes
     - name: Add the gcsfuse distribution URL as a package source and import its public key (3)
       apt_key:
        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
        state: present
+      become: yes
     - name: Update repositories cache and install gscfuse package
       apt:
         name: gcsfuse
         update_cache: yes
+      become: yes
     - name: Login into GCR Docker Registry
       shell: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://gcr.io
     - name: Make folder for mount
