@@ -33,3 +33,4 @@ terraform plan
 
 echo "Applying Terraform plan .."
 terraform apply -auto-approve -var "instance_name=$INSTANCE_NAME" -var "model_docker_image=$MODEL_FOLDER:$MODEL_VERSION"
+wait 30s
