@@ -17,8 +17,8 @@
     - name: Login into GCR Docker Registry
       shell: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://gcr.io
     - name: Make folder for mount
-      shell: mkdir /nips-2018-adversarial-vision-challenge-data
+      shell: mkdir /home/nips-cloudbuilder/nips-2018-adversarial-vision-challenge-data
     - name: Mount GCS Bucket
-      shell: gcsfuse nips-2018-adversarial-vision-challenge-data /nips-2018-adversarial-vision-challenge-data
+      shell: gcsfuse nips-2018-adversarial-vision-challenge-data /home/nips-cloudbuilder/nips-2018-adversarial-vision-challenge-data
     - name: Pull and start training of model image
-      command: docker run -d -p 6006:6006 -v /nips-2018-adversarial-vision-challenge-data:/nips-2018-adversarial-vision-challenge-data --runtime=nvidia -e MODEL_ID={{ model_docker_image }} -e NVIDIA_VISIBLE_DEVICES=0 gcr.io/nips-2018-207619/{{ model_docker_image }}
+      command: docker run -d -p 6006:6006 -v /home/nips-cloudbuilder/nips-2018-adversarial-vision-challenge-data:/nips-2018-adversarial-vision-challenge-data --runtime=nvidia -e MODEL_ID={{ model_docker_image }} -e NVIDIA_VISIBLE_DEVICES=0 gcr.io/nips-2018-207619/{{ model_docker_image }}
