@@ -1,5 +1,6 @@
 #!/bin/bash
 
+sleep 30s
 echo "Install Ansible .."
 apt-get update -y
 #apt-add-repository ppa:ansible/ansible
