@@ -2,11 +2,11 @@
 
 echo "Install Ansible .."
 apt-get update -y
-apt-add-repository ppa:ansible/ansible
+#apt-add-repository ppa:ansible/ansible
 apt-get install -y ansible
 
 echo "Generate Ansible Host Inventory .."
-printf "[nips_training]\n retries=99\n $1\n" > gcp-hosts
+printf "[nips_training]\n$1\n" > gcp-hosts
 
 echo "Disable Ansible Host Key Checking .."
 export ANSIBLE_HOST_KEY_CHECKING=false

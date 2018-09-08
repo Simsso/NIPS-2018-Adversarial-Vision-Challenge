@@ -4,18 +4,20 @@
   remote_user: nips-cloudbuilder
   become: yes
   tasks:
-    - name: Add the gcsfuse distribution URL as a package source and import its public key (1)
-      shell: export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s`
     - name: Add the gcsfuse distribution URL as a package source and import its public key (2)
-      shell: echo "deb http://packages.cloud.google.com/apt $GCSFUSE_REPO main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list
+      shell: echo "deb http://packages.cloud.google.com/apt gcsfuse-xenial main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list
     - name: Add the gcsfuse distribution URL as a package source and import its public key (3)
-      shell: curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-    - name: Update and install GCSFUSE
-      shell: apt-get update & sudo apt-get install gcsfuse
+      apt_key:
+       url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+       state: present
+    - name: Update repositories cache and install gscfuse package
+      apt:
+        name: gcsfuse
+        update_cache: yes
     - name: Login into GCR Docker Registry
       shell: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://gcr.io
     - name: Add current user to fuse group
-      shell: usermod -a -G fuse $USER
+      shell: usermod -a -G fuse nips-cloudbuilder
     - name: Make folder for mount
       shell: mkdir /nips-2018-adversarial-vision-challenge-data
     - name: Mount GCS Bucket
