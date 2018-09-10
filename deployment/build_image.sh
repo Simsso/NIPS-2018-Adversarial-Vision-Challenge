@@ -28,24 +28,7 @@ echo "Install docker .."
 apt-get install -y docker-ce
 
 echo "Building Docker Image .."
-docker build --build-arg BUCKET_NAME $3 -t gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION models/$MODEL_FOLDER
+docker build -t gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION  --build-arg BUCKET_NAME $3 models/$MODEL_FOLDER
 
 echo "Pushing Docker Image .."
 docker push gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION
-
-# {
-#            "name":"gcr.io/cloud-builders/docker",
- #           "args": [
-  #              "build",
-   #             "-t",
-    #            "gcr.io/$PROJECT_ID/$TAG_NAME:$SHORT_SHA",
-     #           "models/$TAG_NAME"
-      #      ]
-       # },
-      #  {
-       #     "name":"gcr.io/cloud-builders/docker",
-        #    "args": [
-         #       "push",
-          #      "gcr.io/$PROJECT_ID/$TAG_NAME:$SHORT_SHA"
-          #  ]
-       # },
