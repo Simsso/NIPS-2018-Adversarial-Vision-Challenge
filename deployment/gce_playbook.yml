@@ -3,26 +3,11 @@
       model_docker_image: "{{ model_docker_image }}"
   remote_user: nips-cloudbuilder
   tasks:
-    - name: Add the gcsfuse distribution URL as a package source and import its public key (2)
-      shell: echo "deb http://packages.cloud.google.com/apt gcsfuse-xenial main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list
-      become: yes
-    - name: Add the gcsfuse distribution URL as a package source and import its public key (3)
-      apt_key:
-       url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-       state: present
-      become: yes
-    - name: Update repositories cache and install gscfuse package
-      apt:
-        name: gcsfuse
-        update_cache: yes
-      become: yes
     - name: Login into GCR Docker Registry
       shell: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://gcr.io
       become: yes
-    - name: Make folder for mount
-      shell: mkdir /home/nips-cloudbuilder/nips-2018-adversarial-vision-challenge-data
     - name: Mount GCS Bucket
       shell: gcsfuse nips-2018-adversarial-vision-challenge-data /home/nips-cloudbuilder/nips-2018-adversarial-vision-challenge-data
     - name: Pull and start training of model image
-      command: docker run -d -p 6006:6006 --rm --mount type=bind,source=/home/nips-cloudbuilder/nips-2018-adversarial-vision-challenge-data,target=/nips-2018-adversarial-vision-challenge-data --runtime=nvidia -e MODEL_ID={{ model_docker_image }} -e NVIDIA_VISIBLE_DEVICES=0 gcr.io/nips-2018-207619/{{ model_docker_image }}
+      command: docker run -d -p 6006:6006 --rm --runtime=nvidia -e MODEL_ID={{ model_docker_image }} -e NVIDIA_VISIBLE_DEVICES=0 -e BUCKET_NAME=nips-2018-adversarial-vision-challenge-data gcr.io/nips-2018-207619/{{ model_docker_image }}
       become: yes

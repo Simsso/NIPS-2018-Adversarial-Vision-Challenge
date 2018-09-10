@@ -9,8 +9,14 @@ RUN pip install -r requirements.txt
 # copy python project
 COPY . /opt/app
 
-#expose port for tensorboard
+# expose port for tensorboard
 EXPOSE 6006:6006
+
+# create folder for network mount
+RUN mkdir $BUCKET_NAME
+
+# mount bucket
+RUN gcsfuse $BUCKET_NAME $BUCKET_NAME/
 
 RUN chmod +x ./start.sh
 
