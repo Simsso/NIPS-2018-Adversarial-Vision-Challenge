@@ -16,6 +16,9 @@ class BaseModel:
         self.global_step: tf.Tensor = None
         self.increment_global_step: tf.Tensor = None
 
+        self.accuracy: tf.Tensor = None
+        self.loss: tf.Tensor = None
+
         # init the global step
         self.init_global_step()
         # init the epoch counter
@@ -25,6 +28,8 @@ class BaseModel:
         self.saver: tf.train.Saver = None
 
         self.build_model()
+        self.init_loss()
+        self.init_accuracy()
         self.init_saver()
 
     def save(self, sess: tf.Session) -> None:
@@ -35,7 +40,7 @@ class BaseModel:
 
     def load(self, sess: tf.Session) -> None:
         """Load latest checkpoint from the experiment path defined in the config file"""
-        latest_checkpoint = tf.train.latest_checkpoint(self.checkpoint_dir)
+        latest_checkpoint = self.checkpoint_dir #tf.train.latest_checkpoint(self.checkpoint_dir)
         if latest_checkpoint:
             tf.logging.info("Loading model checkpoint {} ...\n".format(latest_checkpoint))
             self.saver.restore(sess, latest_checkpoint)
@@ -56,6 +61,12 @@ class BaseModel:
             self.global_step = tf.get_variable('global_step', shape=(), dtype=tf.int32, trainable=False,
                                                initializer=tf.constant_initializer(0, dtype=tf.int32))
             self.increment_global_step = tf.assign(self.global_step, self.global_step + 1)
+
+    def init_loss(self) -> None:
+        raise NotImplementedError
+
+    def init_accuracy(self) -> None:
+        raise NotImplementedError
 
     def init_saver(self) -> None:
         raise NotImplementedError

@@ -2,6 +2,7 @@ import collections
 
 from resnet_base.model.base_model import BaseModel
 import tensorflow as tf
+from resnet_base.data import tiny_imagenet as data
 
 slim = tf.contrib.slim
 
@@ -9,69 +10,75 @@ slim = tf.contrib.slim
 class ResNet(BaseModel):
 
     def __init__(self, checkpoint_dir: str):
-        self.x: tf.Tensor = None
+        self.x: tf.Tensor = tf.placeholder(tf.float32, shape=[None, data.IMG_DIM, data.IMG_DIM, data.IMG_CHANNELS], name='x')
         self.is_training: tf.Tensor = tf.placeholder_with_default(False, (), 'is_training')
         self.num_classes: int = 200
+        self.labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
+        self.softmax: tf.Tensor = None
+        self.logits: tf.Tensor = None
         super().__init__(checkpoint_dir)
 
     def init_saver(self) -> None:
-        var_list = tf.contrib.framework.get_variables_to_restore()
+        var_list = tf.get_collection(tf.GraphKeys.VARIABLES, 'resnet_v2_50') #tf.contrib.framework.get_variables_to_restore()
         self.saver = tf.train.Saver(var_list=var_list)
 
     def build_model(self) -> None:
-        with tf.variable_scope('resnet_v2_50', 'resnet_v2', [self.x], reuse=tf.AUTO_REUSE) as sc:
+        with tf.contrib.framework.arg_scope(ResNet.resnet_arg_scope()):
             blocks = [
                 ResNet.v2_block('block1', base_depth=64, num_units=3, stride=2),
                 ResNet.v2_block('block2', base_depth=128, num_units=4, stride=2),
                 ResNet.v2_block('block3', base_depth=256, num_units=6, stride=2),
                 ResNet.v2_block('block4', base_depth=512, num_units=3, stride=1),
             ]
-            end_points_collection = sc.original_name_scope + '_end_points'
-            # with slim.arg_scope([slim.conv2d, bottleneck,
-            #                     resnet_utils.stack_blocks_dense],
-            #                    outputs_collections=end_points_collection):
-            with slim.arg_scope([slim.batch_norm], is_training=self.is_training):
-                net = self.x
-                # We do not include batch normalization or activation functions in
-                # conv1 because the first ResNet unit will perform these. Cf.
-                # Appendix of [2].
-                with slim.arg_scope([slim.conv2d],
-                                    activation_fn=None, normalizer_fn=None):
-                    net = ResNet.conv2d_same(net, 64, 7, stride=2, scope='conv1')
-                net = slim.max_pool2d(net, [3, 3], stride=2, scope='pool1')
-                net = ResNet.stack_blocks_dense(net, blocks)
-                # This is needed because the pre-activation variant does not have batch
-                # normalization or activation functions in the residual unit output. See
-                # Appendix of [2].
-                net = slim.batch_norm(net, activation_fn=tf.nn.relu, scope='postnorm')
-                # Convert end_points_collection into a dictionary of end_points.
-                end_points = slim.utils.convert_collection_to_dict(
-                    end_points_collection)
+            with tf.variable_scope('resnet_v2_50', 'resnet_v2', [self.x], reuse=tf.AUTO_REUSE) as sc:
+                end_points_collection = sc.original_name_scope + '_end_points'
+                with slim.arg_scope([slim.conv2d, ResNet.bottleneck,
+                                     ResNet.stack_blocks_dense],
+                                    outputs_collections=end_points_collection):
+                    with slim.arg_scope([slim.batch_norm], is_training=self.is_training):
+                        net = self.x
+                        # We do not include batch normalization or activation functions in
+                        # conv1 because the first ResNet unit will perform these. Cf.
+                        # Appendix of [2].
+                        with slim.arg_scope([slim.conv2d],
+                                            activation_fn=None, normalizer_fn=None):
+                            net = ResNet.conv2d_same(net, 64, 7, stride=2, scope='conv1')
+                        net = slim.max_pool2d(net, [3, 3], stride=2, scope='pool1')
+                        net = ResNet.stack_blocks_dense(net, blocks)
+                        # This is needed because the pre-activation variant does not have batch
+                        # normalization or activation functions in the residual unit output. See
+                        # Appendix of [2].
+                        net = slim.batch_norm(net, activation_fn=tf.nn.relu, scope='postnorm')
+                        # Convert end_points_collection into a dictionary of end_points.
+                        end_points = slim.utils.convert_collection_to_dict(
+                            end_points_collection)
 
-                # Global average pooling.
-                net = tf.reduce_mean(net, [1, 2], name='pool5', keep_dims=True)
-                end_points['global_pool'] = net
-                net = slim.conv2d(net, self.num_classes, [1, 1], activation_fn=None,
-                                  normalizer_fn=None, scope='logits')
-                end_points[sc.name + '/logits'] = net
-                net = tf.squeeze(net, [1, 2], name='SpatialSqueeze')
-                end_points[sc.name + '/spatial_squeeze'] = net
-                end_points['predictions'] = slim.softmax(net, scope='predictions')
+                        # Global average pooling.
+                        net = tf.reduce_mean(net, [1, 2], name='pool5', keep_dims=True)
+                        end_points['global_pool'] = net
+                        net = slim.conv2d(net, self.num_classes, [1, 1], activation_fn=None,
+                                        normalizer_fn=None, scope='logits')
+                        end_points[sc.name + '/logits'] = net
+                        net = tf.squeeze(net, [1, 2], name='SpatialSqueeze')
+                        end_points[sc.name + '/spatial_squeeze'] = net
+                        self.logits = net
+                        end_points['predictions'] = slim.softmax(net, scope='predictions')
+                        self.softmax = end_points['predictions']
 
-    def init_loss(labels: tf.Tensor, logits: tf.Tensor) -> None:
-        labels_one_hot = tf.one_hot(labels, depth=data.NUM_CLASSES)
-        cross_entropy_loss = tf.losses.softmax_cross_entropy(labels_one_hot, logits)
+    def init_loss(self) -> None:
+        labels_one_hot = tf.one_hot(self.labels, depth=data.NUM_CLASSES)
+        self.loss = tf.losses.softmax_cross_entropy(labels_one_hot, self.logits)
 
-    def get_accuracy(labels: tf.Tensor, softmax: tf.Tensor) -> tf.Tensor:
-        correct = tf.cast(tf.equal(tf.argmax(softmax, axis=1), tf.cast(labels, tf.int64)), dtype=tf.float32)
-        return tf.reduce_mean(correct, name='accuracy')
+    def init_accuracy(self) -> None:
+        correct = tf.cast(tf.equal(tf.argmax(self.softmax, axis=1), tf.cast(self.labels, tf.int64)), dtype=tf.float32)
+        self.accuracy = tf.reduce_mean(correct, name='accuracy')
 
     @staticmethod
     def conv2d_same(inputs: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1,
                     scope: str = None) -> tf.Tensor:
         if stride == 1:
             return slim.conv2d(inputs, num_outputs, kernel_size, stride=1, rate=rate,
-                               padding='SAME', scope=scope)
+                               padding='SAME', scope=scope, normalizer_fn=None, activation_fn=None)
         else:
             kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
             pad_total = kernel_size_effective - 1
@@ -80,7 +87,7 @@ class ResNet(BaseModel):
             inputs = tf.pad(inputs,
                             [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
             return slim.conv2d(inputs, num_outputs, kernel_size, stride=stride,
-                               rate=rate, padding='VALID', scope=scope)
+                               rate=rate, padding='VALID', scope=scope, normalizer_fn=None, activation_fn=None)
 
     @staticmethod
     def v2_block(scope, base_depth, num_units, stride):
@@ -243,6 +250,53 @@ class ResNet(BaseModel):
             return inputs
         else:
             return slim.max_pool2d(inputs, [1, 1], stride=factor, scope=scope)
+
+    @staticmethod
+    def resnet_arg_scope(weight_decay=0.0001,
+                     batch_norm_decay=0.997,
+                     batch_norm_epsilon=1e-5,
+                     batch_norm_scale=True,
+                     activation_fn=tf.nn.relu,
+                     use_batch_norm=True,
+                     batch_norm_updates_collections=tf.GraphKeys.UPDATE_OPS):
+        """Defines the default ResNet arg scope.
+        TODO(gpapan): The batch-normalization related default values above are
+        appropriate for use in conjunction with the reference ResNet models
+        released at https://github.com/KaimingHe/deep-residual-networks. When
+        training ResNets from scratch, they might need to be tuned.
+        Args:
+        weight_decay: The weight decay to use for regularizing the model.
+        batch_norm_decay: The moving average decay when estimating layer activation
+        statistics in batch normalization.
+        batch_norm_epsilon: Small constant to prevent division by zero when
+        normalizing activations by their variance in batch normalization.
+        batch_norm_scale: If True, uses an explicit `gamma` multiplier to scale the
+        activations in the batch normalization layer.
+        activation_fn: The activation function which is used in ResNet.
+        use_batch_norm: Whether or not to use batch normalization.
+        batch_norm_updates_collections: Collection for the update ops for
+        batch norm.
+        Returns:
+        An `arg_scope` to use for the resnet models.
+        """
+        batch_norm_params = {
+            'decay': batch_norm_decay,
+            'epsilon': batch_norm_epsilon,
+            'scale': batch_norm_scale,
+            'updates_collections': batch_norm_updates_collections,
+            'fused': None,  # Use fused batch norm if possible.
+        }
+
+        with slim.arg_scope(
+            [slim.conv2d],
+            weights_regularizer=slim.l2_regularizer(weight_decay),
+            weights_initializer=slim.variance_scaling_initializer(),
+            activation_fn=activation_fn,
+            normalizer_fn=slim.batch_norm if use_batch_norm else None,
+            normalizer_params=batch_norm_params):
+            with slim.arg_scope([slim.batch_norm], **batch_norm_params):
+                with slim.arg_scope([slim.max_pool2d], padding='SAME') as arg_sc:
+                    return arg_sc
 
 
 class Block(collections.namedtuple('Block', ['scope', 'unit_fn', 'args'])):
