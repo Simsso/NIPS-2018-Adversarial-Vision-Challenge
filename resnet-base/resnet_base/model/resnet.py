@@ -10,18 +10,46 @@ slim = tf.contrib.slim
 class ResNet(BaseModel):
 
     def __init__(self, checkpoint_dir: str):
-        self.x: tf.Tensor = tf.placeholder(tf.float32, shape=[None, data.IMG_DIM, data.IMG_DIM, data.IMG_CHANNELS],
+        super().__init__(checkpoint_dir)
+
+        self.accuracy: tf.Tensor = None
+        self.loss: tf.Tensor = None
+        self.logits: tf.Tensor = None
+        self.softmax: tf.Tensor = None
+        self.x: tf.Tensor = tf.placeholder(tf.float32,
+                                           shape=[None, data.IMG_DIM, data.IMG_DIM, data.IMG_CHANNELS],
                                            name='x')
         self.is_training: tf.Tensor = tf.placeholder_with_default(False, (), 'is_training')
         self.num_classes: int = 200
         self.labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
-        self.softmax: tf.Tensor = None
-        self.logits: tf.Tensor = None
-        super().__init__(checkpoint_dir)
+
+        self.pretrained_saver: tf.train.Saver = None
+        self.custom_saver: tf.train.Saver = None
+        with tf.variable_scope('custom_variables') as scope:
+            self.custom_scope: tf.VariableScope = scope
+
+        self.build_model()
+        self.init_saver()
+        self.init_loss()
+        self.init_accuracy()
 
     def init_saver(self) -> None:
-        var_list = tf.get_collection(tf.GraphKeys.VARIABLES, 'resnet_v2_50')
-        self.saver = tf.train.Saver(var_list=var_list)
+        # global saver (complete graph)
+        self.saver = tf.train.Saver()
+
+        pretrained_var_list = tf.get_collection(tf.GraphKeys.VARIABLES, 'resnet_v2_50')
+        self.pretrained_saver = tf.train.Saver(var_list=pretrained_var_list)
+
+        custom_var_list = tf.get_collection(tf.GraphKeys.VARIABLES, self.custom_scope.name)
+        if custom_var_list:
+            self.custom_saver = tf.train.Saver(var_list=custom_var_list)
+
+    def load(self, sess: tf.Session):
+        #super().load(sess)
+
+        # restore parts of the graph
+        self.pretrained_saver.restore(sess, self.checkpoint_dir)
+        #self.custom_saver.restore(sess)
 
     def build_model(self) -> None:
         with tf.contrib.framework.arg_scope(ResNet.resnet_arg_scope()):

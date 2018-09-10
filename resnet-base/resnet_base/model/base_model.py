@@ -16,20 +16,15 @@ class BaseModel:
         self.global_step: tf.Tensor = None
         self.increment_global_step: tf.Tensor = None
 
-        self.accuracy: tf.Tensor = None
-        self.loss: tf.Tensor = None
-
         # init the global step
         self.init_global_step()
         # init the epoch counter
         self.init_current_epoch()
 
-        # save attribute
+        # saver attribute
         self.saver: tf.train.Saver = None
 
-        self.build_model()
-        self.init_loss()
-        self.init_accuracy()
+    def post_build_init(self):
         self.init_saver()
 
     def save(self, sess: tf.Session) -> None:
@@ -62,14 +57,5 @@ class BaseModel:
                                                initializer=tf.constant_initializer(0, dtype=tf.int32))
             self.increment_global_step = tf.assign(self.global_step, self.global_step + 1)
 
-    def init_loss(self) -> None:
-        raise NotImplementedError
-
-    def init_accuracy(self) -> None:
-        raise NotImplementedError
-
     def init_saver(self) -> None:
-        raise NotImplementedError
-
-    def build_model(self) -> None:
         raise NotImplementedError
