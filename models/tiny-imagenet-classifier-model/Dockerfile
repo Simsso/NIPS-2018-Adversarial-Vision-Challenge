@@ -18,6 +18,6 @@ EXPOSE 6006:6006
 RUN mkdir $BUCKET_NAME
 
 # mount bucket and start training
-RUN chmod +x ./start.sh $BUCKET_NAME
+RUN chmod +x ./start.sh
 
-CMD "./start.sh"
+CMD ["./start.sh", $BUCKET_NAME]
