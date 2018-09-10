@@ -20,4 +20,4 @@ RUN mkdir $BUCKET_NAME
 # mount bucket and start training
 RUN chmod +x ./start.sh
 
-CMD ["./start.sh", $BUCKET_NAME]
+CMD ["./start.sh", "${BUCKET_NAME}"]
