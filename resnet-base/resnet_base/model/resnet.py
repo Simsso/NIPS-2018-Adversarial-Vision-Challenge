@@ -78,7 +78,7 @@ class ResNet(BaseModel):
                     scope: str = None) -> tf.Tensor:
         if stride == 1:
             return slim.conv2d(inputs, num_outputs, kernel_size, stride=1, rate=rate,
-                               padding='SAME', scope=scope, normalizer_fn=None, activation_fn=None)
+                               padding='SAME', scope=scope)
         else:
             kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
             pad_total = kernel_size_effective - 1
@@ -87,7 +87,7 @@ class ResNet(BaseModel):
             inputs = tf.pad(inputs,
                             [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
             return slim.conv2d(inputs, num_outputs, kernel_size, stride=stride,
-                               rate=rate, padding='VALID', scope=scope, normalizer_fn=None, activation_fn=None)
+                               rate=rate, padding='VALID', scope=scope)
 
     @staticmethod
     def v2_block(scope, base_depth, num_units, stride):
