@@ -1,5 +1,6 @@
 import tensorflow as tf
-from model.base_model import BaseModel
+from resnet_base.model.base_model import BaseModel
+
 
 class BaseTrain:
     def __init__(self, sess: tf.Session, model: BaseModel, config):
@@ -8,10 +9,10 @@ class BaseTrain:
         self.config = config
         self.sess = sess
 
-    def init_variables():
+    def init_variables(self):
         # initialize all variables of the graph
-        self.init = tf.global_variables_initializer()
-        self.sess.run(self.init)
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
 
     def train(self):
         start_epoch = self.model.current_epoch.eval(self.sess)
