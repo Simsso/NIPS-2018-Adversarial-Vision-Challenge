@@ -17,9 +17,7 @@ EXPOSE 6006:6006
 # create folder for network mount
 RUN mkdir $BUCKET_NAME
 
-# mount bucket
-RUN gcsfuse $BUCKET_NAME $BUCKET_NAME/
-
-RUN chmod +x ./start.sh
+# mount bucket and start training
+RUN chmod +x ./start.sh $BUCKET_NAME
 
 CMD "./start.sh"
