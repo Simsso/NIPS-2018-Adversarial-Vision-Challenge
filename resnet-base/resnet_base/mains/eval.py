@@ -9,7 +9,7 @@ from resnet_base.model.resnet import ResNet
 VALIDATION_BATCH_SIZE = 1024  # does not affect training results; adjustment based on GPU RAM
 TF_LOGS = os.path.join('..', 'tf_logs')
 
-CHECKPOINT_DIR = os.path.expanduser('~/.models/tiny_imagenet_base_2018_06_26.ckpt')
+CHECKPOINT_DIR = os.path.expanduser('~/.models/tiny_imagenet_alp05_2018_06_26.ckpt')
 
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
@@ -57,8 +57,7 @@ def run_validation(model: BaseModel):
 
 
 def main(args):
-    print(CHECKPOINT_DIR)
-    model = ResNet(CHECKPOINT_DIR)
+    model = ResNet()
     run_validation(model)
 
 

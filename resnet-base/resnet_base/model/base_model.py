@@ -4,12 +4,14 @@ https://github.com/MrGemy95/Tensorflow-Project-Template/blob/master/base/base_mo
 """
 
 import tensorflow as tf
+from typing import Optional
+
+tf.flags.DEFINE_string("global_checkpoint", "", "Checkpoint path of all weights.")
+FLAGS = tf.flags.FLAGS
 
 
 class BaseModel:
-    def __init__(self, checkpoint_dir: str):
-        self.checkpoint_dir = checkpoint_dir
-
+    def __init__(self):
         # attributes needed for global_step and global_epoch
         self.current_epoch: tf.Tensor = None
         self.increment_current_epoch: tf.Tensor = None
@@ -27,22 +29,6 @@ class BaseModel:
     def post_build_init(self):
         self.init_saver()
 
-    def save(self, sess: tf.Session) -> None:
-        """Saves the checkpoint in the path defined in the config file"""
-        tf.logging.info("Saving model...")
-        self.saver.save(sess, self.checkpoint_dir, self.global_step)
-        tf.logging.info("Model saved")
-
-    def load(self, sess: tf.Session) -> None:
-        """Load latest checkpoint from the experiment path defined in the config file"""
-        latest_checkpoint = self.checkpoint_dir #tf.train.latest_checkpoint(self.checkpoint_dir)
-        if latest_checkpoint:
-            tf.logging.info("Loading model checkpoint {} ...\n".format(latest_checkpoint))
-            self.saver.restore(sess, latest_checkpoint)
-            tf.logging.info("Model loaded")
-        else:
-            tf.logging.warning("No checkpoint found")
-
     def init_current_epoch(self) -> None:
         """Initialize a TensorFlow variable to use it as epoch counter"""
         with tf.variable_scope('current_epoch'):
@@ -59,3 +45,31 @@ class BaseModel:
 
     def init_saver(self) -> None:
         raise NotImplementedError
+
+    def save(self, sess: tf.Session) -> None:
+        BaseModel._save_to_path(sess, self.saver, self.global_step, FLAGS.global_checkpoint)
+
+    def load(self, sess: tf.Session) -> None:
+        BaseModel._restore_checkpoint(self.saver, sess, FLAGS.global_checkpoint)
+
+    @staticmethod
+    def _restore_checkpoint(saver: tf.train.Saver, sess: tf.Session, path: Optional[str] = None):
+        if path and saver:
+            saver.restore(sess, path)
+            tf.logging.info("Model loaded from {}".format(path))
+
+    @staticmethod
+    def _create_saver(collection_name: str) -> Optional[tf.train.Saver]:
+        var_list = tf.get_collection(tf.GraphKeys.VARIABLES, collection_name)
+        if var_list:
+            return tf.train.Saver(var_list=var_list)
+        return None
+
+    @staticmethod
+    def _save_to_path(sess: tf.Session, saver: Optional[tf.train.Saver], global_step: tf.Tensor, path: Optional[str]):
+        if saver and path:
+            tf.logging.info("Saving model...")
+            saver.save(sess, path, global_step=global_step)
+            tf.logging.info("Model saved to {}".format(path))
+
+
