@@ -11,6 +11,8 @@ TF_LOGS = os.path.join('..', 'tf_logs')
 
 CHECKPOINT_DIR = os.path.expanduser('~/.models/tiny_imagenet_base_2018_06_26.ckpt')
 
+tf.logging.set_verbosity(tf.logging.DEBUG)
+
 
 def run_validation(model: BaseModel):
     # data set
@@ -43,11 +45,6 @@ def run_validation(model: BaseModel):
                     vals.append(sess.run([model.accuracy, model.loss],
                                          feed_dict={model.x: valid_images, model.labels: valid_labels}))
                 acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
-                summary = tf.Summary(value=[
-                    tf.Summary.Value(tag='accuracy', simple_value=acc_mean_val),
-                    tf.Summary.Value(tag='loss', simple_value=loss_mean_val),
-                ])
-                valid_log_writer.add_summary(summary, global_step=(epoch - 1) * STEPS_PER_EPOCH)
 
                 tf.logging.info("Validation data: accuracy {}, loss {}".format(acc_mean_val, loss_mean_val))
                 break
