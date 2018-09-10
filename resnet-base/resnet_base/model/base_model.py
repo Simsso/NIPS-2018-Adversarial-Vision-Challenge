@@ -41,7 +41,7 @@ class BaseModel:
             self.saver.restore(sess, latest_checkpoint)
             tf.logging.info("Model loaded")
         else:
-            tf.logging.error("No checkpoint found")
+            tf.logging.warning("No checkpoint found")
 
     def init_current_epoch(self) -> None:
         """Initialize a TensorFlow variable to use it as epoch counter"""

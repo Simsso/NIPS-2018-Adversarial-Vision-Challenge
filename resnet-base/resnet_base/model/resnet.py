@@ -15,7 +15,8 @@ class ResNet(BaseModel):
         super().__init__(checkpoint_dir)
 
     def init_saver(self) -> None:
-        pass
+        var_list = tf.contrib.framework.get_variables_to_restore()
+        self.saver = tf.train.Saver(var_list=var_list)
 
     def build_model(self) -> None:
         with tf.variable_scope('resnet_v2_50', 'resnet_v2', [self.x], reuse=tf.AUTO_REUSE) as sc:
@@ -56,6 +57,14 @@ class ResNet(BaseModel):
                 net = tf.squeeze(net, [1, 2], name='SpatialSqueeze')
                 end_points[sc.name + '/spatial_squeeze'] = net
                 end_points['predictions'] = slim.softmax(net, scope='predictions')
+
+    def init_loss(labels: tf.Tensor, logits: tf.Tensor) -> None:
+        labels_one_hot = tf.one_hot(labels, depth=data.NUM_CLASSES)
+        cross_entropy_loss = tf.losses.softmax_cross_entropy(labels_one_hot, logits)
+
+    def get_accuracy(labels: tf.Tensor, softmax: tf.Tensor) -> tf.Tensor:
+        correct = tf.cast(tf.equal(tf.argmax(softmax, axis=1), tf.cast(labels, tf.int64)), dtype=tf.float32)
+        return tf.reduce_mean(correct, name='accuracy')
 
     @staticmethod
     def conv2d_same(inputs: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1,
