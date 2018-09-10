@@ -1,5 +1,7 @@
 FROM gcr.io/nips-2018-207619/nips-tensorflow-base-image:latest
 
+ARG BUCKET_NAME
+
 WORKDIR /opt/app
 
 # install python requirements

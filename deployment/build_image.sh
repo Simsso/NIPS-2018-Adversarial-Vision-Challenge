@@ -28,7 +28,7 @@ echo "Install docker .."
 apt-get install -y docker-ce
 
 echo "Building Docker Image .."
-docker build -t gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION models/$MODEL_FOLDER
+docker build --build-arg BUCKET_NAME $3 -t gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION models/$MODEL_FOLDER
 
 echo "Pushing Docker Image .."
 docker push gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION

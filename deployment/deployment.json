@@ -6,7 +6,8 @@
                 "bash",
                 "deployment/build_image.sh",
                 "$PROJECT_ID",
-                "$TAG_NAME"
+                "$TAG_NAME",
+                "nips-2018-adversarial-vision-challenge-data"
             ]
         },
         {
