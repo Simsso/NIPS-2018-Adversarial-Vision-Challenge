@@ -25,4 +25,4 @@ RUN mkdir -p ${BUCKET_NAME}
 # mount bucket and start training
 RUN chmod +x ./start.sh
 
-ENTRYPOINT ["/bin/bash", "-c", "./start.sh ${BUCKET_NAME} ${MODEL_ID}"]
+ENTRYPOINT ["/bin/bash", "-c", "./start.sh"]
