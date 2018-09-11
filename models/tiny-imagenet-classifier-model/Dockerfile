@@ -1,7 +1,11 @@
 FROM gcr.io/nips-2018-207619/nips-tensorflow-base-image:latest
 
-ARG LOG_FOLDER
-ARG BUCKET_NAME
+ARG LOG_FOLDER_ARG
+ARG BUCKET_NAME_ARG
+
+# persist the args across images
+ENV LOG_FOLDER LOG_FOLDER_ARG
+ENV BUCKET_NAME BUCKET_NAME_ARG
 
 WORKDIR /opt/app
 
@@ -22,4 +26,4 @@ RUN mkdir $BUCKET_NAME/$LOG_FOLDER
 # mount bucket and start training
 RUN chmod +x ./start.sh
 
-CMD ./start.sh $BUCKET_NAME/$LOG_FOLDER
+ENTRYPOINT ["/bin/bash", "-c", "./start.sh ${BUCKET_NAME} ${LOG_FOLDER}"]
