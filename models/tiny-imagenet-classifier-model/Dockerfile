@@ -20,8 +20,8 @@ COPY . /opt/app
 EXPOSE 6006:6006
 
 # create folder for network mount
-RUN mkdir -p $BUCKET_NAME
-RUN mkdir -p $BUCKET_NAME/$LOG_FOLDER
+RUN mkdir -p ${BUCKET_NAME}
+RUN mkdir -p ${BUCKET_NAME}/${LOG_FOLDER}
 
 # mount bucket and start training
 RUN chmod +x ./start.sh
