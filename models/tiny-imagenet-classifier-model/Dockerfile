@@ -9,8 +9,6 @@ ENV BUCKET_NAME ${BUCKET_NAME_ARG}
 
 WORKDIR /opt/app
 
-RUN echo "${BUCKET_NAME} ${LOG_FOLDER}"
-
 # install python requirements
 COPY requirements.txt /opt/app
 RUN pip install -r requirements.txt
@@ -22,8 +20,8 @@ COPY . /opt/app
 EXPOSE 6006:6006
 
 # create folder for network mount
-RUN mkdir ${BUCKET_NAME}
-RUN mkdir ${BUCKET_NAME}/${LOG_FOLDER}
+RUN mkdir $BUCKET_NAME
+RUN mkdir $BUCKET_NAME/$LOG_FOLDER
 
 # mount bucket and start training
 RUN chmod +x ./start.sh
