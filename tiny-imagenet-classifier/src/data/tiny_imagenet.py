@@ -26,6 +26,7 @@ NUM_CLASSES = 200
 NUM_TRAIN_SAMPLES = 500*NUM_CLASSES // DATASET_DIVISOR
 NUM_VALIDATION_SAMPLES = 50*NUM_CLASSES // DATASET_DIVISOR
 IMG_DIM = 59  # after cropping
+ORIGINAL_IMG_DIM = 64
 IMG_CHANNELS = 3
 PATH = os.path.expanduser('~/.data/tiny-imagenet-200')
 
@@ -45,13 +46,16 @@ def load_filenames_labels(mode):
     filenames_labels = []
     if mode == 'train':
         filenames = glob.glob(PATH + '/train/*/images/*.JPEG')
+        filenames.sort()
         for filename in filenames:
             match = re.search(r'n\d+', filename)
             label = str(label_dict[match.group()])
             filenames_labels.append((filename, label))
     elif mode == 'val':
         with open(PATH + '/val/val_annotations.txt', 'r') as f:
-            for line in f.readlines():
+            lines = f.readlines()
+            lines.sort()
+            for line in lines:
                 split_line = line.split('\t')
                 filename = PATH + '/val/images/' + split_line[0]
                 label = str(label_dict[split_line[1]])
