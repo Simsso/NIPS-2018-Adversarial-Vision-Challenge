@@ -35,9 +35,10 @@ class ResNet(BaseModel):
             self.custom_scope: tf.VariableScope = scope
 
         self.build_model()
-        self.init_saver()
         self.init_loss()
         self.init_accuracy()
+
+        self.post_build_init()
 
     def init_saver(self) -> None:
         # global saver (complete graph)

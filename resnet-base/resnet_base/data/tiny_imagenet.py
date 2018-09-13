@@ -151,6 +151,6 @@ def batch_q(mode, batch_size):
     filename_q = tf.train.input_producer(filenames_labels, shuffle=True)
 
     # 2 read_image threads to keep batch_join queue full:
-    result = tf.train.batch_join([read_image(filename_q, mode) for i in range(2)],
+    result = tf.train.batch_join([read_image(filename_q, mode) for _ in range(2)],
                                  batch_size, shapes=[(IMG_DIM, IMG_DIM, 3), ()], capacity=2048)
     return result
