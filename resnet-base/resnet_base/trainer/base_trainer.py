@@ -24,6 +24,8 @@ class BaseTrainer:
         for _ in range(start_epoch, FLAGS.num_epochs + 1):
             self.train_epoch()
             self.sess.run(self.model.increment_current_epoch)
+            # run validation epoch to monitor training
+            self.val_epoch()
 
     def train_epoch(self):
         """
