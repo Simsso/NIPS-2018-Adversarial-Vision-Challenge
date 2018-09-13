@@ -19,28 +19,32 @@ class BaseTrainer:
         self.sess.run(init)
 
     def train(self):
-        # get the current epoch so we can re-start training from there
-        start_epoch = self.model.current_epoch.eval(self.sess)
-
+        init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
-        sess = tf.Session(config=config)
 
+        sess = tf.Session(config=config)
         with self.sess.as_default():
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
+            sess.run(init)
 
             # restore weights (as specified in the FLAGS)
             self.model.load(sess)
 
             try:
                 while not coord.should_stop():
+                    # get the current epoch so we can re-start training from there
+                    start_epoch = self.model.current_epoch.eval(self.sess)
+
                     for _ in range(start_epoch, FLAGS.num_epochs + 1):
                         self.train_epoch()
                         self.sess.run(self.model.increment_current_epoch)
 
                         # run validation epoch to monitor training
                         self.val_epoch()
+
+                    break
 
             except tf.errors.OutOfRangeError as e:
                 coord.request_stop(e)
