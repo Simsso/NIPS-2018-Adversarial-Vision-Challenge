@@ -21,11 +21,32 @@ class BaseTrainer:
     def train(self):
         # get the current epoch so we can re-start training from there
         start_epoch = self.model.current_epoch.eval(self.sess)
-        for _ in range(start_epoch, FLAGS.num_epochs + 1):
-            self.train_epoch()
-            self.sess.run(self.model.increment_current_epoch)
-            # run validation epoch to monitor training
-            self.val_epoch()
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
+        sess = tf.Session(config=config)
+
+        with self.sess.as_default():
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
+
+            # restore weights (as specified in the FLAGS)
+            self.model.load(sess)
+
+            try:
+                while not coord.should_stop():
+                    for _ in range(start_epoch, FLAGS.num_epochs + 1):
+                        self.train_epoch()
+                        self.sess.run(self.model.increment_current_epoch)
+
+                        # run validation epoch to monitor training
+                        self.val_epoch()
+
+            except tf.errors.OutOfRangeError as e:
+                coord.request_stop(e)
+            finally:
+                coord.request_stop()
+                coord.join(threads)
 
     def train_epoch(self):
         """
@@ -34,23 +55,10 @@ class BaseTrainer:
         """
         raise NotImplementedError
 
-    def train_step(self):
-        """
-        Trains the model for one step (i.e. one batch).
-        """
-        raise NotImplementedError
-
     def val_epoch(self):
         """
         Performs inference and calculates evaluation metrics for one full epoch of the validation set.
         Should use the batch size defined in FLAGS.val_batch_size.
-        """
-        raise NotImplementedError
-
-    def val_step(self):
-        """
-        Performs inference and calculates evaluation metrics for one batch of the validation set.
-        Should add summaries of metrics to TensorBoard.
         """
         raise NotImplementedError
 
