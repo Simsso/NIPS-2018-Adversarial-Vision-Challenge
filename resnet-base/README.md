@@ -16,3 +16,13 @@ As of now, the following features are implemented:
 The current code is still not production-ready. Refactoring and documentation are needed. 
 Moreover, there is still no trainer class, hence, it can currently only be used for the purposes
 stated above.
+
+### Local Execution
+Install with 
+```bash
+python setup.py install
+```
+and run using
+```bash
+python -m resnet_base
+```
