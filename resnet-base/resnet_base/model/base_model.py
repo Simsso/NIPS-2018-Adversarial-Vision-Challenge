@@ -31,14 +31,14 @@ class BaseModel:
 
     def init_current_epoch(self) -> None:
         """Initialize a TensorFlow variable to use it as epoch counter"""
-        with tf.variable_scope('current_epoch'):
+        with tf.variable_scope('meta'):
             self.current_epoch = tf.get_variable('current_epoch', shape=(), dtype=tf.int32, trainable=False,
                                                  initializer=tf.constant_initializer(0, dtype=tf.int32))
             self.increment_current_epoch = tf.assign(self.current_epoch, self.current_epoch + 1)
 
     def init_global_step(self) -> None:
         """Initialize a TensorFlow variable to use it as global step counter"""
-        with tf.variable_scope('global_step'):
+        with tf.variable_scope('meta'):
             self.global_step = tf.get_variable('global_step', shape=(), dtype=tf.int32, trainable=False,
                                                initializer=tf.constant_initializer(0, dtype=tf.int32))
             self.increment_global_step = tf.assign(self.global_step, self.global_step + 1)
@@ -71,5 +71,3 @@ class BaseModel:
             tf.logging.info("Saving model...")
             saver.save(sess, path, global_step=global_step)
             tf.logging.info("Model saved to {}".format(path))
-
-
