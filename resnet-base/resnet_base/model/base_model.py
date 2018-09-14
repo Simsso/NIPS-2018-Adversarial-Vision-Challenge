@@ -60,7 +60,7 @@ class BaseModel:
 
     @staticmethod
     def _create_saver(collection_name: str) -> Optional[tf.train.Saver]:
-        var_list = tf.get_collection(tf.GraphKeys.VARIABLES, collection_name)
+        var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, collection_name)
         if var_list:
             return tf.train.Saver(var_list=var_list)
         return None
