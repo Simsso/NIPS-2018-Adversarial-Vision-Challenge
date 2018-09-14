@@ -10,7 +10,7 @@ incorporated into a popular [TensorFlow project template](https://github.com/MrG
 As of now, the following features are implemented:
 * restore the pre-trained [ALP weights](https://github.com/tensorflow/models/tree/master/research/adversarial_logit_pairing)
 * load the [Tiny ImageNet](https://tiny-imagenet.herokuapp.com/) training and validation set
-* evaluate the model on the validation set (using [`eval.py`](./mains/eval.py))
+* evaluate the model on the validation set (using [`eval.py`](resnet_base/mains/eval.py))
 * support multiple savers to restore and save different parts of the graph, namely pre-trained, custom and global weights
 
 The current code is still not production-ready. Refactoring and documentation are needed. 
