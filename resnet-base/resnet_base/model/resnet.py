@@ -73,7 +73,7 @@ class ResNet(BaseModel):
                     net = slim.batch_norm(net, activation_fn=tf.nn.relu, scope='postnorm')
 
                     # global average pooling
-                    net = tf.reduce_mean(net, [1, 2], name='pool5', keep_dims=True)
+                    net = tf.reduce_mean(net, [1, 2], name='pool5', keepdims=True)
                     net = slim.conv2d(net, self.num_classes, [1, 1], activation_fn=None, normalizer_fn=None,
                                       scope='logits')
                     net = tf.squeeze(net, [1, 2], name='SpatialSqueeze')
