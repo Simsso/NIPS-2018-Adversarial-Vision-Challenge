@@ -16,12 +16,6 @@ RUN pip install -r requirements.txt
 # copy python project
 COPY . /opt/app
 
-# expose port for tensorboard
-EXPOSE 6006:6006
-
-# create folder for network mount
-RUN mkdir -p ${BUCKET_NAME}
-
 # mount bucket and start training
 RUN chmod +x ./start.sh
 
