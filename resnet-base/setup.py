@@ -24,6 +24,6 @@ setup(name="resnet_base",
       version=get_version(),
       entry_points={"console_scripts": ["resnet_base = resnet_base.__main__:main"]},
       packages=['resnet_base'],
-      description="Trainable text classification service using a separable CNN and word embeddings",
-      install_requires=get_install_requires()
-      )
+      description="ResNet for TinyImageNet classification",
+      install_requires=get_install_requires(),
+      author="Timo Denk, Florian Pfisterer, Samed Güner")
