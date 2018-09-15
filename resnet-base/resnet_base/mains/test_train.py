@@ -4,9 +4,11 @@ from resnet_base.trainer.resnet_trainer import ResNetTrainer
 
 
 def main(args):
-    model = ResNet()
-    sess = tf.Session()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
+    sess = tf.Session(config=config)
 
+    model = ResNet()
     trainer = ResNetTrainer(sess, model)
     trainer.train()
 
