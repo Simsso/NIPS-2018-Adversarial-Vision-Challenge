@@ -5,10 +5,10 @@ from typing import Union, Tuple
 
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
-                        lookup_ord: Union[str, int] = 'euclidean',
+                        lookup_ord: int = 2,
                         embedding_initializer: tf.keras.initializers.Initializer=tf.random_normal_initializer,
                         num_splits: int = 1, return_endpoints: bool = False)\
-        -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor, tf.Tensor]]:
+        -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]]:
     # shape of x is [batch, , q], where this function quantizes along dimension q
 
     if n <= 0:
@@ -19,7 +19,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         raise ValueError("Parameter 'x' must be a tensor of shape [batch, a, q]. Got {}.".format(in_shape))
     in_shape[0] = in_shape[0] if in_shape[0] is not None else -1  # allow for variable-sized batch dimension
 
-    valid_lookup_ord_values = ['euclidean', 1, 2, np.inf]
+    valid_lookup_ord_values = [1, 2, np.inf]
     if lookup_ord not in valid_lookup_ord_values:
         raise ValueError("Parameter 'lookup_ord' must be one of {}. Got '{}'."
                          .format(valid_lookup_ord_values, lookup_ord))
@@ -40,7 +40,8 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                                     trainable=True)
 
         # map x to y, where y is the vector from emb_space that is closest to x
-        diff = tf.expand_dims(x, axis=2) - emb_space  # distance of x from all vectors in the embedding space
+        # distance of x from all vectors in the embedding space
+        diff = tf.expand_dims(x, axis=2) - emb_space
         dist = tf.norm(diff, lookup_ord, axis=3)  # distance between x and all vectors in emb
         emb_index = tf.argmin(dist, axis=2)
         y = tf.gather(emb_space, emb_index, axis=0)
@@ -69,5 +70,5 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         layer_out = tf.reshape(tf.stop_gradient(y - x) + x, in_shape)
 
         if return_endpoints:
-            return layer_out, emb_space, access_count
+            return layer_out, emb_space, access_count, dist
         return layer_out

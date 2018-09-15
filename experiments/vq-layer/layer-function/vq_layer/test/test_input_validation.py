@@ -41,13 +41,13 @@ class TestInputValidation(TFTestCase):
         # valid inputs
         n = 5
         i = 0
-        for i, lookup_ord in enumerate(['euclidean', 1, 2, np.inf]):
+        for i, lookup_ord in enumerate([1, 2, np.inf]):
             with self.subTest(i=i):
                 self.setUp()
                 vector_quantization(tf.placeholder(tf.float32, [None, 1, 3]), n, lookup_ord=lookup_ord)
 
         # invalid inputs
-        for j, lookup_ord in enumerate(['fro', -1, 0, 5]):
+        for j, lookup_ord in enumerate(['fro', 'euclidean', -1, 0, 5]):
             with self.subTest(i=i+1+j):
                 with self.assertRaises(ValueError):
                     vector_quantization(tf.placeholder(tf.float32, [None, 1, 3]), n, lookup_ord=lookup_ord)
@@ -70,8 +70,6 @@ class TestInputValidation(TFTestCase):
 
         # valid input
         vector_quantization(tf.placeholder(tf.float32, [None, 5, 200]), 4, num_splits=20)
-
-
 
 
 if __name__ == '__main__':
