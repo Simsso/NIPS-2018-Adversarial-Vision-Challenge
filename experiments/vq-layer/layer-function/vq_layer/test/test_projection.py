@@ -15,7 +15,6 @@ class TestProjection(TFTestCase):
         emb_init = tf.constant_initializer(emb_space_val)
         self.y, _, self.access_count = vector_quantization(x_reshaped, len(emb_space_val),
                                                            embedding_initializer=emb_init, return_endpoints=True)
-
         self.init_vars()
 
     def test_projection(self):
