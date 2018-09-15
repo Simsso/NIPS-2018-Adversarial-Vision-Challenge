@@ -1,8 +1,13 @@
 import tensorflow as tf
+from typing import Union, Tuple
 
 
-def vector_quantization(x: tf.Tensor, n, alpha=0.1, beta=1e-4, gamma=1e-6, lookup_ord='euclidean',
-                        embedding_initializer=tf.random_normal_initializer, num_splits=1, return_endpoints=False):
+def vector_quantization(x: tf.Tensor, n: Union[int, tf.Tensor], alpha: Union[float, tf.Tensor] = 0.1,
+                        beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
+                        lookup_ord: Union[str, int] = 'euclidean',
+                        embedding_initializer: tf.keras.initializers.Initializer=tf.random_normal_initializer,
+                        num_splits: int = 1, return_endpoints: bool = False)\
+        -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor, tf.Tensor]]:
     # shape of x is [batch, , q], where this function quantizes along dimension q
     in_shape = x.get_shape().as_list()
     in_shape[0] = in_shape[0] if in_shape[0] is not None else -1  # allow for variable-sized batch dimension
