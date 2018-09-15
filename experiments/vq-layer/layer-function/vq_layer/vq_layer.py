@@ -1,18 +1,36 @@
+import numpy as np
 import tensorflow as tf
 from typing import Union, Tuple
 
 
-def vector_quantization(x: tf.Tensor, n: Union[int, tf.Tensor], alpha: Union[float, tf.Tensor] = 0.1,
+def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
                         lookup_ord: Union[str, int] = 'euclidean',
                         embedding_initializer: tf.keras.initializers.Initializer=tf.random_normal_initializer,
                         num_splits: int = 1, return_endpoints: bool = False)\
         -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor, tf.Tensor]]:
     # shape of x is [batch, , q], where this function quantizes along dimension q
+
+    if n <= 0:
+        raise ValueError("Parameter 'n' must be greater than 0.")
+
     in_shape = x.get_shape().as_list()
+    if not len(in_shape) == 3:
+        raise ValueError("Parameter 'x' must be a tensor of shape [batch, a, q]. Got {}.".format(in_shape))
     in_shape[0] = in_shape[0] if in_shape[0] is not None else -1  # allow for variable-sized batch dimension
 
-    assert in_shape[2] % num_splits == 0
+    valid_lookup_ord_values = ['euclidean', 1, 2, np.inf]
+    if lookup_ord not in valid_lookup_ord_values:
+        raise ValueError("Parameter 'lookup_ord' must be one of {}. Got '{}'."
+                         .format(valid_lookup_ord_values, lookup_ord))
+
+    if num_splits <= 0:
+        raise ValueError("Parameter 'num_splits' must be greater than 0. Got '{}'.".format(num_splits))
+
+    if not in_shape[2] % num_splits == 0:
+        raise ValueError("Parameter 'num_splits' must be a divisor of the third axis of 'x'. Got {} and {}."
+                         .format(num_splits, in_shape[2]))
+
     vec_size = in_shape[2] // num_splits
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
 
