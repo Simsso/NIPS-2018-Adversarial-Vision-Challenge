@@ -20,17 +20,15 @@ class BaseTrainer:
 
     def train(self):
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
 
-        sess = tf.Session(config=config)
         with self.sess.as_default():
+            self.sess.run(init)
+
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
-            sess.run(init)
 
             # restore weights (as specified in the FLAGS)
-            self.model.load(sess)
+            self.model.load(self.sess)
 
             try:
                 while not coord.should_stop():
