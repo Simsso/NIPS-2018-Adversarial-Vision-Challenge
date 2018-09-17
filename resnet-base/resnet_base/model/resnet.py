@@ -1,13 +1,14 @@
 import collections
-
+import os
 from resnet_base.model.base_model import BaseModel
 import tensorflow as tf
-from resnet_base.data import tiny_imagenet_coady as data
+from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data
 
 slim = tf.contrib.slim
 
 # define flags
-tf.flags.DEFINE_string("pretrained_checkpoint", "", "Checkpoint path of pre-trained weights.")
+tf.flags.DEFINE_string("pretrained_checkpoint", os.path.expanduser('~/.models/tiny_imagenet_alp05_2018_06_26.ckpt'),
+                       "Checkpoint path of pre-trained weights.")
 tf.flags.DEFINE_string("custom_checkpoint", "", "Checkpoint path of custom-tuned weights.")
 
 FLAGS = tf.flags.FLAGS
@@ -23,8 +24,7 @@ class ResNet(BaseModel):
         self.logits: tf.Tensor = None
         self.softmax: tf.Tensor = None
         self.x: tf.Tensor = tf.placeholder(tf.float32,
-                                           shape=[None, data.IMG_DIM, data.IMG_DIM, data.IMG_CHANNELS],
-                                           name='x')
+                                           shape=[None, Data.img_width, Data.img_height, Data.img_channels], name='x')
         self.is_training: tf.Tensor = tf.placeholder_with_default(False, (), 'is_training')
         self.num_classes: int = 200
         self.labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
@@ -81,7 +81,7 @@ class ResNet(BaseModel):
                     self.softmax = slim.softmax(net, scope='predictions')
 
     def init_loss(self) -> None:
-        labels_one_hot = tf.one_hot(self.labels, depth=data.NUM_CLASSES)
+        labels_one_hot = tf.one_hot(self.labels, depth=Data.num_classes)
         self.loss = tf.losses.softmax_cross_entropy(labels_one_hot, self.logits)
 
     def init_accuracy(self) -> None:

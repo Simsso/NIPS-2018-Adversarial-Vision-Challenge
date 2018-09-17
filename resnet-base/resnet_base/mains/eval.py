@@ -1,5 +1,4 @@
-import resnet_base.data.tiny_imagenet_coady as data
-from resnet_base.data.tiny_imagenet import TinyImageNetDataset
+from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 import numpy as np
 import os
 import tensorflow as tf
@@ -8,17 +7,14 @@ from resnet_base.model.resnet import ResNet
 VALIDATION_BATCH_SIZE = 1024  # does not affect training results; adjustment based on GPU RAM
 TF_LOGS = os.path.join('..', 'tf_logs')
 
-CHECKPOINT_DIR = os.path.expanduser('~/.models/tiny_imagenet_alp05_2018_06_26.ckpt')
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
 
 def run_validation(model: ResNet):
-    iterator = TinyImageNetDataset.get_iterator()
-    dataset = TinyImageNetDataset(mode=tf.estimator.ModeKeys.EVAL)
-    valid_init_op = dataset.build(iterator)
+    pipeline = TinyImageNetPipeline()
 
     # data set
-    valid_batch = iterator.get_next()
+    valid_batch = pipeline.get_iterator().get_next()
     init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 
     config = tf.ConfigProto()
@@ -27,13 +23,13 @@ def run_validation(model: ResNet):
 
     with sess.as_default():
         sess.run(init)
-        sess.run(valid_init_op)
+        pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
         model.load(sess)
 
         tf.logging.info("Starting evaluation")
         vals = []
         acc_mean_val, loss_mean_val = 0, 0
-        for _ in range(min(data.NUM_VALIDATION_SAMPLES // VALIDATION_BATCH_SIZE, data.NUM_VALIDATION_SAMPLES)):
+        for _ in range(min(TinyImageNetPipeline.num_valid_samples // VALIDATION_BATCH_SIZE, TinyImageNetPipeline.num_valid_samples)):
             valid_images, valid_labels = sess.run(valid_batch)
             vals.append(sess.run([model.accuracy, model.loss],
                                  feed_dict={model.x: valid_images, model.labels: valid_labels}))
