@@ -11,7 +11,7 @@ class BasePipeline:
         self.iterator: tf.data.Iterator = None
 
     def get_iterator(self) -> tf.data.Iterator:
-        if not self.iterator:
+        if self.iterator is None:
             self.iterator = self._construct_iterator()
         return self.iterator
 
@@ -19,7 +19,7 @@ class BasePipeline:
         raise NotImplementedError()
 
     def _get_init_op(self, mode: tf.estimator.ModeKeys) -> tf.Operation:
-        if not self.iterator_init_ops[mode]:
+        if self.iterator_init_ops[mode] is None:
             self.iterator_init_ops[mode] = self._construct_init_op(mode)
         return self.iterator_init_ops[mode]
 
@@ -27,7 +27,7 @@ class BasePipeline:
         raise NotImplementedError()
 
     def switch_to(self, mode: tf.estimator.ModeKeys, sess: tf.Session = None) -> None:
-        if not sess:
+        if sess is None:
             sess = tf.get_default_session()
         init_op = self._get_init_op(mode)
         sess.run(init_op)

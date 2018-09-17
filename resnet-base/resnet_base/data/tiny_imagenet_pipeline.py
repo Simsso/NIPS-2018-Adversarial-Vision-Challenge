@@ -33,6 +33,10 @@ class TinyImageNetPipeline(BasePipeline):
             raise ValueError("Batch size must be greater than 0. Got '{}'.".format(batch_size))
         self.batch_size = batch_size
 
+        # init_ops must be created prior to session instantiation
+        self._get_init_op(tf.estimator.ModeKeys.TRAIN)
+        self._get_init_op(tf.estimator.ModeKeys.EVAL)
+
     def _construct_iterator(self) -> tf.data.Iterator:
         output_types = (tf.float32, tf.uint8)
         output_shapes = tf.TensorShape((None, self.img_width, self.img_height, self.img_channels)), tf.TensorShape(None)

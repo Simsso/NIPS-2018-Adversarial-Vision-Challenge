@@ -16,18 +16,17 @@ FLAGS = tf.flags.FLAGS
 
 class ResNet(BaseModel):
 
-    def __init__(self):
+    def __init__(self, x: tf.Tensor = None, labels: tf.Tensor = None):
         super().__init__()
 
         self.accuracy: tf.Tensor = None
         self.loss: tf.Tensor = None
         self.logits: tf.Tensor = None
         self.softmax: tf.Tensor = None
-        self.x: tf.Tensor = tf.placeholder(tf.float32,
-                                           shape=[None, Data.img_width, Data.img_height, Data.img_channels], name='x')
+        self.x: tf.Tensor = tf.placeholder(tf.float32, shape=[None, Data.img_width, Data.img_height, Data.img_channels], name='x') if x is None else x
         self.is_training: tf.Tensor = tf.placeholder_with_default(False, (), 'is_training')
         self.num_classes: int = 200
-        self.labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
+        self.labels = tf.placeholder(tf.uint8, shape=[None], name='labels') if labels is None else labels
 
         self.pretrained_saver: tf.train.Saver = None
         self.custom_saver: tf.train.Saver = None
