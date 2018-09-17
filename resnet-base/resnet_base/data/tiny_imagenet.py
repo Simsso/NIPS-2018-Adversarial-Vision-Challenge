@@ -1,156 +1,102 @@
-"""
-Tiny ImageNet: Input Pipeline
-Written by Patrick Coady (pcoady@alum.mit.edu)
-
-Reads in jpegs, distorts images (flips, translations, hue and
-saturation) and builds QueueRunners to keep the GPU well-fed. Uses
-specific directory and file naming structure from data download
-link below.
-
-Also builds dictionary between label integer and human-readable
-class names.
-
-Get data here:
-https://tiny-imagenet.herokuapp.com/
-"""
-
-import glob
+from glob import glob
+from os import path
 import re
 import tensorflow as tf
-import random
-import numpy as np
-import os
+from typing import Tuple
 
-NUM_CLASSES = 200
-NUM_TRAIN_SAMPLES = 500*NUM_CLASSES
-NUM_VALIDATION_SAMPLES = 50*NUM_CLASSES
-IMG_DIM = 64
-ORIGINAL_IMG_DIM = 64
-IMG_CHANNELS = 3
-PATH = os.path.expanduser('~/.data/tiny-imagenet-200')
+tf.flags.DEFINE_string('data_dir', path.expanduser('~/.data/tiny-imagenet-200'),
+                       'Path of the Tiny ImageNet dataset folder')
+
+FLAGS = tf.flags.FLAGS
 
 
-def load_filenames_labels(mode):
-    """Gets filenames and labels
+class TinyImageNetDataset:
+    num_classes = 200
+    num_train_samples = 500 * num_classes
+    num_valid_samples = 50 * num_classes
+    raw_img_dim = 64
+    num_channels = 3
 
-    Args:
-        mode: 'train' or 'val'
-            (Directory structure and file naming different for
-            train and val datasets)
+    def __init__(self, data_dir: str = None, mode: tf.estimator.ModeKeys = tf.estimator.ModeKeys.TRAIN):
+        if not data_dir:
+            data_dir = FLAGS.data_dir
+        self.data_dir = data_dir
 
-    Returns:
-        list of tuples: (jpeg filename with path, label)
-  """
-    label_dict, class_description = build_label_dicts()
-    filenames_labels = []
-    if mode == 'train':
-        filenames = glob.glob(PATH + '/train/*/images/*.JPEG')
-        filenames.sort()
-        for filename in filenames:
-            match = re.search(r'n\d+', filename)
-            label = str(label_dict[match.group()])
-            filenames_labels.append((filename, label))
-    elif mode == 'val':
-        with open(PATH + '/val/val_annotations.txt', 'r') as f:
-            lines = f.readlines()
-            lines.sort()
-            for line in lines:
-                split_line = line.split('\t')
-                filename = PATH + '/val/images/' + split_line[0]
-                label = str(label_dict[split_line[1]])
-                filenames_labels.append((filename, label))
+        if mode not in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
+            raise ValueError("Parameter 'mode' must be either TRAIN or EVAL.")
+        self.mode = mode
 
-    return filenames_labels
+        self.num_samples = self.num_train_samples if mode == tf.estimator.ModeKeys.TRAIN else self.num_valid_samples
 
+    def build(self, iterator: tf.data.Iterator, batch_size: int = 256) -> tf.Operation:
+        filenames, labels = self.__load_filenames_labels()  # switch to non-tf.Constant way of storing here
+        data = tf.data.Dataset.from_tensor_slices((filenames, labels))
+        data = data.shuffle(buffer_size=self.num_samples)
+        data = data.map(self.__load_image).map(self.__img_preprocesssing)
+        data = data.batch(batch_size)
+        return iterator.make_initializer(data)
 
-def build_label_dicts():
-    """Build look-up dictionaries for class label, and class description
+    def __load_image(self, img_path: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        file = tf.read_file(img_path)
+        img = tf.image.decode_jpeg(file, self.num_channels)  # uint8 [0, 255]
 
-    Class labels are 0 to 199 in the same order as
-    tiny-imagenet-200/wnids.txt. Class text descriptions are from
-    tiny-imagenet-200/words.txt
+        return img, label
 
-    Returns:
-        tuple of dicts
-        label_dict:
-            keys = synset (e.g. "n01944390")
-            values = class integer {0 .. 199}
-        class_desc:
-            keys = class integer {0 .. 199}
-            values = text description from words.txt
-  """
-    label_dict, class_description = {}, {}
-    with open(PATH + '/wnids.txt', 'r') as f:
-        for i, line in enumerate(f.readlines()):
-            synset = line[:-1]  # remove \n
-            label_dict[synset] = i
-    with open(PATH + '/words.txt', 'r') as f:
-        for i, line in enumerate(f.readlines()):
-            synset, desc = line.split('\t')
-            desc = desc[:-1]  # remove \n
-            if synset in label_dict:
-                class_description[label_dict[synset]] = desc
+    def __img_preprocesssing(self, img: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        img = tf.cast(img, tf.float32) / 255  # float32 [0., 1.]
+        if self.mode == tf.estimator.ModeKeys.TRAIN:
+            img = tf.image.random_flip_left_right(img)
+            img = tf.image.random_hue(img, 0.05)
+            img = tf.image.random_saturation(img, 0.5, 1.5)
 
-    return label_dict, class_description
+        img = img * 2. - 1.  # float32 [-1., 1]
+        img.set_shape([self.raw_img_dim, self.raw_img_dim, self.num_channels])
 
+        label = tf.string_to_number(label, tf.int32)
+        label = tf.cast(label, tf.uint8)
 
-def read_image(filename_q, mode):
-    """Load next jpeg file from filename / label queue
-    Randomly applies distortions if mode == 'train' (including a
-    random crop to [56, 56, 3]). Standardizes all images.
+        return img, label
 
-    Args:
-        filename_q: Queue with 2 columns: filename string and label string.
-            filename string is relative path to jpeg file. label string is text-
-            formatted integer between '0' and '199'
-            mode: 'train' or 'val'
+    def __load_filenames_labels(self):
+        label_dict, class_description = self.__build_label_dicts()
+        filenames, labels = [], []
+        if self.mode == tf.estimator.ModeKeys.TRAIN:
+            filenames = glob(path.join(self.data_dir, 'train', '*', 'images', '*.JPEG'))
+            filenames.sort()
+            for filename in filenames:
+                match = re.search(r'n\d+', filename)
+                labels.append(str(label_dict[match.group()]))
+        else:  # EVAL
+            with open(path.join(self.data_dir, 'val', 'val_annotations.txt'), 'r') as f:
+                lines = f.readlines()
+                lines.sort()
+                for line in lines:
+                    split_line = line.split('\t')
+                    filename = path.join(self.data_dir, 'val', 'images', split_line[0])
+                    filenames.append(filename)
+                    labels.append(str(label_dict[split_line[1]]))
 
-    Returns:
-        [img, label]:
-            img = tf.uint8 tensor [height, width, channels]  (see tf.image.decode.jpeg())
-            label = tf.unit8 target class label: {0 .. 199}
-    """
-    item = filename_q.dequeue()
-    filename = item[0]
-    label = item[1]
-    file = tf.read_file(filename)
+        return filenames, labels
 
-    img = tf.image.decode_jpeg(file, IMG_CHANNELS)  # uint8 [0, 255]
-    img = tf.cast(img, tf.float32) / 255  # float32 [0., 1.]
-    if mode == 'train':
-    #    img = tf.random_crop(img, np.array([IMG_DIM, IMG_DIM, 3]))
-        img = tf.image.random_flip_left_right(img)
-        # val accuracy improved without random hue (?)
-        img = tf.image.random_hue(img, 0.05)
-        img = tf.image.random_saturation(img, 0.5, 1.5)
-    #else:
-    #   img = tf.image.crop_to_bounding_box(img, 4, 4, IMG_DIM, IMG_DIM)
+    def __build_label_dicts(self):
+        label_dict, class_description = {}, {}
+        with open(path.join(self.data_dir, 'wnids.txt'), 'r') as f:
+            for i, line in enumerate(f.readlines()):
+                synset = line[:-1]  # remove \n
+                label_dict[synset] = i
+        with open(path.join(self.data_dir, 'words.txt'), 'r') as f:
+            for i, line in enumerate(f.readlines()):
+                synset, desc = line.split('\t')
+                desc = desc[:-1]  # remove \n
+                if synset in label_dict:
+                    class_description[label_dict[synset]] = desc
 
-    img = img * 2. - 1.  # float32 [-1., 1]
+        return label_dict, class_description
 
-    label = tf.string_to_number(label, tf.int32)
-    label = tf.cast(label, tf.uint8)
-
-    return [img, label]
-
-
-def batch_q(mode, batch_size):
-    """Return batch of images using filename Queue
-
-    Args:
-        mode: 'train' or 'val'
-        batch_size: number of samples per batch
-
-    Returns:
-        imgs: tf.uint8 tensor [batch_size, height, width, channels]
-        labels: tf.uint8 tensor [batch_size,]
-
-    """
-    filenames_labels = load_filenames_labels(mode)
-    random.shuffle(filenames_labels)
-    filename_q = tf.train.input_producer(filenames_labels, shuffle=True)
-
-    # 2 read_image threads to keep batch_join queue full:
-    result = tf.train.batch_join([read_image(filename_q, mode) for i in range(2)],
-                                 batch_size, shapes=[(IMG_DIM, IMG_DIM, 3), ()], capacity=2048)
-    return result
+    @staticmethod
+    def get_iterator() -> tf.data.Iterator:
+        return tf.data.Iterator.from_structure(output_types=(tf.float32, tf.uint8),
+                                               output_shapes=(tf.TensorShape((None, TinyImageNetDataset.raw_img_dim,
+                                                                              TinyImageNetDataset.raw_img_dim,
+                                                                              TinyImageNetDataset.num_channels)),
+                                                              tf.TensorShape(None)))

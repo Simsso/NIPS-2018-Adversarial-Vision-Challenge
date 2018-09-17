@@ -2,7 +2,7 @@ import collections
 
 from resnet_base.model.base_model import BaseModel
 import tensorflow as tf
-from resnet_base.data import tiny_imagenet as data
+from resnet_base.data import tiny_imagenet_coady as data
 
 slim = tf.contrib.slim
 
