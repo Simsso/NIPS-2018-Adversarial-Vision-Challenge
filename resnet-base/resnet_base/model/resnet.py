@@ -1,7 +1,8 @@
 import os
 from resnet_base.model.base_model import BaseModel
-import tensorflow as tf
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data
+import tensorflow as tf
+from typing import Dict, Optional
 
 slim = tf.contrib.slim
 
@@ -46,12 +47,12 @@ class ResNet(BaseModel):
         self.pretrained_saver = BaseModel._create_saver('resnet_v2_50')
         self.custom_saver = BaseModel._create_saver(self.custom_scope.name)
 
-    def save(self, sess: tf.Session):
+    def save(self, sess: tf.Session) -> None:
         super().load(sess)
         BaseModel._save_to_path(sess, self.pretrained_saver, self.global_step, FLAGS.pretrained_checkpoint)
         BaseModel._save_to_path(sess, self.custom_saver, self.global_step, FLAGS.custom_checkpoint)
 
-    def load(self, sess: tf.Session):
+    def load(self, sess: tf.Session) -> None:
         super().load(sess)
         BaseModel._restore_checkpoint(self.pretrained_saver, sess, FLAGS.pretrained_checkpoint)
         BaseModel._restore_checkpoint(self.custom_saver, sess, FLAGS.custom_checkpoint)
@@ -84,95 +85,68 @@ class ResNet(BaseModel):
         correct = tf.cast(tf.equal(tf.argmax(self.softmax, axis=1), tf.cast(self.labels, tf.int64)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(correct, name='accuracy')
 
-    def resnet_arg_scope(self, weight_decay=0.0001, batch_norm_decay=0.997, batch_norm_epsilon=1e-5,
-                         batch_norm_scale=True, activation_fn=tf.nn.relu,
-                         batch_norm_updates_collections=tf.GraphKeys.UPDATE_OPS):
+    def resnet_arg_scope(self, weight_decay: float = 0.0001) -> Dict:
         batch_norm_params = {
-            'decay': batch_norm_decay,
-            'epsilon': batch_norm_epsilon,
-            'scale': batch_norm_scale,
-            'updates_collections': batch_norm_updates_collections,
+            'decay': 0.997,
+            'epsilon': 1e-5,
+            'scale': True,
+            'updates_collections': tf.GraphKeys.UPDATE_OPS,
             'fused': None,  # use if possible
             'is_training': self.is_training,
         }
 
         with slim.arg_scope([slim.conv2d], weights_regularizer=slim.l2_regularizer(weight_decay),
-                            weights_initializer=slim.variance_scaling_initializer(), activation_fn=activation_fn,
+                            weights_initializer=slim.variance_scaling_initializer(), activation_fn=tf.nn.relu,
                             normalizer_fn=slim.batch_norm, normalizer_params=batch_norm_params):
             with slim.arg_scope([slim.batch_norm], **batch_norm_params):
                 with slim.arg_scope([slim.max_pool2d], padding='SAME') as arg_scope:
                     return arg_scope
 
     @staticmethod
-    def conv2d_same(inputs: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1,
-                    scope: str = None) -> tf.Tensor:
+    def conv2d_same(x: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1, scope: str = None)\
+            -> tf.Tensor:
         if stride == 1:
-            return slim.conv2d(inputs, num_outputs, kernel_size, stride=1, rate=rate, padding='SAME', scope=scope)
-        else:
-            kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
-            pad_total = kernel_size_effective - 1
-            pad_beg = pad_total // 2
-            pad_end = pad_total - pad_beg
-            inputs = tf.pad(inputs,
-                            [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
-            return slim.conv2d(inputs, num_outputs, kernel_size, stride=stride,
-                               rate=rate, padding='VALID', scope=scope)
+            return slim.conv2d(x, num_outputs, kernel_size, stride=1, rate=rate, padding='SAME', scope=scope)
+
+        kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
+        pad_total = kernel_size_effective - 1
+        pad_beg = pad_total // 2
+        pad_end = pad_total - pad_beg
+        x = tf.pad(x, [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
+        return slim.conv2d(x, num_outputs, kernel_size, stride=stride, rate=rate, padding='VALID', scope=scope)
 
     @staticmethod
     def v2_block(x: tf.Tensor, scope: str, base_depth: int, num_units: int, stride: int) -> tf.Tensor:
-        args = [{
-            'depth': base_depth * 4,
-            'depth_bottleneck': base_depth,
-            'stride': 1
-        }] * (num_units - 1) + [{
-            'depth': base_depth * 4,
-            'depth_bottleneck': base_depth,
-            'stride': stride
-        }]
+        args = [{'depth': base_depth * 4, 'depth_bottleneck': base_depth, 'stride': 1}] * (num_units - 1)
+        args.append({'depth': base_depth * 4, 'depth_bottleneck': base_depth, 'stride': stride})
 
         with tf.variable_scope(scope, 'block', [x]):
             block_stride = 1
             for i, unit in enumerate(args):
                 with tf.variable_scope('unit_%d' % (i + 1), values=[x]):
                     x = ResNet.bottleneck(x, rate=1, **unit)
-
-            x = ResNet.subsample(x, block_stride)
+            x = ResNet.pooling(x, block_stride)
         return x
 
     @staticmethod
-    @slim.add_arg_scope
-    def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1,
-                   outputs_collections=None, scope=None):
-        with tf.variable_scope(scope, 'bottleneck_v2', [inputs]) as sc:
+    def bottleneck(inputs: tf.Tensor, depth: int, depth_bottleneck: int, stride: int, rate: int = 1) -> tf.Tensor:
+        with tf.variable_scope(None, 'bottleneck_v2', [inputs]):
             depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
             preact = slim.batch_norm(inputs, activation_fn=tf.nn.relu, scope='preact')
             if depth == depth_in:
-                shortcut = ResNet.subsample(inputs, stride, 'shortcut')
+                shortcut = ResNet.pooling(inputs, stride, 'shortcut')
             else:
                 shortcut = slim.conv2d(preact, depth, [1, 1], stride=stride, normalizer_fn=None, activation_fn=None,
                                        scope='shortcut')
 
-            residual = slim.conv2d(preact, depth_bottleneck, [1, 1], stride=1, scope='conv1')
-            residual = ResNet.conv2d_same(residual, depth_bottleneck, 3, stride, rate=rate, scope='conv2')
-            residual = slim.conv2d(residual, depth, [1, 1], stride=1, normalizer_fn=None, activation_fn=None,
-                                   scope='conv3')
+            res = slim.conv2d(preact, depth_bottleneck, [1, 1], stride=1, scope='conv1')
+            res = ResNet.conv2d_same(res, depth_bottleneck, 3, stride, rate=rate, scope='conv2')
+            res = slim.conv2d(res, depth, [1, 1], stride=1, normalizer_fn=None, activation_fn=None, scope='conv3')
 
-            output = shortcut + residual
-
-            return slim.utils.collect_named_outputs(outputs_collections, sc.name, output)
+            return shortcut + res
 
     @staticmethod
-    def subsample(inputs, factor, scope=None):
-        """Subsamples the input along the spatial dimensions.
-        Args:
-          inputs: A `Tensor` of size [batch, height_in, width_in, channels].
-          factor: The subsampling factor.
-          scope: Optional variable_scope.
-        Returns:
-          output: A `Tensor` of size [batch, height_out, width_out, channels] with the
-            input, either intact (if factor == 1) or subsampled (if factor > 1).
-        """
+    def pooling(inputs: tf.Tensor, factor: int, scope: Optional[str] = None) -> tf.Tensor:
         if factor == 1:
             return inputs
-        else:
-            return slim.max_pool2d(inputs, [1, 1], stride=factor, scope=scope)
+        return slim.max_pool2d(inputs, [1, 1], stride=factor, scope=scope)
