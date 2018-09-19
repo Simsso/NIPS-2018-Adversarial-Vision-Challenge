@@ -2,7 +2,7 @@ from glob import glob
 from os import path
 import re
 import tensorflow as tf
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from resnet_base.data.base_pipeline import BasePipeline
 
@@ -141,7 +141,7 @@ class TinyImageNetPipeline(BasePipeline):
         """
         Reads the dataset folder filenames and labels of the given split (training data or validation data).
         :param mode: TRAIN (training) or EVAL (validation)
-        :return: List of filenames and a associated labels (lists of equal length).
+        :return: List of filenames and a associated labels (two lists of equal length).
         """
         label_dict, class_description = self.__build_label_dicts()
         filenames, labels = [], []
@@ -188,16 +188,17 @@ class TinyImageNetPipeline(BasePipeline):
         """
         return self.num_train_samples if mode == tf.estimator.ModeKeys.TRAIN else self.num_valid_samples
 
-    def switch_to(self, mode: tf.estimator.ModeKeys, sess: tf.Session = None) -> None:
+    def switch_to(self, mode: tf.estimator.ModeKeys, feed_dict: Optional[Dict] = None, sess: tf.Session = None) -> None:
         """
         Switches the input pipeline to the given mode in the given session.
         :param mode: TRAIN (training) or EVAL (validation)
+        :param feed_dict: Feed dictionary that will be passed when evaluating the initialization op. Defaults to the
+                          dataset data.
         :param sess: Session to switch the mode in. Defaults to the tf.get_default_session() value.
         """
-        if sess is None:
-            sess = tf.get_default_session()
-        init_op = self._get_init_op(mode)
-        sess.run(init_op, feed_dict={
-            self.placeholder[mode][0]: self.filenames[mode],
-            self.placeholder[mode][1]: self.raw_labels[mode]
-        })
+        if feed_dict is None:
+            feed_dict = {
+                self.placeholder[mode][0]: self.filenames[mode],
+                self.placeholder[mode][1]: self.raw_labels[mode]
+            }
+        super(TinyImageNetPipeline, self).switch_to(mode, feed_dict)

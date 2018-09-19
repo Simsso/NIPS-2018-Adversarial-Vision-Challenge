@@ -1,5 +1,5 @@
 import tensorflow as tf
-from typing import Dict
+from typing import Dict, Optional
 
 
 class BasePipeline:
@@ -48,13 +48,14 @@ class BasePipeline:
         """
         raise NotImplementedError()
 
-    def switch_to(self, mode: tf.estimator.ModeKeys, sess: tf.Session = None) -> None:
+    def switch_to(self, mode: tf.estimator.ModeKeys, feed_dict: Optional[Dict] = None, sess: tf.Session = None) -> None:
         """
         Switches the input pipeline to the given mode in the given session.
         :param mode: TRAIN (training) or EVAL (validation)
+        :param feed_dict: Feed dictionary that will be passed when evaluating the initialization op.
         :param sess: Session to switch the mode in. Defaults to the tf.get_default_session() value.
         """
         if sess is None:
             sess = tf.get_default_session()
         init_op = self._get_init_op(mode)
-        sess.run(init_op)
+        sess.run(init_op, feed_dict)
