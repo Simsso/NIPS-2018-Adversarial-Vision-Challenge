@@ -92,7 +92,7 @@ class ResNet(BaseModel):
         x = ResNet.v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
         x = ResNet.v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)
         x = ResNet.v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
-        x = slim.batch_norm(x, activation_fn=tf.nn.relu, scope='postnorm')
+        x = ResNet.batch_norm(x)
         return self.global_avg_pooling(x)
 
     def init_outputs(self, logits: tf.Tensor) -> None:
@@ -153,7 +153,16 @@ class ResNet(BaseModel):
         return tf.squeeze(x, [1, 2], name='SpatialSqueeze')
 
     @staticmethod
-    def conv2d_same(x: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1, scope: str = None)\
+    def batch_norm(x: tf.Tensor) -> tf.Tensor:
+        """
+        Wraps the slim.batch_norm method.
+        :param x: Input tensor
+        :return: Output tensor
+        """
+        return slim.batch_norm(x, activation_fn=tf.nn.relu, scope='postnorm')
+
+    @staticmethod
+    def conv2d_same(x: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1, scope: str = None) \
             -> tf.Tensor:
         """
         2D convolutional layer with sizing 'SAME', i.e. input and output have the same spatial dimensionality.
