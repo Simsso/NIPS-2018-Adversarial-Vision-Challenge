@@ -41,6 +41,21 @@ class TinyImageNetPipeline(BasePipeline):
             raise ValueError("Batch size must be greater than 0. Got '{}'.".format(batch_size))
         self.batch_size = batch_size
 
+        self.placeholder = {
+            tf.estimator.ModeKeys.TRAIN: (
+                tf.placeholder(tf.string, self.num_train_samples),
+                tf.placeholder(tf.string, self.num_train_samples)
+            ),
+            tf.estimator.ModeKeys.EVAL: (
+                tf.placeholder(tf.string, self.num_valid_samples),
+                tf.placeholder(tf.string, self.num_valid_samples)
+            )
+        }
+        self.filenames: Dict[tf.estimator.ModeKeys, List[str]] = {}
+        self.raw_labels: Dict[tf.estimator.ModeKeys, List[str]] = {}
+
+        self.__init_filenames_labels()
+
         # init_ops must be created prior to session instantiation
         self._get_init_op(tf.estimator.ModeKeys.TRAIN)
         self._get_init_op(tf.estimator.ModeKeys.EVAL)
@@ -65,8 +80,7 @@ class TinyImageNetPipeline(BasePipeline):
         if mode not in self.__supported_modes:
             raise ValueError("Supported modes are {}. Got '{}'.".format(self.__supported_modes, mode))
 
-        filenames, labels = self.__load_filenames_labels(mode)  # TODO: switch to non-tf.Constant way of storing here
-        data = tf.data.Dataset.from_tensor_slices((filenames, labels))
+        data = tf.data.Dataset.from_tensor_slices(self.placeholder[mode])
         data = data.shuffle(buffer_size=self.__get_num_samples(mode))
         data = data.map(self.__img_loading)
         if mode == tf.estimator.ModeKeys.TRAIN:
@@ -113,6 +127,15 @@ class TinyImageNetPipeline(BasePipeline):
         label = tf.string_to_number(label, tf.int32)
         label = tf.cast(label, tf.uint8)
         return img, label
+
+    def __init_filenames_labels(self) -> None:
+        """
+        Initializes the filenames and raw_labels attributes which are held in RAM.
+        """
+        self.filenames = {}
+        self.raw_labels = {}
+        for mode in self.__supported_modes:
+            self.filenames[mode], self.raw_labels[mode] = self.__load_filenames_labels(mode)
 
     def __load_filenames_labels(self, mode: tf.estimator.ModeKeys) -> Tuple[List[str], List[str]]:
         """
@@ -164,3 +187,17 @@ class TinyImageNetPipeline(BasePipeline):
         :return: Number of samples the dataset contains for the given pipeline mode.
         """
         return self.num_train_samples if mode == tf.estimator.ModeKeys.TRAIN else self.num_valid_samples
+
+    def switch_to(self, mode: tf.estimator.ModeKeys, sess: tf.Session = None) -> None:
+        """
+        Switches the input pipeline to the given mode in the given session.
+        :param mode: TRAIN (training) or EVAL (validation)
+        :param sess: Session to switch the mode in. Defaults to the tf.get_default_session() value.
+        """
+        if sess is None:
+            sess = tf.get_default_session()
+        init_op = self._get_init_op(mode)
+        sess.run(init_op, feed_dict={
+            self.placeholder[mode][0]: self.filenames[mode],
+            self.placeholder[mode][1]: self.raw_labels[mode]
+        })
