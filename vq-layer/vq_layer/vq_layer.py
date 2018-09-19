@@ -6,11 +6,28 @@ from typing import Union, Tuple
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
                         lookup_ord: int = 2,
-                        embedding_initializer: tf.keras.initializers.Initializer=tf.random_normal_initializer,
+                        embedding_initializer: tf.keras.initializers.Initializer = tf.random_normal_initializer,
                         num_splits: int = 1, return_endpoints: bool = False)\
         -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]]:
-    # shape of x is [batch, , q], where this function quantizes along dimension q
-
+    """
+    Vector quantization layer.
+    :param x: Tensor of shape [batch, r, q], where this function quantizes along dimension q
+    :param n: Size of the embedding space (number of contained vectors)
+    :param alpha: Weighting of the alpha-loss term (lookup vector distance penalty)
+    :param beta: Weighting of the beta-loss term (all vectors distance penalty)
+    :param gamma: Weighting of the coulomb-loss term (embedding space spacing)
+    :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]
+    :param embedding_initializer: Initializer for the embedding space variable
+    :param num_splits: Number of splits along the input dimension q (defaults to 1)
+    :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
+    :return: Only the layer output if return_endpoints is False
+             5-tuple with the values:
+                Layer output
+                Embedding space
+                Access counter with integral values indicating how often each vector in the embedding space was used
+                Distance of inputs from the embedding space vectors
+                Embedding spacing vector where each entry indicates the distance between embedding space vectors
+    """
     if n <= 0:
         raise ValueError("Parameter 'n' must be greater than 0.")
 
