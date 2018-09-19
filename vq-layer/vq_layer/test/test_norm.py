@@ -15,7 +15,7 @@ class TestNorm(TFTestCase):
 
     def feed(self, x_in, y_target, lookup_ord):
         x_val = np.array(x_in, dtype=np.float32)
-        y, _, _, dist = vector_quantization(self.x_reshaped, len(self.emb_space_val), lookup_ord=lookup_ord,
+        y, _, _, dist, _ = vector_quantization(self.x_reshaped, len(self.emb_space_val), lookup_ord=lookup_ord,
                                             embedding_initializer=tf.constant_initializer(self.emb_space_val),
                                             return_endpoints=True)
         self.init_vars()

@@ -8,7 +8,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                         lookup_ord: int = 2,
                         embedding_initializer: tf.keras.initializers.Initializer=tf.random_normal_initializer,
                         num_splits: int = 1, return_endpoints: bool = False)\
-        -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]]:
+        -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]]:
     # shape of x is [batch, , q], where this function quantizes along dimension q
 
     if n <= 0:
@@ -62,6 +62,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         # pair-wise diff vectors (n x n x vec_size)
         pdiff = tf.expand_dims(emb_space, axis=0) - tf.expand_dims(emb_space, axis=1)
         pdist = tf.norm(pdiff, lookup_ord, axis=2)  # pair-wise distance scalars (n x n)
+        emb_spacing = strict_upper_triangular_part(pdist)
         coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0)
         tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
 
@@ -70,5 +71,20 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         layer_out = tf.reshape(tf.stop_gradient(y - x) + x, in_shape)
 
         if return_endpoints:
-            return layer_out, emb_space, access_count, dist
+            return layer_out, emb_space, access_count, dist, emb_spacing
         return layer_out
+
+
+def strict_upper_triangular_part(matrix: tf.Tensor) -> tf.Tensor:
+    """
+    Converts the strict upper triangular part of a matrix into a flat vector.
+    Partly taken from this SO answer: https://stackoverflow.com/a/46614084/3607984
+    :param matrix: Square matrix
+    :return: Vector of the elements in the strict upper triangular part of the input matrix
+    """
+    ones = tf.ones_like(matrix)
+    mask_a = tf.matrix_band_part(ones, 0, -1)  # upper triangular matrix of 0s and 1s
+    mask_b = tf.matrix_band_part(ones, 0, 0)  # diagonal matrix of 0s and 1s
+    mask = tf.cast(mask_a - mask_b, dtype=tf.bool)  # bool mask (strict upper triangular part is True)
+    upper_triangular_flat = tf.boolean_mask(matrix, mask)
+    return upper_triangular_flat

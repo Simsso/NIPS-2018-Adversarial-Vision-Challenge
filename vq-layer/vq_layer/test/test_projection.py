@@ -13,8 +13,8 @@ class TestProjection(TFTestCase):
         x_reshaped = tf.expand_dims(self.x, axis=1)
         emb_space_val = np.array([[1.1, 1], [2.1, 2.1], [5, 5], [6, 7]], dtype=np.float32)
         emb_init = tf.constant_initializer(emb_space_val)
-        self.y, _, self.access_count, _ = vector_quantization(x_reshaped, len(emb_space_val),
-                                                           embedding_initializer=emb_init, return_endpoints=True)
+        self.y, _, self.access_count, _, _ = vector_quantization(x_reshaped, len(emb_space_val),
+                                                                 embedding_initializer=emb_init, return_endpoints=True)
         self.init_vars()
 
     def test_projection(self):

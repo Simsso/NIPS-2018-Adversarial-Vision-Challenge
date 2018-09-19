@@ -8,6 +8,7 @@ class TFTestCase(TestCase):
     msg_output_wrong = 'Output does not match expected value.'
 
     def setUp(self):
+        tf.set_random_seed(15092017)
         tf.reset_default_graph()
         self.sess = tf.Session()
         self.sess.as_default()
@@ -20,4 +21,7 @@ class TFTestCase(TestCase):
         self.sess.close()
 
     def assert_output(self, output: np.ndarray, desired: List[any]):
-        self.assertTrue(np.array_equal(output, np.array(desired, dtype=np.float32)), self.msg_output_wrong)
+        """
+        Compares two arrays numerically (small differences are tolerated).
+        """
+        self.assertTrue(np.allclose(output, np.array(desired, dtype=np.float32)), self.msg_output_wrong)
