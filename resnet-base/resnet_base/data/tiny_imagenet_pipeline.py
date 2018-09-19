@@ -14,6 +14,10 @@ FLAGS = tf.flags.FLAGS
 
 
 class TinyImageNetPipeline(BasePipeline):
+    """
+    Input pipeline for the Tiny ImageNet dataset (https://tiny-imagenet.herokuapp.com/). Streams for training and
+    validation samples.
+    """
     num_classes = 200
     num_train_samples = 500 * num_classes
     num_valid_samples = 50 * num_classes
@@ -24,6 +28,10 @@ class TinyImageNetPipeline(BasePipeline):
     __supported_modes = [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]
 
     def __init__(self, data_dir: str = None, batch_size: int = 256):
+        """
+        :param data_dir: Directory of the folder from http://cs231n.stanford.edu/tiny-imagenet-200.zip
+        :param batch_size: Batch size used for training and validation.
+        """
         super().__init__()
         if not data_dir:
             data_dir = FLAGS.data_dir
@@ -38,11 +46,22 @@ class TinyImageNetPipeline(BasePipeline):
         self._get_init_op(tf.estimator.ModeKeys.EVAL)
 
     def _construct_iterator(self) -> tf.data.Iterator:
+        """
+        Creates the iterator from structures: The types are float32 (image data) and uint8 (label index). The output
+        shapes are ((batch_img, img_width, img_height, channels), batch_labels).
+        :return: Iterator for batches of Tiny ImageNet samples
+        """
         output_types = (tf.float32, tf.uint8)
         output_shapes = tf.TensorShape((None, self.img_width, self.img_height, self.img_channels)), tf.TensorShape(None)
         return tf.data.Iterator.from_structure(output_types, output_shapes)
 
     def _construct_init_op(self, mode: tf.estimator.ModeKeys) -> tf.Operation:
+        """
+        Constructs the actual tf.data.Dataset used in the input pipeline. Applies several mapping functions. Image
+        augmentation is only used if the mode is TRAIN.
+        :param mode: TRAIN (training) or EVAL (validation)
+        :return: Initializer operation which can be used to switch to the given mode.
+        """
         if mode not in self.__supported_modes:
             raise ValueError("Supported modes are {}. Got '{}'.".format(self.__supported_modes, mode))
 
@@ -58,18 +77,36 @@ class TinyImageNetPipeline(BasePipeline):
         return iterator.make_initializer(data)
 
     def __img_loading(self, img_path: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        """
+        Loads an image from the given path (TF graph).
+        :param img_path: Path pointing to the image
+        :param label: Label of the image (not used because the function is used with dataset map)
+        :return: Tuple of (img, label), where img is a tensor with float32 values in [0,1]
+        """
         file = tf.read_file(img_path)
         img = tf.image.decode_jpeg(file, self.img_channels)  # uint8 [0, 255]
         img = tf.cast(img, tf.float32) / 255  # float32 [0., 1.]
         return img, label
 
     def __img_augmentation(self, img: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        """
+        Augments an image tensor.
+        :param img: Image to augment, values in [0,1]
+        :param label: Label of the image (not used because the function is used with dataset map)
+        :return: Tuple of (img, label), where img is a randomly augmented version of the input image.
+        """
         img = tf.image.random_flip_left_right(img)
         img = tf.image.random_hue(img, 0.05)
         img = tf.image.random_saturation(img, 0.5, 1.5)
         return img, label
 
     def __img_label_scaling(self, img: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        """
+        Scaling casting and set_shape calls which are needed in the chain of dataset map function calls.
+        :param img: Image with values in [0,1]
+        :param label: Label of the image
+        :return: Tuple of (img, label), where img is in [-1,1] and label is a uint8 (Tiny ImageNet has 200 classes)
+        """
         img = tf.multiply(2., img) - 1.  # float32 [-1., 1]
         img.set_shape([self.img_width, self.img_height, self.img_channels])
 
@@ -78,7 +115,10 @@ class TinyImageNetPipeline(BasePipeline):
         return img, label
 
     def __load_filenames_labels(self, mode: tf.estimator.ModeKeys) -> Tuple[List[str], List[str]]:
-        """Reads the dataset folder and returns a list of filenames and a associated labels (therefore equal length).
+        """
+        Reads the dataset folder filenames and labels of the given split (training data or validation data).
+        :param mode: TRAIN (training) or EVAL (validation)
+        :return: List of filenames and a associated labels (lists of equal length).
         """
         label_dict, class_description = self.__build_label_dicts()
         filenames, labels = [], []
@@ -100,8 +140,10 @@ class TinyImageNetPipeline(BasePipeline):
         return filenames, labels
 
     def __build_label_dicts(self) -> Tuple[Dict[str, int], Dict[int, str]]:
-        """Returns a dictionary from class name to class index (e.g. 'n01944390' --> 4) and a dictionary from
-        class index to class description (e.g. 6 --> 'dog')
+        """
+        :return: Tuple with two dictionaries:
+                 Dictionary from class name to class index (e.g. 'n01944390' --> 4)
+                 Dictionary from class index to class description (e.g. 6 --> 'dog')
         """
         label_dict, class_description = {}, {}
         with open(path.join(self.data_dir, 'wnids.txt'), 'r') as f:
@@ -117,6 +159,8 @@ class TinyImageNetPipeline(BasePipeline):
         return label_dict, class_description
 
     def __get_num_samples(self, mode: tf.estimator.ModeKeys) -> int:
-        """Returns the number of samples which the dataset contains for the chosen training mode.
+        """
+        :param mode: TRAIN (training) or EVAL (validation)
+        :return: Number of samples the dataset contains for the given pipeline mode.
         """
         return self.num_train_samples if mode == tf.estimator.ModeKeys.TRAIN else self.num_valid_samples
