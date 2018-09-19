@@ -67,21 +67,26 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         one_hot_access = tf.one_hot(emb_index, depth=n)
         access_count = tf.reduce_sum(one_hot_access, axis=[0, 1], name='access_count')
 
-        # closest embedding update loss (alpha-loss)
-        nearest_loss = tf.reduce_mean(alpha * tf.norm(y - x, lookup_ord, axis=2), axis=[0, 1])
-        tf.add_to_collection(tf.GraphKeys.LOSSES, nearest_loss)
+        if alpha != 0:
+            # closest embedding update loss (alpha-loss)
+            nearest_loss = tf.reduce_mean(alpha * tf.norm(y - x, lookup_ord, axis=2), axis=[0, 1])
+            tf.add_to_collection(tf.GraphKeys.LOSSES, nearest_loss)
 
-        # all embeddings update loss (beta-loss)
-        all_loss = tf.reduce_mean(beta * tf.reduce_sum(dist, axis=2), axis=[0, 1])
-        tf.add_to_collection(tf.GraphKeys.LOSSES, all_loss)
+        if beta != 0:
+            # all embeddings update loss (beta-loss)
+            all_loss = tf.reduce_mean(beta * tf.reduce_sum(dist, axis=2), axis=[0, 1])
+            tf.add_to_collection(tf.GraphKeys.LOSSES, all_loss)
 
-        # all embeddings distance from each other (coulomb-loss)
-        # pair-wise diff vectors (n x n x vec_size)
-        pdiff = tf.expand_dims(emb_space, axis=0) - tf.expand_dims(emb_space, axis=1)
-        pdist = tf.norm(pdiff, lookup_ord, axis=2)  # pair-wise distance scalars (n x n)
-        emb_spacing = strict_upper_triangular_part(pdist)
-        coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0)
-        tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
+        emb_spacing = None
+        if gamma != 0 or return_endpoints:
+            # all embeddings distance from each other (coulomb-loss)
+            # pair-wise diff vectors (n x n x vec_size)
+            pdiff = tf.expand_dims(emb_space, axis=0) - tf.expand_dims(emb_space, axis=1)
+            pdist = tf.norm(pdiff, lookup_ord, axis=2)  # pair-wise distance scalars (n x n)
+            emb_spacing = strict_upper_triangular_part(pdist)
+            if gamma != 0:
+                coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0)
+                tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
 
         # return selection in original size
         # skip this layer when doing back-prop
