@@ -36,7 +36,8 @@ class ResNet(BaseModel):
 
         with tf.variable_scope('resnet_v2_50', 'resnet_v2', [self.x], reuse=tf.AUTO_REUSE):
             with slim.arg_scope(self.resnet_arg_scope()):
-                self.build_model()
+                logits = self.build_model(self.x)
+                self.init_outputs(logits)
         self.init_saver()
         self.init_loss()
         self.init_accuracy()
@@ -57,25 +58,18 @@ class ResNet(BaseModel):
         BaseModel._restore_checkpoint(self.pretrained_saver, sess, FLAGS.pretrained_checkpoint)
         BaseModel._restore_checkpoint(self.custom_saver, sess, FLAGS.custom_checkpoint)
 
-    def build_model(self) -> None:
-        with slim.arg_scope([slim.conv2d], activation_fn=None, normalizer_fn=None):
-            x = ResNet.conv2d_same(self.x, 64, 7, stride=2, scope='conv1')
-        x = slim.max_pool2d(x, [3, 3], stride=2, scope='pool1')
-
+    def build_model(self, x: tf.Tensor) -> tf.Tensor:
+        x = ResNet.first_conv(x)
         x = ResNet.v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
         x = ResNet.v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
         x = ResNet.v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)
         x = ResNet.v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
-
         x = slim.batch_norm(x, activation_fn=tf.nn.relu, scope='postnorm')
+        return self.global_avg_pooling(x)  # logits
 
-        # global average pooling
-        x = tf.reduce_mean(x, [1, 2], name='pool5', keepdims=True)
-        x = slim.conv2d(x, self.num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='logits')
-        x = tf.squeeze(x, [1, 2], name='SpatialSqueeze')
-
-        self.logits = x
-        self.softmax = slim.softmax(x, scope='predictions')
+    def init_outputs(self, logits: tf.Tensor) -> None:
+        self.logits = logits
+        self.softmax = slim.softmax(logits, scope='predictions')
 
     def init_loss(self) -> None:
         labels_one_hot = tf.one_hot(self.labels, depth=Data.num_classes)
@@ -102,6 +96,11 @@ class ResNet(BaseModel):
                 with slim.arg_scope([slim.max_pool2d], padding='SAME') as arg_scope:
                     return arg_scope
 
+    def global_avg_pooling(self, x: tf.Tensor) -> tf.Tensor:
+        x = tf.reduce_mean(x, [1, 2], name='pool5', keepdims=True)
+        x = slim.conv2d(x, self.num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='logits')
+        return tf.squeeze(x, [1, 2], name='SpatialSqueeze')
+
     @staticmethod
     def conv2d_same(x: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1, scope: str = None)\
             -> tf.Tensor:
@@ -114,6 +113,12 @@ class ResNet(BaseModel):
         pad_end = pad_total - pad_beg
         x = tf.pad(x, [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
         return slim.conv2d(x, num_outputs, kernel_size, stride=stride, rate=rate, padding='VALID', scope=scope)
+
+    @staticmethod
+    def first_conv(x: tf.Tensor) -> tf.Tensor:
+        with slim.arg_scope([slim.conv2d], activation_fn=None, normalizer_fn=None):
+            x = ResNet.conv2d_same(x, 64, 7, stride=2, scope='conv1')
+        return slim.max_pool2d(x, [3, 3], stride=2, scope='pool1')
 
     @staticmethod
     def v2_block(x: tf.Tensor, scope: str, base_depth: int, num_units: int, stride: int) -> tf.Tensor:
