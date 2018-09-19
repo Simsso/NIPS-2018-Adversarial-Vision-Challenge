@@ -21,7 +21,6 @@ def run_validation(model: ResNet, pipeline: TinyImageNetPipeline):
         sess.run(init)
         model.load(sess)
 
-        pipeline.switch_to(tf.estimator.ModeKeys.TRAIN)
         pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
 
         tf.logging.info("Starting evaluation")
