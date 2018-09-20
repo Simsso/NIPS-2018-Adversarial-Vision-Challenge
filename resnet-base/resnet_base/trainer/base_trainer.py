@@ -13,6 +13,9 @@ class BaseTrainer:
         self.sess = sess
 
     def train(self) -> None:
+        """
+        Performs training for FLAGS.num_epochs epochs and runs one validation epoch after each training epoch.
+        """
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         self.sess.run(init)
 
