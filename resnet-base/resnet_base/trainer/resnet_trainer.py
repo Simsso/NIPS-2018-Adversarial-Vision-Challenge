@@ -70,14 +70,14 @@ class ResNetTrainer(BaseTrainer):
         Runs one epoch with the given parameters. Calls the given step function for each batch.
         :param batch_size: the number of samples used at every step
         :param num_samples: the total size of the data set
-        :param batch_step: a function that runs and returns the accuracy and loss values for the batch
+        :param batch_step: a function that runs and returns the accuracy and loss metrics for the batch
         :return: a Metrics tuple of (accuracy, loss), averaged over all batches
         """
         metrics = []
         num_batches = num_samples // batch_size
         for i in range(num_batches):
-            metrics = batch_step()
-            metrics.append((metrics.accuracy, metrics.loss))
+            batch_metrics = batch_step()
+            metrics.append((batch_metrics.accuracy, batch_metrics.loss))
 
         accuracy_mean, loss_mean = np.mean(metrics, axis=0)
         return Metrics(accuracy_mean, loss_mean)
