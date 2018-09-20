@@ -12,41 +12,35 @@ class BaseTrainer:
         self.model = model
         self.sess = sess
 
-    def init_variables(self):
-        init = tf.global_variables_initializer()
-        self.sess.run(init)
-
     def train(self):
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+        self.sess.run(init)
 
-        with self.sess.as_default():
-            self.sess.run(init)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
 
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
+        # restore weights (as specified in the FLAGS)
+        self.model.load(self.sess)
 
-            # restore weights (as specified in the FLAGS)
-            self.model.load(self.sess)
+        try:
+            while not coord.should_stop():
+                # get the current epoch so we can re-start training from there
+                start_epoch = self.model.current_epoch.eval(self.sess)
 
-            try:
-                while not coord.should_stop():
-                    # get the current epoch so we can re-start training from there
-                    start_epoch = self.model.current_epoch.eval(self.sess)
+                for _ in range(start_epoch, FLAGS.num_epochs + 1):
+                    self.train_epoch()
+                    self.sess.run(self.model.increment_current_epoch)
 
-                    for _ in range(start_epoch, FLAGS.num_epochs + 1):
-                        self.train_epoch()
-                        self.sess.run(self.model.increment_current_epoch)
+                    # run validation epoch to monitor training
+                    self.val_epoch()
 
-                        # run validation epoch to monitor training
-                        self.val_epoch()
+                break
 
-                    break
-
-            except tf.errors.OutOfRangeError as e:
-                coord.request_stop(e)
-            finally:
-                coord.request_stop()
-                coord.join(threads)
+        except tf.errors.OutOfRangeError as e:
+            coord.request_stop(e)
+        finally:
+            coord.request_stop()
+            coord.join(threads)
 
     def train_epoch(self):
         """
