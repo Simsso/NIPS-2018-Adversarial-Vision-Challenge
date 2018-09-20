@@ -49,7 +49,7 @@ class BaseModel:
     def save(self, sess: tf.Session) -> None:
         BaseModel._save_to_path(sess, self.saver, self.global_step, FLAGS.global_checkpoint)
 
-    def load(self, sess: tf.Session) -> None:
+    def restore(self, sess: tf.Session) -> None:
         BaseModel._restore_checkpoint(self.saver, sess, FLAGS.global_checkpoint)
 
     @staticmethod

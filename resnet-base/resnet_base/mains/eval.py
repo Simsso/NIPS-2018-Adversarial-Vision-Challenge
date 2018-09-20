@@ -16,7 +16,7 @@ def run_validation(model: ResNet, pipeline: TinyImageNetPipeline):
 
     with sess.as_default():
         sess.run(init)
-        model.load(sess)
+        model.restore(sess)
 
         pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
 

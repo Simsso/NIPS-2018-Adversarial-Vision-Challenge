@@ -46,12 +46,12 @@ class ResNet(BaseModel):
             self.custom_scope: tf.VariableScope = scope
         
         with tf.variable_scope('resnet_v2_50', 'resnet_v2', [self.x], reuse=tf.AUTO_REUSE):
-            with slim.arg_scope(self.resnet_arg_scope()):
-                logits = self.build_model(self.x)
-                self.init_outputs(logits)
+            with slim.arg_scope(self._resnet_arg_scope()):
+                self.logits = self._build_model(self.x)
+                self.softmax = tf.nn.softmax(self.logits, name='predictions')
         
-        self.init_loss()
-        self.init_accuracy()
+        self._init_loss()
+        self._init_accuracy()
 
         self.post_build_init()
 
@@ -69,44 +69,36 @@ class ResNet(BaseModel):
         Tries to save the current model state using the three savers (all, pre-trained, custom).
         :param sess: Session with the weights to save
         """
-        super().load(sess)
+        super().save(sess)
         BaseModel._save_to_path(sess, self.pretrained_saver, self.global_step, FLAGS.pretrained_checkpoint)
         BaseModel._save_to_path(sess, self.custom_saver, self.global_step, FLAGS.custom_checkpoint)
 
-    def load(self, sess: tf.Session) -> None:
+    def restore(self, sess: tf.Session) -> None:
         """
         Tries to restore the weights of the model. Continues if no data is present. Tries to restore all weights first,
         then pre-trained weights only, then custom weights.
         :param sess: Session to restore the weights to
         """
-        super().load(sess)
+        super().restore(sess)
         BaseModel._restore_checkpoint(self.pretrained_saver, sess, FLAGS.pretrained_checkpoint)
         BaseModel._restore_checkpoint(self.custom_saver, sess, FLAGS.custom_checkpoint)
 
-    def build_model(self, x: tf.Tensor) -> tf.Tensor:
+    def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         """
         Builds the ResNet model graph with the TF API. This function is intentionally kept simple and sequential to
         simplify the addition of new layers.
         :param x: Input to the model, i.e. an image batch
         :return: Logits of the model
         """
-        x = ResNet.first_conv(x)
-        x = ResNet.v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
-        x = ResNet.v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
-        x = ResNet.v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)
-        x = ResNet.v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
+        x = ResNet._first_conv(x)
+        x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
+        x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
+        x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)
+        x = ResNet._v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
         x = ResNet.batch_norm(x)
         return self.global_avg_pooling(x)
 
-    def init_outputs(self, logits: tf.Tensor) -> None:
-        """
-        Initializes the attributes logits and softmax.
-        :param logits: Logits of the model
-        """
-        self.logits = logits
-        self.softmax = slim.softmax(logits, scope='predictions')
-
-    def init_loss(self) -> None:
+    def _init_loss(self) -> None:
         """
         Adds a classification cross entropy loss term to the LOSSES collection.
         Initializes the loss attribute from the LOSSES collection (sum of all entries).
@@ -117,14 +109,14 @@ class ResNet(BaseModel):
         tf.add_to_collection(tf.GraphKeys.LOSSES, cross_entropy_loss)
         self.loss = tf.add_n(tf.get_collection(tf.GraphKeys.LOSSES))
 
-    def init_accuracy(self) -> None:
+    def _init_accuracy(self) -> None:
         """
         Initializes the accuracy attribute. It is the percentage of correctly classified samples (value in [0,1]).
         """
         correct = tf.cast(tf.equal(tf.argmax(self.softmax, axis=1), tf.cast(self.labels, tf.int64)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(correct, name='accuracy')
 
-    def resnet_arg_scope(self, weight_decay: float = 0.0001) -> Dict:
+    def _resnet_arg_scope(self, weight_decay: float = 0.0001) -> Dict:
         """
         :param weight_decay: Weight decay rate (0 = no decay)
         :return: Dictionary arg scope with several default arguments for conv2d, batch_norm, and max_pool2d functions
@@ -153,7 +145,7 @@ class ResNet(BaseModel):
         """
         x = tf.reduce_mean(x, [1, 2], name='pool5', keepdims=True)
         x = slim.conv2d(x, self.num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='logits')
-        return tf.squeeze(x, [1, 2], name='SpatialSqueeze')
+        return tf.squeeze(x, [1, 2], name='spatial_squeeze')
 
     @staticmethod
     def batch_norm(x: tf.Tensor) -> tf.Tensor:
@@ -165,7 +157,7 @@ class ResNet(BaseModel):
         return slim.batch_norm(x, activation_fn=tf.nn.relu, scope='postnorm')
 
     @staticmethod
-    def conv2d_same(x: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1, scope: str = None) \
+    def _conv2d_same(x: tf.Tensor, num_outputs: int, kernel_size: int, stride: int, rate: int = 1, scope: str = None) \
             -> tf.Tensor:
         """
         2D convolutional layer with sizing 'SAME', i.e. input and output have the same spatial dimensionality.
@@ -189,18 +181,18 @@ class ResNet(BaseModel):
         return slim.conv2d(x, num_outputs, kernel_size, stride=stride, rate=rate, padding='VALID', scope=scope)
 
     @staticmethod
-    def first_conv(x: tf.Tensor) -> tf.Tensor:
+    def _first_conv(x: tf.Tensor) -> tf.Tensor:
         """
         First conv layer of the ResNet followed by max pooling.
         :param x: Input tensor
         :return: Pooling output tensor
         """
         with slim.arg_scope([slim.conv2d], activation_fn=None, normalizer_fn=None):
-            x = ResNet.conv2d_same(x, 64, 7, stride=2, scope='conv1')
+            x = ResNet._conv2d_same(x, 64, 7, stride=2, scope='conv1')
         return slim.max_pool2d(x, [3, 3], stride=2, scope='pool1')
 
     @staticmethod
-    def v2_block(x: tf.Tensor, scope: str, base_depth: int, num_units: int, stride: int) -> tf.Tensor:
+    def _v2_block(x: tf.Tensor, scope: str, base_depth: int, num_units: int, stride: int) -> tf.Tensor:
         """
         Adds a ResNet v2 building block to the graph. Constructs a list of parameters. Creates a 'bottleneck' element
         for each of them.
@@ -215,15 +207,14 @@ class ResNet(BaseModel):
         args.append({'depth': base_depth * 4, 'depth_bottleneck': base_depth, 'stride': stride})
 
         with tf.variable_scope(scope, 'block', [x]):
-            block_stride = 1
             for i, unit in enumerate(args):
                 with tf.variable_scope('unit_%d' % (i + 1), values=[x]):
-                    x = ResNet.bottleneck(x, rate=1, **unit)
-            x = ResNet.pooling(x, block_stride)
+                    x = ResNet._bottleneck(x, rate=1, **unit)
+            x = ResNet._pooling(x)
         return x
 
     @staticmethod
-    def bottleneck(x: tf.Tensor, depth: int, depth_bottleneck: int, stride: int, rate: int = 1) -> tf.Tensor:
+    def _bottleneck(x: tf.Tensor, depth: int, depth_bottleneck: int, stride: int, rate: int = 1) -> tf.Tensor:
         """
         Adds a ResNet bottleneck block to the graph.
         :param x: Input tensor
@@ -237,26 +228,26 @@ class ResNet(BaseModel):
             depth_in = slim.utils.last_dimension(x.get_shape(), min_rank=4)
             preact = slim.batch_norm(x, activation_fn=tf.nn.relu, scope='preact')
             if depth == depth_in:
-                shortcut = ResNet.pooling(x, stride, 'shortcut')
+                shortcut = ResNet._pooling(x, stride, 'shortcut')
             else:
                 shortcut = slim.conv2d(preact, depth, [1, 1], stride=stride, normalizer_fn=None, activation_fn=None,
                                        scope='shortcut')
 
             res = slim.conv2d(preact, depth_bottleneck, [1, 1], stride=1, scope='conv1')
-            res = ResNet.conv2d_same(res, depth_bottleneck, 3, stride, rate=rate, scope='conv2')
+            res = ResNet._conv2d_same(res, depth_bottleneck, 3, stride, rate=rate, scope='conv2')
             res = slim.conv2d(res, depth, [1, 1], stride=1, normalizer_fn=None, activation_fn=None, scope='conv3')
 
             return shortcut + res
 
     @staticmethod
-    def pooling(x: tf.Tensor, factor: int, scope: Optional[str] = None) -> tf.Tensor:
+    def _pooling(x: tf.Tensor, stride: int = 1, scope: Optional[str] = None) -> tf.Tensor:
         """
         Wraps slim.max_pool2d.
         :param x: Input tensor
-        :param factor: Pooing stride
+        :param stride: Pooling stride
         :param scope: Optional variable scope name
         :return: Output tensor
         """
-        if factor == 1:
+        if stride == 1:
             return x
-        return slim.max_pool2d(x, [1, 1], stride=factor, scope=scope)
+        return slim.max_pool2d(x, [1, 1], stride=stride, scope=scope)
