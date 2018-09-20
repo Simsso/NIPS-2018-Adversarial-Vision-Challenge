@@ -31,7 +31,7 @@ def run_validation(model: ResNet, pipeline: TinyImageNetPipeline):
 
 
 def main(args):
-    pipeline = TinyImageNetPipeline()
+    pipeline = TinyImageNetPipeline(batch_size=VALIDATION_BATCH_SIZE)
     imgs, labels = pipeline.get_iterator().get_next()
     model = ResNet(imgs, labels)
     run_validation(model, pipeline)
