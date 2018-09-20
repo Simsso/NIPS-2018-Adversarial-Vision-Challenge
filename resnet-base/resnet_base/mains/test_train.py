@@ -14,7 +14,7 @@ def main(args):
         imgs, labels = pipeline.get_iterator().get_next()
         model = ResNet(imgs, labels)
 
-        trainer = ResNetTrainer(sess, model, pipeline)
+        trainer = ResNetTrainer(model, pipeline)
         trainer.train()
 
 

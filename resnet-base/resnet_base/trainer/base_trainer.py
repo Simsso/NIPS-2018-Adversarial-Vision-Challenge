@@ -8,9 +8,9 @@ FLAGS = tf.flags.FLAGS
 
 
 class BaseTrainer:
-    def __init__(self, sess: tf.Session, model: BaseModel):
+    def __init__(self, model: BaseModel):
         self.model = model
-        self.sess = sess
+        self.sess = tf.get_default_session()
 
     def train(self) -> None:
         """

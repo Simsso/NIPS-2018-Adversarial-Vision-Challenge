@@ -11,8 +11,8 @@ FLAGS = tf.flags.FLAGS
 
 
 class ResNetTrainer(BaseTrainer):
-    def __init__(self, sess: tf.Session, model: ResNet, pipeline: TinyImageNetPipeline):
-        super().__init__(sess, model)
+    def __init__(self, model: ResNet, pipeline: TinyImageNetPipeline):
+        super().__init__(model)
         self.resnet = model
         self.pipeline = pipeline
         self.__build_train_op()
