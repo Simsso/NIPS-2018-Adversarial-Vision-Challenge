@@ -41,16 +41,19 @@ class ResNet(BaseModel):
 
         self.pretrained_saver: tf.train.Saver = None
         self.custom_saver: tf.train.Saver = None
+        
         with tf.variable_scope('custom') as scope:
             self.custom_scope: tf.VariableScope = scope
-
+        
         with tf.variable_scope('resnet_v2_50', 'resnet_v2', [self.x], reuse=tf.AUTO_REUSE):
             with slim.arg_scope(self.resnet_arg_scope()):
                 logits = self.build_model(self.x)
                 self.init_outputs(logits)
-        self.init_saver()
+        
         self.init_loss()
         self.init_accuracy()
+
+        self.post_build_init()
 
     def init_saver(self) -> None:
         """

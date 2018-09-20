@@ -1,41 +1,48 @@
 import tensorflow as tf
 from resnet_base.model.base_model import BaseModel
 
+tf.flags.DEFINE_float("learning_rate", 1e-4, "The learning rate used for training.")
+tf.flags.DEFINE_integer("num_epochs", 10, "The number of epochs for which training is performed.")
 
-class BaseTrain:
-    def __init__(self, sess: tf.Session, model: BaseModel, config):
-        # assign all class attributes
+FLAGS = tf.flags.FLAGS
+
+
+class BaseTrainer:
+    def __init__(self, model: BaseModel):
         self.model = model
-        self.config = config
-        self.sess = sess
+        self.sess = tf.get_default_session()
 
-    def init_variables(self):
-        # initialize all variables of the graph
-        init = tf.global_variables_initializer()
+    def train(self) -> None:
+        """
+        Performs training for FLAGS.num_epochs epochs and runs one validation epoch after each training epoch.
+        """
+        init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         self.sess.run(init)
 
-    def train(self):
+        # restore weights (as specified in the FLAGS)
+        self.model.load(self.sess)
+
+        # get the current epoch so we can re-start training from there
         start_epoch = self.model.current_epoch.eval(self.sess)
-        for cur_epoch in range(start_epoch, self.config.num_epochs + 1):
+
+        for _ in range(start_epoch, FLAGS.num_epochs + 1):
             self.train_epoch()
             self.sess.run(self.model.increment_current_epoch)
 
-    def train_epoch(self, epoch=None):
-        """
-        implement the logic of epoch:
-        -loop over the number of iterations in the config and call the train step
-        -add any summaries you want using the summary
+            # run validation epoch to monitor training
+            self.val_epoch()
 
-        :param epoch: take the number of epoch if you are interested
-        :return:
+    def train_epoch(self) -> None:
+        """
+        Trains the model for one epoch.
+        Should use the batch size defined in FLAGS.train_batch_size.
         """
         raise NotImplementedError
 
-    def train_step(self):
+    def val_epoch(self) -> None:
         """
-        implement the logic of the train step
-
-        - run the tensorflow session
-        :return: any metrics you need to summarize
+        Performs inference and calculates evaluation metrics for one full epoch of the validation set.
+        Should use the batch size defined in FLAGS.val_batch_size.
         """
         raise NotImplementedError
+

@@ -1,12 +1,9 @@
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 import numpy as np
-import os
 import tensorflow as tf
 from resnet_base.model.resnet import ResNet
 
 VALIDATION_BATCH_SIZE = 1024  # does not affect training results; adjustment based on GPU RAM
-TF_LOGS = os.path.join('..', 'tf_logs')
-
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
 
@@ -34,7 +31,7 @@ def run_validation(model: ResNet, pipeline: TinyImageNetPipeline):
 
 
 def main(args):
-    pipeline = TinyImageNetPipeline()
+    pipeline = TinyImageNetPipeline(batch_size=VALIDATION_BATCH_SIZE)
     imgs, labels = pipeline.get_iterator().get_next()
     model = ResNet(imgs, labels)
     run_validation(model, pipeline)
