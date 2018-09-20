@@ -1,4 +1,4 @@
-import resnet_base.data.tiny_imagenet as data
+from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 import numpy as np
 import tensorflow as tf
 from resnet_base.model.resnet import ResNet
@@ -7,9 +7,7 @@ VALIDATION_BATCH_SIZE = 1024  # does not affect training results; adjustment bas
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
 
-def run_validation(model: ResNet):
-    # data set
-    valid_batch = data.batch_q('val', VALIDATION_BATCH_SIZE)
+def run_validation(model: ResNet, pipeline: TinyImageNetPipeline):
     init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 
     config = tf.ConfigProto()
@@ -17,35 +15,26 @@ def run_validation(model: ResNet):
     sess = tf.Session(config=config)
 
     with sess.as_default():
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
         sess.run(init)
         model.load(sess)
 
-        try:
-            while not coord.should_stop():
-                tf.logging.info("Starting evaluation")
-                vals = []
-                acc_mean_val, loss_mean_val = 0, 0
-                for _ in range(min(data.NUM_VALIDATION_SAMPLES // VALIDATION_BATCH_SIZE, data.NUM_VALIDATION_SAMPLES)):
-                    valid_images, valid_labels = sess.run(valid_batch)
-                    vals.append(sess.run([model.accuracy, model.loss],
-                                         feed_dict={model.x: valid_images, model.labels: valid_labels}))
-                    acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
-                    tf.logging.info("Current accuracy: {}".format(acc_mean_val))
-                tf.logging.info("Final validation data: accuracy {}, loss {}".format(acc_mean_val, loss_mean_val))
-                break
-        except tf.errors.OutOfRangeError as e:
-            coord.request_stop(e)
-        finally:
-            coord.request_stop()
-            coord.join(threads)
+        pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
+
+        tf.logging.info("Starting evaluation")
+        vals = []
+        acc_mean_val, loss_mean_val = 0, 0
+        for _ in range(min(TinyImageNetPipeline.num_valid_samples // VALIDATION_BATCH_SIZE, TinyImageNetPipeline.num_valid_samples)):
+            vals.append(sess.run([model.accuracy, model.loss]))
+            acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
+            tf.logging.info("Current accuracy: {}".format(acc_mean_val))
+        tf.logging.info("Final validation data: accuracy {}, loss {}".format(acc_mean_val, loss_mean_val))
 
 
 def main(args):
-    model = ResNet()
-    run_validation(model)
+    pipeline = TinyImageNetPipeline()
+    imgs, labels = pipeline.get_iterator().get_next()
+    model = ResNet(imgs, labels)
+    run_validation(model, pipeline)
 
 
 if __name__ == "__main__":
