@@ -26,11 +26,10 @@ class ResNetTrainer(BaseTrainer):
             self.train_op = optimizer.minimize(self.resnet.loss)
 
     def train_epoch(self):
-        batch_size = FLAGS.train_batch_size
         num_samples = TinyImageNetPipeline.num_train_samples
 
         self.pipeline.switch_to(tf.estimator.ModeKeys.TRAIN)
-        accuracy_mean, loss_mean = ResNetTrainer.__generic_epoch_with_params(batch_size, num_samples,
+        accuracy_mean, loss_mean = ResNetTrainer.__generic_epoch_with_params(self.pipeline.batch_size, num_samples,
                                                                              batch_step=self.train_step)
         tf.logging.info("Training metrics: accuracy = {}, loss = {}".format(accuracy_mean, loss_mean))
         self.sess.run(self.model.increment_current_epoch)
@@ -47,11 +46,10 @@ class ResNetTrainer(BaseTrainer):
         return accuracy, loss
 
     def val_epoch(self):
-        batch_size = FLAGS.val_batch_size
         num_samples = TinyImageNetPipeline.num_valid_samples
 
         self.pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
-        accuracy_mean, loss_mean = ResNetTrainer.__generic_epoch_with_params(batch_size, num_samples,
+        accuracy_mean, loss_mean = ResNetTrainer.__generic_epoch_with_params(self.pipeline.batch_size, num_samples,
                                                                              batch_step=self.val_step)
         tf.logging.info("Validation metrics: accuracy = {}, loss = {}".format(accuracy_mean, loss_mean))
 

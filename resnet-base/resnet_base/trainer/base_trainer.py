@@ -3,8 +3,6 @@ from resnet_base.model.base_model import BaseModel
 
 tf.flags.DEFINE_float("learning_rate", 1e-4, "The learning rate used for training.")
 tf.flags.DEFINE_integer("num_epochs", 10, "The number of epochs for which training is performed.")
-tf.flags.DEFINE_integer("train_batch_size", 64, "The batch size used when training.")
-tf.flags.DEFINE_integer("val_batch_size", 512, "The batch size used when validating (optimize based on RAM).")
 
 FLAGS = tf.flags.FLAGS
 
