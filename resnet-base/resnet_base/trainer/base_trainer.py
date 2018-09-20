@@ -12,7 +12,7 @@ class BaseTrainer:
         self.model = model
         self.sess = sess
 
-    def train(self):
+    def train(self) -> None:
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
         self.sess.run(init)
 
@@ -29,14 +29,14 @@ class BaseTrainer:
             # run validation epoch to monitor training
             self.val_epoch()
 
-    def train_epoch(self):
+    def train_epoch(self) -> None:
         """
         Trains the model for one epoch.
         Should use the batch size defined in FLAGS.train_batch_size.
         """
         raise NotImplementedError
 
-    def val_epoch(self):
+    def val_epoch(self) -> None:
         """
         Performs inference and calculates evaluation metrics for one full epoch of the validation set.
         Should use the batch size defined in FLAGS.val_batch_size.
