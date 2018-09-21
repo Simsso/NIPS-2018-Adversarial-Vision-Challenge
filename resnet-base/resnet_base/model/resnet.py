@@ -198,7 +198,7 @@ class ResNet(BaseModel):
         for each of them.
         :param x: Input tensor
         :param scope: Scope for variable_scope
-        :param base_depth:
+        :param base_depth: Base depth
         :param num_units: Number of stacked bottleneck blocks.
         :param stride: Stride of the last bottleneck block.
         :return: Output tensor
@@ -218,10 +218,10 @@ class ResNet(BaseModel):
         """
         Adds a ResNet bottleneck block to the graph.
         :param x: Input tensor
-        :param depth:
+        :param depth: Depth
         :param depth_bottleneck:
-        :param stride:
-        :param rate:
+        :param stride: Convolution stride
+        :param rate: Convolution rate
         :return: Output tensor
         """
         with tf.variable_scope(None, 'bottleneck_v2', [x]):
