@@ -16,11 +16,10 @@ class TestEmbeddingSpacing(TFTestCase):
     def feed(self, emb_space_val, emb_spacing_target):
         emb_space_val = np.array(emb_space_val, dtype=np.float32)
         x_val = np.array(self.x_in, dtype=np.float32)
-        o = vector_quantization(self.x_reshaped, len(emb_space_val), lookup_ord=1, return_endpoints=True,
-                                embedding_initializer=tf.constant_initializer(emb_space_val))
-        _, _, _, _, emb_spacing = o
+        endpoints = vector_quantization(self.x_reshaped, len(emb_space_val), lookup_ord=1, return_endpoints=True,
+                                        embedding_initializer=tf.constant_initializer(emb_space_val))
         self.init_vars()
-        emb_spacing_val = self.sess.run(emb_spacing, feed_dict={self.x: x_val})
+        emb_spacing_val = self.sess.run(endpoints.emb_spacing, feed_dict={self.x: x_val})
         self.assert_output(emb_spacing_val, emb_spacing_target)
 
     def test_two_embedding_vectors(self):

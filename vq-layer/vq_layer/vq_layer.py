@@ -1,6 +1,9 @@
 import numpy as np
 import tensorflow as tf
-from typing import Union, Tuple
+from typing import Union
+from collections import namedtuple
+
+VQEndpoints = namedtuple("VQEndpoints", ["layer_out", "emb_space", "access_count", "distance", "emb_spacing"])
 
 
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
@@ -8,7 +11,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                         lookup_ord: int = 2,
                         embedding_initializer: tf.keras.initializers.Initializer = tf.random_normal_initializer,
                         num_splits: int = 1, return_endpoints: bool = False)\
-        -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]]:
+        -> Union[tf.Tensor, VQEndpoints]:
     """
     Vector quantization layer.
     :param x: Tensor of shape [batch, r, q], where this function quantizes along dimension q
@@ -93,7 +96,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         layer_out = tf.reshape(tf.stop_gradient(y - x) + x, in_shape)
 
         if return_endpoints:
-            return layer_out, emb_space, access_count, dist, emb_spacing
+            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing)
         return layer_out
 
 

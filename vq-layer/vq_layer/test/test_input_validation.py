@@ -12,7 +12,7 @@ class TestInputValidation(TFTestCase):
             vector_quantization([1, 2], 2)
 
     def test_x_shape(self):
-        """Input x must have be 3-dimensional."""
+        """Input x must be 3-dimensional."""
         # invalid inputs
         for x in [
             tf.placeholder(tf.float32, [None, 5]),

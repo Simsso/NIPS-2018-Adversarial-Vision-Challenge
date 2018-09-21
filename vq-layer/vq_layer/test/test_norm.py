@@ -15,11 +15,11 @@ class TestNorm(TFTestCase):
 
     def feed(self, x_in, y_target, lookup_ord):
         x_val = np.array(x_in, dtype=np.float32)
-        y, _, _, dist, _ = vector_quantization(self.x_reshaped, len(self.emb_space_val), lookup_ord=lookup_ord,
-                                            embedding_initializer=tf.constant_initializer(self.emb_space_val),
-                                            return_endpoints=True)
+        endpoints = vector_quantization(self.x_reshaped, len(self.emb_space_val), lookup_ord=lookup_ord,
+                                        embedding_initializer=tf.constant_initializer(self.emb_space_val),
+                                        return_endpoints=True)
         self.init_vars()
-        y_val, dist_val = self.sess.run([y, dist], feed_dict={self.x: x_val})
+        y_val, dist_val = self.sess.run([endpoints.layer_out, endpoints.distance], feed_dict={self.x: x_val})
         self.assert_output(y_val, y_target)
 
     def test_ord_1(self):
