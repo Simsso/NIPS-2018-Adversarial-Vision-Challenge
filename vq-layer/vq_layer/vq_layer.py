@@ -3,14 +3,15 @@ import tensorflow as tf
 from typing import Union
 from collections import namedtuple
 
-VQEndpoints = namedtuple("VQEndpoints", ["layer_out", "emb_space", "access_count", "distance", "emb_spacing"])
+VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count', 'distance', 'emb_spacing',
+                                         'replace_embeds'])
 
 
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
                         lookup_ord: int = 2,
                         embedding_initializer: tf.keras.initializers.Initializer = tf.random_normal_initializer,
-                        num_splits: int = 1, return_endpoints: bool = False)\
+                        num_splits: int = 1, num_embeds_replaced: int = 0, return_endpoints: bool = False)\
         -> Union[tf.Tensor, VQEndpoints]:
     """
     Vector quantization layer.
@@ -22,6 +23,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]
     :param embedding_initializer: Initializer for the embedding space variable
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
+    :param num_embeds_replaced: If not equal to 0, this adds an op to the endpoints tuple which replaces the respective
+    number of least used embedding vectors in the batch with the batch activations most distant from the embedding
+    vectors. If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
     :return: Only the layer output if return_endpoints is False
              5-tuple with the values:
@@ -33,6 +37,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     """
     if n <= 0:
         raise ValueError("Parameter 'n' must be greater than 0.")
+
+    if num_embeds_replaced < 0:
+        raise ValueError("Parameter 'num_embeds_replaced' must be greater than or equal to 0.")
 
     in_shape = x.get_shape().as_list()
     if not len(in_shape) == 3:
@@ -91,12 +98,29 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                 coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0)
                 tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
 
+        # TODO what happens if num_embeds_replaced > batch_size?
+        # this is difficult, as the batch size can only be known at runtime, and according to the code,
+        # tf.top_k crashes in this case:
+        # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/topk_op.cc#L66
+        replace_embeds = None
+        if num_embeds_replaced > 0 and return_endpoints:
+            # this returns the indices of the k largest values, so we negate the count to get the smallest values
+            _, least_used_indices = tf.nn.top_k(-access_count, k=num_embeds_replaced)
+
+            # now find the activations in the batch that were furthest away from the embedding vectors
+            max_dist_activations = tf.squeeze(tf.reduce_max(dist, axis=2))
+            furthest_away_activations, _ = tf.nn.top_k(max_dist_activations, k=num_embeds_replaced)
+
+            # create assign-op that replaces the least used embedding vectors with the furthest away activations
+            replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices,
+                                               updates=furthest_away_activations)
+
         # return selection in original size
         # skip this layer when doing back-prop
         layer_out = tf.reshape(tf.stop_gradient(y - x) + x, in_shape)
 
         if return_endpoints:
-            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing)
+            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, replace_embeds)
         return layer_out
 
 
