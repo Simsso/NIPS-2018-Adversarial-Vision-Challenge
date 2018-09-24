@@ -108,8 +108,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             _, least_used_indices = tf.nn.top_k(-access_count, k=num_embeds_replaced)
 
             # now find the activations in the batch that were furthest away from the embedding vectors
-            max_dist_activations = tf.squeeze(tf.reduce_max(dist, axis=2))
-            furthest_away_activations, _ = tf.nn.top_k(max_dist_activations, k=num_embeds_replaced)
+            max_dist_activations = tf.reduce_max(dist, axis=2)
+            _, furthest_away_indices = tf.nn.top_k(max_dist_activations, k=num_embeds_replaced)
+            furthest_away_activations = tf.gather(dist, indices=furthest_away_indices)
 
             # create assign-op that replaces the least used embedding vectors with the furthest away activations
             replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices,
