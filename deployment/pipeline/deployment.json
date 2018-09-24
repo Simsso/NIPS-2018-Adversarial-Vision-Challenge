@@ -4,7 +4,7 @@
             "name": "ubuntu",
             "args": [
                 "bash",
-                "deployment/build_image.sh",
+                "deployment/pipeline/build_image.sh",
                 "$PROJECT_ID",
                 "$TAG_NAME",
                 "nips-2018-adversarial-vision-challenge-data"
@@ -27,8 +27,8 @@
             "args": [
                 "kms",
                 "decrypt",
-                "--ciphertext-file=deployment/nips-cloudbuilder.enc",
-                "--plaintext-file=deployment/nips-cloudbuilder",
+                "--ciphertext-file=deployment/pipeline/nips-cloudbuilder.enc",
+                "--plaintext-file=deployment/pipeline/nips-cloudbuilder",
                 "--location=global",
                 "--keyring=nips-2018-challenge-keyring",
                 "--key=nips-2018-challenge-key"
@@ -38,7 +38,7 @@
             "name": "ubuntu",
             "args": [
                 "bash",
-                "deployment/create_gce_instance.sh",
+                "deployment/pipeline/create_gce_instance.sh",
                 "$PROJECT_ID",
                 "$TAG_NAME"
             ] 
