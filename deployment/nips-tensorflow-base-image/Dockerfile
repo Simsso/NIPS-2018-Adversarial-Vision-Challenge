@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:latest-gpu
+FROM tensorflow/tensorflow:latest-gpu-py3
 
 # add CUDA path
 RUN export LD_LIBRARY_PATH=/usr/local/cuda/lib64/
