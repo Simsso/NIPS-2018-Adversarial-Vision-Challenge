@@ -25,7 +25,7 @@ chmod +x /usr/local/bin/terraform
 rm "$TERRAFORM.zip"
 
 echo "Initializing Terraform .."
-cd deployment
+cd deployment/pipeline
 terraform init
 
 echo "Planning Terraform .."
