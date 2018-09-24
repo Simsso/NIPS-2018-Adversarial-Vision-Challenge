@@ -15,8 +15,8 @@
             "args": [
                 "kms",
                 "decrypt",
-                "--ciphertext-file=deployment/cloudbuild-service-account.json.enc",
-                "--plaintext-file=deployment/cloudbuild-service-account.json",
+                "--ciphertext-file=deployment/pipeline/cloudbuild-service-account.json.enc",
+                "--plaintext-file=deployment/pipeline/cloudbuild-service-account.json",
                 "--location=global",
                 "--keyring=nips-2018-challenge-keyring",
                 "--key=nips-2018-challenge-key"
