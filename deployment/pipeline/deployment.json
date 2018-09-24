@@ -1,0 +1,48 @@
+{
+    "steps": [
+        {
+            "name": "ubuntu",
+            "args": [
+                "bash",
+                "deployment/build_image.sh",
+                "$PROJECT_ID",
+                "$TAG_NAME",
+                "nips-2018-adversarial-vision-challenge-data"
+            ]
+        },
+        {
+            "name":"gcr.io/cloud-builders/gcloud",
+            "args": [
+                "kms",
+                "decrypt",
+                "--ciphertext-file=deployment/cloudbuild-service-account.json.enc",
+                "--plaintext-file=deployment/cloudbuild-service-account.json",
+                "--location=global",
+                "--keyring=nips-2018-challenge-keyring",
+                "--key=nips-2018-challenge-key"
+            ]
+        },
+        {
+            "name":"gcr.io/cloud-builders/gcloud",
+            "args": [
+                "kms",
+                "decrypt",
+                "--ciphertext-file=deployment/nips-cloudbuilder.enc",
+                "--plaintext-file=deployment/nips-cloudbuilder",
+                "--location=global",
+                "--keyring=nips-2018-challenge-keyring",
+                "--key=nips-2018-challenge-key"
+            ]
+        },
+        {
+            "name": "ubuntu",
+            "args": [
+                "bash",
+                "deployment/create_gce_instance.sh",
+                "$PROJECT_ID",
+                "$TAG_NAME"
+            ] 
+        }
+    ],
+    "timeout": "1500s"
+}
