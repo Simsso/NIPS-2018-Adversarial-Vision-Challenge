@@ -107,14 +107,14 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             # this returns the indices of the k largest values, so we negate the count to get the smallest values
             _, least_used_indices = tf.nn.top_k(-access_count, k=num_embeds_replaced)
 
-            # now find the activations in the batch that were furthest away from the embedding vectors
-            max_dist_activations = tf.reduce_max(dist, axis=2)
-            _, furthest_away_indices = tf.nn.top_k(max_dist_activations, k=num_embeds_replaced)
-            furthest_away_activations = tf.gather(dist, indices=furthest_away_indices)
+            # now find the inputs in the batch that were furthest away from the embedding vectors
+            max_dist_inputs = tf.reshape(tf.reduce_min(dist, axis=2), shape=[-1])
+            _, furthest_away_indices = tf.nn.top_k(max_dist_inputs, k=num_embeds_replaced)
+            furthest_away_inputs = tf.gather(tf.reshape(x, shape=[-1, vec_size]), indices=furthest_away_indices)
 
             # create assign-op that replaces the least used embedding vectors with the furthest away activations
             replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices,
-                                               updates=furthest_away_activations)
+                                               updates=furthest_away_inputs)
 
         # return selection in original size
         # skip this layer when doing back-prop
