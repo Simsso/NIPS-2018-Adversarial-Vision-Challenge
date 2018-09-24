@@ -27,19 +27,28 @@ class TestEmbeddingReplace(TFTestCase):
 
         self.assert_output(emb_val, emb_target)
 
-    def testNoActionForNoReplacements(self):
+    def test_no_action_for_no_replacements(self):
         emb_target = self.emb_space_val
         self.feed(x_in=[[1, 2], [4, 5]], emb_target=emb_target, lookup_ord=1, num_embeds_replaced=0)
 
-    def test1Replacement(self):
-        # current emb space: [0, 0], [1, 1], [2, 2]
+    def test_single_replacement(self):
+        # initial emb space: [0, 0], [1, 1], [2, 2]
 
-        # should be mapped to the 2nd and 3rd embeddings, and [5, 5] should be the furthest activation away,
-        # therefore replace the [0, 0, 0] embedding
+        # should be mapped to the 2nd and 3rd embeddings, and [5, 5] should be the most distant input,
+        # therefore replace the [0, 0] embedding
         x_in = [[1.1, 0.9], [2.1, 1.8], [5, 5]]
         emb_target = [[5, 5], [1, 1], [2, 2]]
 
         self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=1, num_embeds_replaced=1)
+
+    def test_two_replacements(self):
+        # initial emb space: [0, 0], [1, 1], [2, 2]
+        # usage count:       [    3,      1,     1]
+        # least used (2):    [     ,      x,     x]
+        x_in = [[0.1, -0.1], [0, 0.3], [1.1, 0.9], [-4, -4], [20, 20]]
+        emb_target = [[0, 0], [20, 20], [-4, -4]]
+
+        self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=2, num_embeds_replaced=2)
 
 
 if __name__ == '__main__':
