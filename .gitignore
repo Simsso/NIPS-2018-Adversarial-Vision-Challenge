@@ -1,5 +1,1 @@
-reference-cnn/\.idea/
 .DS_Store
-deployment/cloudbuild-service-account\.json
-**/tf_logs/
-deployment/nips-tensorflow-base-image/TrainingManager/\.idea/
