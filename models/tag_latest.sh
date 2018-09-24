@@ -3,6 +3,7 @@ TAG_NAME=$1
 if [ $TAG_NAME -eq 0 ]
   then
     echo "Please supply tagname! In form of [a-zA-Z-0-9]*-[0-9.]*$"
+    return
 fi
 
 echo "Trying to delete existing local tag $1 .."
