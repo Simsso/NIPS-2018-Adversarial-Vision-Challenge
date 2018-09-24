@@ -23,9 +23,11 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]
     :param embedding_initializer: Initializer for the embedding space variable
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
-    :param num_embeds_replaced: If not equal to 0, this adds an op to the endpoints tuple which replaces the respective
-    number of least used embedding vectors in the batch with the batch activations most distant from the embedding
-    vectors. If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
+    :param num_embeds_replaced: If greater than 0, this adds an op to the endpoints tuple which replaces the respective
+    number of least used embedding vectors in the batch with the batch inputs most distant from the embedding
+    vectors. If the batch size is smaller than this number, it will throw a
+    tensorflow.python.framework.errors_impl.InvalidArgumentError.
+    If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
     :return: Only the layer output if return_endpoints is False
              5-tuple with the values:
@@ -98,21 +100,17 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                 coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0)
                 tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
 
-        # TODO what happens if num_embeds_replaced > batch_size?
-        # this is difficult, as the batch size can only be known at runtime, and according to the code,
-        # tf.top_k crashes in this case:
-        # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/topk_op.cc#L66
         replace_embeds = None
         if num_embeds_replaced > 0 and return_endpoints:
             # this returns the indices of the k largest values, so we negate the count to get the smallest values
             _, least_used_indices = tf.nn.top_k(-access_count, k=num_embeds_replaced)
 
             # now find the inputs in the batch that were furthest away from the embedding vectors
-            max_dist_inputs = tf.reshape(tf.reduce_min(dist, axis=2), shape=[-1])
-            _, furthest_away_indices = tf.nn.top_k(max_dist_inputs, k=num_embeds_replaced)
+            min_dist_to_embeds = tf.reshape(tf.reduce_min(dist, axis=2), shape=[-1])
+            _, furthest_away_indices = tf.nn.top_k(min_dist_to_embeds, k=num_embeds_replaced)
             furthest_away_inputs = tf.gather(tf.reshape(x, shape=[-1, vec_size]), indices=furthest_away_indices)
 
-            # create assign-op that replaces the least used embedding vectors with the furthest away activations
+            # create assign-op that replaces the least used embedding vectors with the furthest away inputs
             replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices,
                                                updates=furthest_away_inputs)
 
