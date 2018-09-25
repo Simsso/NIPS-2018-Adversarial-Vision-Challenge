@@ -23,10 +23,10 @@ class ResNet(BaseModel):
     def __init__(self, x: tf.Tensor = None, labels: tf.Tensor = None):
         super().__init__()
 
-        self.accuracy: tf.Tensor = None  # percentage of correctly classified samples
-        self.loss: tf.Tensor = None
-        self.logits: tf.Tensor = None
-        self.softmax: tf.Tensor = None
+        self.accuracy = None  # percentage of correctly classified samples
+        self.loss = None
+        self.logits = None
+        self.softmax = None
 
         if x is None:
             x = tf.placeholder(tf.float32, name='x', shape=[None, Data.img_width, Data.img_height, Data.img_channels])
@@ -36,14 +36,14 @@ class ResNet(BaseModel):
             labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
         self.labels = labels
 
-        self.is_training: tf.Tensor = tf.placeholder_with_default(False, (), 'is_training')
-        self.num_classes: int = 200
+        self.is_training = tf.placeholder_with_default(False, (), 'is_training')
+        self.num_classes = 200
 
-        self.pretrained_saver: tf.train.Saver = None
-        self.custom_saver: tf.train.Saver = None
+        self.pretrained_saver = None
+        self.custom_saver = None
         
         with tf.variable_scope('custom') as scope:
-            self.custom_scope: tf.VariableScope = scope
+            self.custom_scope = scope
         
         with tf.variable_scope('resnet_v2_50', 'resnet_v2', [self.x], reuse=tf.AUTO_REUSE):
             with slim.arg_scope(self._resnet_arg_scope()):

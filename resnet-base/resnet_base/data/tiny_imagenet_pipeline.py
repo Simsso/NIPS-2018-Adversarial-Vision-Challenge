@@ -51,8 +51,8 @@ class TinyImageNetPipeline(BasePipeline):
                 tf.placeholder(tf.string, self.num_valid_samples)
             )
         }
-        self.filenames: Dict[tf.estimator.ModeKeys, List[str]] = {}
-        self.raw_labels: Dict[tf.estimator.ModeKeys, List[str]] = {}
+        self.filenames = {}
+        self.raw_labels = {}
 
         self.__init_filenames_labels()
 

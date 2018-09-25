@@ -8,11 +8,11 @@ class BasePipeline:
     samples.
     """
     def __init__(self):
-        self.iterator_init_ops: Dict[tf.estimator.ModeKeys, tf.Operation] = {
+        self.iterator_init_ops = {
             tf.estimator.ModeKeys.TRAIN: None,
             tf.estimator.ModeKeys.EVAL: None
         }
-        self.iterator: tf.data.Iterator = None
+        self.iterator = None
 
     def get_iterator(self) -> tf.data.Iterator:
         """

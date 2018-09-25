@@ -8,7 +8,6 @@ class VQResNet(ResNet):
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         x = ResNet._first_conv(x)  # 16x16x64
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
-            with tf.device("/cpu:0"):
                 x = tf.reshape(x, [-1, 256, 64])
                 x = vq(x, n=256, alpha=1e-1, beta=1e-2, gamma=0, num_splits=8)
                 x = tf.reshape(x, [-1, 16, 16, 64])

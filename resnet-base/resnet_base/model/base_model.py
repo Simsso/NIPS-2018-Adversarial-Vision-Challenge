@@ -13,10 +13,10 @@ FLAGS = tf.flags.FLAGS
 class BaseModel:
     def __init__(self):
         # attributes needed for global_step and global_epoch
-        self.current_epoch: tf.Tensor = None
-        self.increment_current_epoch: tf.Tensor = None
-        self.global_step: tf.Tensor = None
-        self.increment_global_step: tf.Tensor = None
+        self.current_epoch = None
+        self.increment_current_epoch = None
+        self.global_step = None
+        self.increment_global_step = None
 
         # init the global step
         self.init_global_step()
@@ -24,7 +24,7 @@ class BaseModel:
         self.init_current_epoch()
 
         # saver attribute
-        self.saver: tf.train.Saver = None
+        self.saver = None
 
     def post_build_init(self):
         self.init_saver()
