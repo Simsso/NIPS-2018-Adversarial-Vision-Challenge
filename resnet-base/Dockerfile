@@ -9,10 +9,6 @@ ENV BUCKET_NAME ${BUCKET_NAME_ARG}
 
 WORKDIR /opt/app
 
-# install python requirements
-COPY requirements.txt /opt/app
-RUN pip install -r requirements.txt
-
 # copy python project
 COPY . /opt/app
 

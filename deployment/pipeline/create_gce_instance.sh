@@ -2,7 +2,7 @@
 
 echo "Retrieving model version and model folder name .."
 
-MODEL_VERSION=$( echo $2 | grep -o '[0-9.]*$')
+MODEL_VERSION=$( echo $2 | grep -o '[0-9.a-zA-Z]*$')
 MODEL_FOLDER=${2%-$MODEL_VERSION}
 
 echo "Generate GCE instance name .."
