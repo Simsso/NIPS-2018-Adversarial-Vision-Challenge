@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-python setup.py install
+cd vq-layer && pip install . && cd ..
+python setup.py install && \
 python -m resnet_base \
     --pretrained_checkpoint "${HOME}/.data/tiny_imagenet_alp05_2018_06_26.ckpt" \
     --data_dir "${HOME}/.data/tiny-imagenet-200" \
