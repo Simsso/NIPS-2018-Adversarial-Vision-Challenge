@@ -19,7 +19,7 @@ service TrainingProto {
     // The event stream has orders from the server to the client.
     //
     // A stream of Event is returned. 
-    rpc ReceiveEvents (TrainingJob) returns (stream Event) {
+    rpc ReceiveEvent (TrainingJob) returns (stream Event) {
     }
 }
 
@@ -27,7 +27,11 @@ service TrainingProto {
 //
 // event describes the resolved Event and data represents the given payload.
 message Event {
-    string event = 1;
+    enum Event {
+        UPDATE = 0;
+        SHUTDOWN = 1;
+    }
+    Event event = 1;
     bytes data = 2;
 }
 
@@ -35,9 +39,10 @@ message Event {
 //
 // stopTime may be 0, if training hasn't finished yet.
 message TrainingJob {
-    string trainingId = 1;
+    string modelId = 1;
     int64 startTime = 2;
     int64 stopTime = 3;
+    bool running = 4;
 
 }
 
