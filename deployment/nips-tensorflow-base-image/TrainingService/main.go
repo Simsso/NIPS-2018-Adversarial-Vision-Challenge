@@ -67,6 +67,7 @@ func main() {
 	// start EventListener
 	wg.Add(1)
 	go EventListener(&client)
+	client.FinishTraining(context.Background(), &trainingJob)
 	wg.Wait() // wait until shutdown event received from server
 
 	defer conn.Close()

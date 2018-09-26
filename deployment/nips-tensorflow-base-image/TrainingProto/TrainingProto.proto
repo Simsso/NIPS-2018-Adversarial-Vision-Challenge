@@ -10,7 +10,7 @@ service TrainingProto {
 
     // Updates the started training at the server,
     //
-    // A Respone object with responseString 'true' is returned, if the
+    // A Response object with success 'true' is returned, if the
     // training was updated. Otherwise 'false'.
     rpc UpdateTraining (TrainingJob) returns (Response) {
     }
@@ -21,6 +21,15 @@ service TrainingProto {
     // A stream of Event is returned. 
     rpc ReceiveEvent (TrainingJob) returns (stream Event) {
     }
+
+    // Sends the server a request that the current running training
+    // has been finished successfully.
+    //
+    // A Response object with success 'true' is returned, if the
+    // server has been acknowledged successfully about the end of the training.
+    rpc FinishTraining (TrainingJob) returns (Response){
+    }
+    
 }
 
 // Represents an event cause by the server.
