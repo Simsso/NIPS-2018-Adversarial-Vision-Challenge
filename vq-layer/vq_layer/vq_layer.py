@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from typing import Union
+from typing import Tuple, Union
 from collections import namedtuple
 
 VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count', 'distance', 'emb_spacing',
@@ -68,12 +68,15 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
                                     trainable=True)
 
+        def vec_lookup_op(x_val: np.ndarray, emb_space_val: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+            batch_size = x_val.shape[0]
+            if num_embeds_replaced > batch_size:
+                raise ValueError('Number of embedding replacements must be less than or equal to the batch size.')
+            return vec_lookup(x_val, emb_space_val, lookup_ord)
+
         # map x to y, where y is the vector from emb_space that is closest to x
-        # distance of x from all vectors in the embedding space
-        diff = tf.expand_dims(x, axis=2) - emb_space
-        dist = tf.norm(diff, lookup_ord, axis=3)  # distance between x and all vectors in emb
-        emb_index = tf.argmin(dist, axis=2)
-        y = tf.gather(emb_space, emb_index, axis=0)
+        y, dist, emb_index = tf.py_func(vec_lookup_op, [x, emb_space], [tf.float32, tf.float32, tf.int32],
+                                        stateful=False, name='emb_lookup_py_op')
 
         # update access counter
         one_hot_access = tf.one_hot(emb_index, depth=n)
@@ -121,6 +124,33 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         if return_endpoints:
             return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, replace_embeds)
         return layer_out
+
+
+def vec_lookup(x: np.ndarray, emb_space: np.ndarray, norm_ord) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Performs the vector lookup with a normal Python function (non TF) which can be used in the TF graph.
+    Its memory requirements are lower than the TF version with broadcasting, because the data is processed sequentially.
+    :param x: Tensor of shape [batch, r, q]
+    :param emb_space: Embedding space values [n, vec_size]
+    :param norm_ord: Order of the distance norm.
+    :return: Tuple with (quantized x, distance between xs and embedding vectors, chosen embedding indices)
+    """
+    in_shape = x.shape
+    x_val = np.reshape(x, [in_shape[0] * in_shape[1], in_shape[2]])
+    y, dist, emb_index = [], [], []
+    for vec in x_val:
+        vec = np.expand_dims(vec, 0)
+        diff = vec - emb_space
+        vec_dist = np.linalg.norm(diff, norm_ord, axis=1)
+        dist.append(vec_dist)
+        closest_emb_index = np.argmin(vec_dist, axis=0)
+        y.append(emb_space[closest_emb_index])
+        emb_index.append(closest_emb_index)
+    y = np.asarray(y, np.float32)
+    y_out = np.reshape(y, in_shape)
+    dist_out = np.reshape(np.asarray(dist, np.float32), [in_shape[0], in_shape[1], emb_space.shape[0]])
+    emb_index_out = np.reshape(np.asarray(emb_index, np.int32), in_shape[:-1])
+    return y_out, dist_out, emb_index_out
 
 
 def strict_upper_triangular_part(matrix: tf.Tensor) -> tf.Tensor:
