@@ -1,33 +1,29 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/NIPS-2018-Adversarial-Vision-Challenge/deployment/nips-tensorflow-base-image/TrainingProto"
 	"google.golang.org/grpc"
 	"log"
-	"os"
 	"time"
 )
 
 // For the generation of protobuf:
 // protoc -I  . TrainingProto.proto --go_out=plugins=grpc:./TrainingManager/TrainingProto
-
-var trainingJob TrainingProto.TrainingJob
-var client TrainingProto.TrainingProtoClient
+var (
+ trainingJob TrainingProto.TrainingJob
+ client TrainingProto.TrainingProtoClient
+ serverAddr string
+ modelId string
+)
 
 func main() {
-	modelId := os.Getenv("MODEL_ID")
-	if len(modelId) == 0 {
-		log.Fatalf("no model id specified")
-		return
-	}
+	flag.StringVar(&serverAddr,"url","127.0.0.1","URL to the training manager")
+	flag.StringVar(&modelId, "model_id","no-model", "Name of the trained model")
+	flag.Parse()
 
-	serverAddr := os.Getenv("TRAININGMANAGER_URL")
-	if len(serverAddr) == 0 {
-		log.Fatalf("no url of TrainingManager specified")
-		return
-	}
-
+	logWithDate("Starting ..")
 	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatal(err)
@@ -39,8 +35,8 @@ func main() {
 
 	client = TrainingProto.NewTrainingProtoClient(conn)
 
-	go EventListener(&client);
-	/* response, err := client.RegisterTraining(context.Background(), &trainingJob)
+	/*go EventListener(&client);
+	response, err := client.RegisterTraining(context.Background(), &trainingJob)
 	if err != nil || !response.Success {
 		log.Fatalf("Couldn't register %s at TrainingManager (%s)", modelId, serverAddr)
 		return
