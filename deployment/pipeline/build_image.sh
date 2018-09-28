@@ -26,7 +26,7 @@ apt-get update
 echo "Install docker .."
 apt-get install -y docker-ce
 
-cp vq-layer $MODEL_FOLDER
+cp -r vq-layer $MODEL_FOLDER
 
 echo "Building Docker Image .."
 docker build -t gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION  --build-arg MODEL_ID_ARG=$MODEL_FOLDER-$MODEL_VERSION --build-arg BUCKET_NAME_ARG=$3 $MODEL_FOLDER
