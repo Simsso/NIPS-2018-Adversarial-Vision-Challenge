@@ -1,11 +1,11 @@
 import tensorflow as tf
-import numpy as np
 from collections import namedtuple
-from typing import List
 
 from resnet_base.trainer.base_trainer import BaseTrainer
 from resnet_base.model.resnet import ResNet
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
+from resnet_base.util.logger.logger import Logger
+from resnet_base.util.logger.accumulator import ScalarAccumulator
 
 Metrics = namedtuple('Metrics', 'accuracy loss')
 FLAGS = tf.flags.FLAGS
@@ -17,6 +17,11 @@ class ResNetTrainer(BaseTrainer):
         self.resnet = model
         self.pipeline = pipeline
         self.__build_train_op()
+        self.__register_log_tensors()
+
+    def __register_log_tensors(self) -> None:
+        self.train_logger.add(self.resnet.loss, ScalarAccumulator('loss', 2))
+        self.train_logger.add(self.resnet.accuracy, ScalarAccumulator('accuracy', 2))
 
     def __build_train_op(self) -> None:
         """
@@ -32,71 +37,38 @@ class ResNetTrainer(BaseTrainer):
         num_samples = TinyImageNetPipeline.num_train_samples
 
         self.pipeline.switch_to(tf.estimator.ModeKeys.TRAIN)
-        metrics = ResNetTrainer.__generic_epoch_with_params(self.pipeline.batch_size, num_samples,
-                                                            batch_step=self.train_step, metrics_log=self.train_log)
-        tf.logging.info("Training metrics: accuracy = {}, loss = {}".format(metrics.accuracy, metrics.loss))
+        ResNetTrainer.__generic_epoch_with_params(self.pipeline.batch_size, num_samples, batch_step=self.train_step)
 
-    def train_log(self, batch_index: int, batch_metrics: List[Metrics]):
-        log_every = 1
-        if not batch_index % log_every:
-            last_metrics = batch_metrics[-log_every:]
-            average_accuracy, average_loss = np.mean(np.array(last_metrics), axis=0)
-            num_batches_per_epoch = TinyImageNetPipeline.num_train_samples // self.pipeline.batch_size
-            progress_in_epoch = float(batch_index) / float(num_batches_per_epoch)
-
-            summary = tf.Summary(value=[
-                tf.Summary.Value(tag='accuracy', simple_value=average_accuracy),
-                tf.Summary.Value(tag='loss', simple_value=average_loss),
-            ])
-            self.train_writer.add_summary(summary, global_step=self.model.global_step.eval() + progress_in_epoch)
-
-    def train_step(self) -> Metrics:
+    def train_step(self):
         """
-        Performs one training step (i.e. one batch) - and returns the batch's accuracy and loss.
-        :return: a Metrics tuple of (accuracy, loss) for this training step
+        Performs one training step (i.e. one batch).
         """
-        _, accuracy, loss = self.sess.run([self.train_op, self.resnet.accuracy, self.resnet.loss],
-                                          feed_dict={
-                                              self.resnet.is_training: True
-                                          })
-        tf.logging.info("Train step metrics: accuracy = {}, loss = {}".format(accuracy, loss))
-        return Metrics(accuracy, loss)
+        vals = self.sess.run([self.train_op] + self.train_logger.tensors, feed_dict={self.resnet.is_training: True})[1:]
+        print("Train step completed")
+        print(vals)
+        self.train_logger.step_completed(vals)
 
     def val_epoch(self) -> None:
         num_samples = TinyImageNetPipeline.num_valid_samples
 
         self.pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
-        metrics = ResNetTrainer.__generic_epoch_with_params(self.pipeline.batch_size, num_samples,
-                                                            batch_step=self.val_step)
-        tf.logging.info("Validation metrics: accuracy = {}, loss = {}".format(metrics.accuracy, metrics.loss))
+        ResNetTrainer.__generic_epoch_with_params(self.pipeline.batch_size, num_samples, batch_step=self.val_step)
 
-    def val_step(self) -> Metrics:
+    def val_step(self) -> None:
         """
-        Performs one validation step (i.e. one batch) - and returns the batch's accuracy and loss.
-        :return: a Metrics tuple of (accuracy, loss) for this validation step
+        Performs one validation step (i.e. one batch).
         """
-        accuracy, loss = self.sess.run([self.resnet.accuracy, self.resnet.loss],
-                                       feed_dict={
-                                           self.resnet.is_training: False
-                                       })
-        return Metrics(accuracy, loss)
+        vals = self.sess.run(self.validation_logger.tensors, feed_dict={self.resnet.is_training: False})
+        self.validation_logger.step_completed(vals)
 
     @staticmethod
-    def __generic_epoch_with_params(batch_size: int, num_samples: int, batch_step, metrics_log) -> Metrics:
+    def __generic_epoch_with_params(batch_size: int, num_samples: int, batch_step):
         """
         Runs one epoch with the given parameters. Calls the given step function for each batch.
         :param batch_size: the number of samples used at every step
         :param num_samples: the total size of the data set
         :param batch_step: a function that runs and returns the accuracy and loss metrics for the batch
-        :param metrics_log: a function that takes the batch index and all Metrics tuples
-        :return: a Metrics tuple of (accuracy, loss), averaged over all batches
         """
-        metrics = []
         num_batches = num_samples // batch_size
         for i in range(num_batches):
-            batch_metrics = batch_step()
-            metrics.append((batch_metrics.accuracy, batch_metrics.loss))
-            metrics_log(i, metrics)
-
-        accuracy_mean, loss_mean = np.mean(metrics, axis=0)
-        return Metrics(accuracy_mean, loss_mean)
+            batch_step()

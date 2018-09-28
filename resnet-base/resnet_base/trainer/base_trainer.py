@@ -1,10 +1,11 @@
 import tensorflow as tf
 from resnet_base.model.base_model import BaseModel
+from resnet_base.util.logger.logger import TrainingLogger, ValidationLogger
 
 tf.flags.DEFINE_float("learning_rate", 1e-4, "The learning rate used for training.")
 tf.flags.DEFINE_integer("num_epochs", 10, "The number of epochs for which training is performed.")
-tf.flags.DEFINE_string("train_log_dir", "../tf_logs/train", "The directory used to save the training summaries.")
-tf.flags.DEFINE_string("val_log_dir", "../tf_logs/val", "The directory used to save the validation summaries.")
+tf.flags.DEFINE_string("train_log_dir", "tf_logs/train", "The directory used to save the training summaries.")
+tf.flags.DEFINE_string("val_log_dir", "tf_logs/val", "The directory used to save the validation summaries.")
 
 FLAGS = tf.flags.FLAGS
 
@@ -16,15 +17,14 @@ class BaseTrainer:
         self.__build_log_writer()
 
     def __build_log_writer(self) -> None:
-        self.train_writer = tf.summary.FileWriter(FLAGS.train_log_dir, self.sess.graph)
-        self.val_writer = tf.summary.FileWriter(FLAGS.val_log_dir, self.sess.graph)
+        self.train_logger = TrainingLogger(self.sess, FLAGS.train_log_dir)
+        self.validation_logger = ValidationLogger(self.sess, FLAGS.val_log_dir)
 
     def train(self) -> None:
         """
         Performs training for FLAGS.num_epochs epochs and runs one validation epoch after each training epoch.
         """
         init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-        summary_merged = tf.summary.merge_all()
         self.sess.run(init)
 
         # restore weights (as specified in the FLAGS)
@@ -35,13 +35,9 @@ class BaseTrainer:
 
         for _ in range(start_epoch, FLAGS.num_epochs + 1):
             self.train_epoch()
-            summary, _ = self.sess.run([summary_merged, self.model.increment_current_epoch])
-            self.train_writer.add_summary(summary, global_step=self.model.global_step)
 
             # run validation epoch to monitor training
             self.val_epoch()
-            summary = self.sess.run(summary_merged)
-            self.val_writer.add_summary(summary, global_step=self.model.global_step)
 
     def train_epoch(self) -> None:
         """
@@ -56,4 +52,3 @@ class BaseTrainer:
         Should use the batch size defined in FLAGS.val_batch_size.
         """
         raise NotImplementedError
-
