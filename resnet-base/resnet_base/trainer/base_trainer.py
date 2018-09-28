@@ -1,6 +1,6 @@
 import tensorflow as tf
 from resnet_base.model.base_model import BaseModel
-from resnet_base.util.logger.logger import TrainingLogger, ValidationLogger
+from resnet_base.util.logger.logger import Logger
 
 tf.flags.DEFINE_float("learning_rate", 1e-4, "The learning rate used for training.")
 tf.flags.DEFINE_integer("num_epochs", 10, "The number of epochs for which training is performed.")
@@ -17,8 +17,8 @@ class BaseTrainer:
         self.__build_log_writer()
 
     def __build_log_writer(self) -> None:
-        self.train_logger = TrainingLogger(self.sess, FLAGS.train_log_dir)
-        self.validation_logger = ValidationLogger(self.sess, FLAGS.val_log_dir)
+        self.train_logger = Logger(self.sess, FLAGS.train_log_dir)
+        self.validation_logger = Logger(self.sess, FLAGS.val_log_dir)
 
     def train(self) -> None:
         """
@@ -32,6 +32,8 @@ class BaseTrainer:
 
         # get the current epoch so we can re-start training from there
         start_epoch = self.model.current_epoch.eval(self.sess)
+
+        self.val_epoch()  # perform at least one validation epoch before training
 
         for _ in range(start_epoch, FLAGS.num_epochs + 1):
             self.train_epoch()

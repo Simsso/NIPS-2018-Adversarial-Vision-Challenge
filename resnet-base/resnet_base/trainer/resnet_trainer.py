@@ -16,12 +16,18 @@ class ResNetTrainer(BaseTrainer):
         self.resnet = model
         self.pipeline = pipeline
         self.__build_train_op()
-        self.__register_log_tensors()
+        self.__init_loggers()
 
-    def __register_log_tensors(self) -> None:
-        self.train_logger.add(self.resnet.loss, ScalarAccumulator('loss', 10))
-        self.train_logger.add(self.resnet.accuracy, ScalarAccumulator('accuracy', 10))
-        self.train_logger.add(self.resnet.vq_access_count, HistogramAccumulator('access_count', 10))
+    def __init_loggers(self) -> None:
+        train_acc = 10
+        self.__register_log_tensor(self.resnet.loss, ScalarAccumulator, 'loss', train_acc)
+        self.__register_log_tensor(self.resnet.accuracy, ScalarAccumulator, 'accuracy', train_acc)
+        self.__register_log_tensor(self.resnet.vq_access_count, HistogramAccumulator, 'access_count', train_acc)
+
+    def __register_log_tensor(self, tensor: tf.Tensor, accumulator_class, name: str, train_accumulation: int) -> None:
+        self.train_logger.add(tensor, accumulator_class(name, train_accumulation))
+        valid_steps = TinyImageNetPipeline.num_valid_samples // self.pipeline.batch_size
+        self.validation_logger.add(tensor, accumulator_class(name, valid_steps))
 
     def __build_train_op(self) -> None:
         """
@@ -59,6 +65,7 @@ class ResNetTrainer(BaseTrainer):
         Performs one validation step (i.e. one batch).
         """
         vals = self.sess.run(self.validation_logger.tensors, feed_dict={self.resnet.is_training: False})
+        print("Validation step completed")
         self.validation_logger.step_completed(vals)
 
     @staticmethod

@@ -24,11 +24,6 @@ class Logger:
     def step_completed(self, vals: List[any]):
         self.step_count += 1
         self.update_accumulators(vals)
-
-
-class TrainingLogger(Logger):
-    def step_completed(self, vals: List[any]):
-        super(TrainingLogger, self).step_completed(vals)
         summary_values = []
         for acc in self.accumulators:
             if len(acc.values) >= acc.log_frequency:
@@ -36,8 +31,3 @@ class TrainingLogger(Logger):
                 acc.flush()
         summary = tf.Summary(value=summary_values)
         self.writer.add_summary(summary, global_step=self.step_count)
-
-
-class ValidationLogger(Logger):
-    def step_completed(self, vals: List[any]):
-        return super().step_completed(vals)
