@@ -27,7 +27,7 @@ class TinyImageNetPipeline(BasePipeline):
 
     __supported_modes = [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]
 
-    def __init__(self, data_dir: str = None, batch_size: int = 256):
+    def __init__(self, data_dir: str = None, batch_size: int = 128):
         """
         :param data_dir: Directory of the folder from http://cs231n.stanford.edu/tiny-imagenet-200.zip
         :param batch_size: Batch size used for training and validation.

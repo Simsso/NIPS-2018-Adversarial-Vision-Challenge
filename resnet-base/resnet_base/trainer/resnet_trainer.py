@@ -19,9 +19,9 @@ class ResNetTrainer(BaseTrainer):
         self.__register_log_tensors()
 
     def __register_log_tensors(self) -> None:
-        self.train_logger.add(self.resnet.loss, ScalarAccumulator('loss', 2))
-        self.train_logger.add(self.resnet.accuracy, ScalarAccumulator('accuracy', 2))
-        self.train_logger.add(self.resnet.vq_access_count, HistogramAccumulator('access_count', 2))
+        self.train_logger.add(self.resnet.loss, ScalarAccumulator('loss', 10))
+        self.train_logger.add(self.resnet.accuracy, ScalarAccumulator('accuracy', 10))
+        self.train_logger.add(self.resnet.vq_access_count, HistogramAccumulator('access_count', 10))
 
     def __build_train_op(self) -> None:
         """
