@@ -5,12 +5,17 @@ from vq_layer import vector_quantization as vq
 
 
 class VQResNet(ResNet):
+
+    def __init__(self, x: tf.Tensor = None, labels: tf.Tensor = None):
+        super().__init__(x, labels)
+
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         x = ResNet._first_conv(x)  # 16x16x64
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
-                x = tf.reshape(x, [-1, 256, 64])
-                x = vq(x, n=8, alpha=1e-1, beta=0, gamma=0, num_splits=8)
-                x = tf.reshape(x, [-1, 16, 16, 64])
+            x = tf.reshape(x, [-1, 256, 64])
+            x, _, counter, *_ = vq(x, n=8, alpha=1e-1, beta=0, gamma=0, num_splits=8, return_endpoints=True)
+            self.vq_access_count = counter
+            x = tf.reshape(x, [-1, 16, 16, 64])
         x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
         x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
         x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)

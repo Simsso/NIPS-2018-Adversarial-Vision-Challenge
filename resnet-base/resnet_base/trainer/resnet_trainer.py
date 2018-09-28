@@ -2,17 +2,16 @@ import tensorflow as tf
 from collections import namedtuple
 
 from resnet_base.trainer.base_trainer import BaseTrainer
-from resnet_base.model.resnet import ResNet
+from resnet_base.model.vq_resnet import VQResNet
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
-from resnet_base.util.logger.logger import Logger
-from resnet_base.util.logger.accumulator import ScalarAccumulator
+from resnet_base.util.logger.accumulator import ScalarAccumulator, HistogramAccumulator
 
 Metrics = namedtuple('Metrics', 'accuracy loss')
 FLAGS = tf.flags.FLAGS
 
 
 class ResNetTrainer(BaseTrainer):
-    def __init__(self, model: ResNet, pipeline: TinyImageNetPipeline):
+    def __init__(self, model: VQResNet, pipeline: TinyImageNetPipeline):
         super().__init__(model)
         self.resnet = model
         self.pipeline = pipeline
@@ -22,6 +21,7 @@ class ResNetTrainer(BaseTrainer):
     def __register_log_tensors(self) -> None:
         self.train_logger.add(self.resnet.loss, ScalarAccumulator('loss', 2))
         self.train_logger.add(self.resnet.accuracy, ScalarAccumulator('accuracy', 2))
+        self.train_logger.add(self.resnet.vq_access_count, HistogramAccumulator('access_count', 2))
 
     def __build_train_op(self) -> None:
         """
