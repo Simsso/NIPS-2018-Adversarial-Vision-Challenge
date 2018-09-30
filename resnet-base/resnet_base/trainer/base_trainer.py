@@ -4,8 +4,8 @@ from resnet_base.util.logger.logger import Logger
 
 tf.flags.DEFINE_float("learning_rate", 1e-4, "The learning rate used for training.")
 tf.flags.DEFINE_integer("num_epochs", 10, "The number of epochs for which training is performed.")
-tf.flags.DEFINE_string("train_log_dir", "tf_logs/train", "The directory used to save the training summaries.")
-tf.flags.DEFINE_string("val_log_dir", "tf_logs/val", "The directory used to save the validation summaries.")
+tf.flags.DEFINE_string("train_log_dir", "../tf_logs/train", "The directory used to save the training summaries.")
+tf.flags.DEFINE_string("val_log_dir", "../tf_logs/val", "The directory used to save the validation summaries.")
 
 FLAGS = tf.flags.FLAGS
 
@@ -34,12 +34,9 @@ class BaseTrainer:
         start_epoch = self.model.current_epoch.eval(self.sess)
 
         self.val_epoch()  # perform at least one validation epoch before training
-
         for _ in range(start_epoch, FLAGS.num_epochs + 1):
             self.train_epoch()
-
-            # run validation epoch to monitor training
-            self.val_epoch()
+            self.val_epoch()  # run validation epoch to monitor training
 
     def train_epoch(self) -> None:
         """

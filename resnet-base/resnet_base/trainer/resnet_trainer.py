@@ -6,7 +6,6 @@ from resnet_base.model.vq_resnet import VQResNet
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.util.logger.accumulator import ScalarAccumulator, HistogramAccumulator
 
-Metrics = namedtuple('Metrics', 'accuracy loss')
 FLAGS = tf.flags.FLAGS
 
 
@@ -19,10 +18,9 @@ class ResNetTrainer(BaseTrainer):
         self.__init_loggers()
 
     def __init_loggers(self) -> None:
-        train_acc = 10
-        self.__register_log_tensor(self.resnet.loss, ScalarAccumulator, 'loss', train_acc)
-        self.__register_log_tensor(self.resnet.accuracy, ScalarAccumulator, 'accuracy', train_acc)
-        self.__register_log_tensor(self.resnet.vq_access_count, HistogramAccumulator, 'access_count', train_acc)
+        self.__register_log_tensor(self.resnet.loss, ScalarAccumulator, 'loss', 20)
+        self.__register_log_tensor(self.resnet.accuracy, ScalarAccumulator, 'accuracy', 20)
+        self.__register_log_tensor(self.resnet.vq_access_count, HistogramAccumulator, 'access_count', 10)
 
     def __register_log_tensor(self, tensor: tf.Tensor, accumulator_class, name: str, train_accumulation: int) -> None:
         self.train_logger.add(tensor, accumulator_class(name, train_accumulation))
@@ -71,7 +69,7 @@ class ResNetTrainer(BaseTrainer):
         Runs one epoch with the given parameters. Calls the given step function for each batch.
         :param batch_size: the number of samples used at every step
         :param num_samples: the total size of the data set
-        :param batch_step: a function that runs and returns the accuracy and loss metrics for the batch
+        :param batch_step: a function that runs the batch
         """
         num_batches = num_samples // batch_size
         for i in range(num_batches):

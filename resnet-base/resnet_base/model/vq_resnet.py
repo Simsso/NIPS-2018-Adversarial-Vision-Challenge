@@ -5,10 +5,6 @@ from vq_layer import vector_quantization as vq
 
 
 class VQResNet(ResNet):
-
-    def __init__(self, x: tf.Tensor = None, labels: tf.Tensor = None):
-        super().__init__(x, labels)
-
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         x = ResNet._first_conv(x)  # 16x16x64
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
