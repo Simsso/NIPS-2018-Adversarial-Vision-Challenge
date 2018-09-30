@@ -3,38 +3,96 @@ import tensorflow as tf
 
 
 class Accumulator:
+    """
+    Abstract class for TensorBoard logging accumulators. An accumulator aggregates multiple values of the same kind and
+    reduces them into a `tf.Summary.Value` object which can then be written to TensorBoard.
+    """
     def __init__(self, name: str, log_frequency: int):
-        self.values = []
-        self.name = name
-        self.log_frequency = log_frequency
+        """
+        :param name: Name of the accumulator which will appear in TensorBoard
+        :param log_frequency: Lowest number of values to aggregate until writing to TensorBoard
+        """
+        self.__values = []
+        self.__name = name
+        self.__log_frequency = log_frequency
+
+    def log_ready(self):
+        """
+        :return: `True` if enough values have been accumulated to write, `False` otherwise.
+        """
+        return len(self.__values) >= self.__log_frequency
 
     def add(self, val: any) -> None:
-        self.values.append(val)
+        """
+        Adds a new value to the accumulator. Must be called with values of the same type.
+        :param val: Value to add
+        """
+        self.__values.append(val)
 
-    def reduce(self) -> any:
+    def __reduce(self) -> any:
+        """
+        Reduces the accumulated values into a single value. Implementation depends on the type of values.
+        :return: Accumulated value
+        """
         raise NotImplementedError()
 
     def to_summary_value(self) -> tf.Summary.Value:
+        """
+        Converts the accumulator into a summary value and deletes the accumulated values in order to collect a new list
+        of values.
+        :return: Summary value which can be added to a `tf.Summary` object
+        """
+        summary_value = self.__get_summary_value()
+        self.__flush()
+        return summary_value
+
+    def __get_summary_value(self) -> tf.Summary.Value:
+        """
+        :return: Summary value which can be added to a `tf.Summary` object
+        """
         raise NotImplementedError()
 
-    def flush(self) -> None:
-        self.values = []
+    def __flush(self) -> None:
+        """
+        Removes all accumulated values.
+        """
+        self.__values = []
 
 
 class ScalarAccumulator(Accumulator):
-    def reduce(self) -> any:
-        return np.mean(self.values)
+    """
+    Accumulator for scalar values, e.g. loss or accuracy.
+    """
+    def __reduce(self) -> any:
+        """
+        Reduces the accumulated values into a single value by computing the mean.
+        :return: Accumulated value
+        """
+        return np.mean(self.__values)
 
-    def to_summary_value(self) -> tf.Summary.Value:
-        return tf.Summary.Value(tag=self.name, simple_value=self.reduce())
+    def __get_summary_value(self) -> tf.Summary.Value:
+        """
+        :return: Scalar summary value which can be added to a `tf.Summary` object
+        """
+        return tf.Summary.Value(tag=self.__name, simple_value=self.__reduce())
 
 
 class HistogramAccumulator(Accumulator):
-    def reduce(self) -> any:
-        return np.mean(np.array(self.values), axis=0)
+    """
+    Accumulator for histogram values, e.g. embedding space usage.
+    """
+    def __reduce(self) -> any:
+        """
+        Reduces the accumulated values into a single value by computing the mean.
+        :return: Accumulated value
+        """
+        return np.mean(np.array(self.__values), axis=0)
 
-    def to_summary_value(self) -> tf.Summary.Value:
-        values = self.reduce()
+    def __get_summary_value(self) -> tf.Summary.Value:
+        """
+        :return: Histogram summary value which can be added to a `tf.Summary` object
+        """
+        values = self.__reduce()
         counts, bin_edges = np.histogram(values, bins=1000)
 
         hist = tf.HistogramProto()
@@ -50,4 +108,4 @@ class HistogramAccumulator(Accumulator):
         for c in counts:
             hist.bucket.append(c)
 
-        return tf.Summary.Value(tag=self.name, histo=hist)
+        return tf.Summary.Value(tag=self.__name, histo=hist)

@@ -50,8 +50,6 @@ class ResNetTrainer(BaseTrainer):
         Performs one training step (i.e. one batch).
         """
         vals = self.sess.run([self.train_op] + self.train_logger.tensors, feed_dict={self.resnet.is_training: True})[1:]
-        print("Train step completed")
-        print(vals)
         self.train_logger.step_completed(vals)
 
     def val_epoch(self) -> None:
@@ -65,7 +63,6 @@ class ResNetTrainer(BaseTrainer):
         Performs one validation step (i.e. one batch).
         """
         vals = self.sess.run(self.validation_logger.tensors, feed_dict={self.resnet.is_training: False})
-        print("Validation step completed")
         self.validation_logger.step_completed(vals)
 
     @staticmethod
