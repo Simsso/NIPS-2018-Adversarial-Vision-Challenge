@@ -15,18 +15,22 @@ class Accumulator:
         self._values = []
         self._name = name
         self._log_frequency = log_frequency
+        self._non_increments_added = 0
 
     def log_ready(self):
         """
         :return: `True` if enough values have been accumulated to write, `False` otherwise.
         """
-        return len(self._values) >= self._log_frequency
+        return len(self._values) - self._non_increments_added >= self._log_frequency
 
-    def add(self, val: any) -> None:
+    def add(self, val: any, increment: bool = True) -> None:
         """
         Adds a new value to the accumulator. Must be called with values of the same type.
         :param val: Value to add
+        :param increment: Whether or not to increment the step counter.
         """
+        if not increment:
+            self._non_increments_added += 1
         self._values.append(val)
 
     def _reduce(self) -> any:
@@ -57,6 +61,7 @@ class Accumulator:
         Removes all accumulated values.
         """
         self._values = []
+        self._non_increments_added = 0
 
 
 class ScalarAccumulator(Accumulator):

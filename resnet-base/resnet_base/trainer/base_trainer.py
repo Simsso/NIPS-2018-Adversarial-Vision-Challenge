@@ -33,7 +33,7 @@ class BaseTrainer:
         # get the current epoch so we can re-start training from there
         start_epoch = self.model.current_epoch.eval(self.sess)
 
-        self.val_epoch()  # perform at least one validation epoch before training
+        # self.val_epoch()  # perform at least one validation epoch before training
         for _ in range(start_epoch, FLAGS.num_epochs + 1):
             self.train_epoch()
             self.val_epoch()  # run validation epoch to monitor training
