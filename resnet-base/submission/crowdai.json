@@ -1,0 +1,7 @@
+{
+    "challenge_id" : "nips-2018-avc-robust-model-track",
+    "grader_id": "nips-2018-avc-robust-model-track",
+    "authors" : ["timodenk", "samedguener", "florianpfisterer"],
+    "description" : "Adversarial-ResNet",
+    "gpu": true
+}

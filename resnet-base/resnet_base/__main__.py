@@ -1,7 +1,7 @@
 import tensorflow as tf
 import resnet_base.mains.eval
 
-main = resnet_base.mains.eval.main
+main = resnet_base.mains.submit.main
 
 
 if __name__ == "__main__":

@@ -26,4 +26,4 @@ setup(name="resnet_base",
       packages=['resnet_base'],
       description="ResNet for TinyImageNet classification",
       install_requires=get_install_requires(),
-      author="Timo Denk, Florian Pfisterer, Samed Güner")
+      author="Timo Denk, Florian Pfisterer, Samed Guener")
