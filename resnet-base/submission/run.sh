@@ -4,9 +4,9 @@
 # cd vq-layer && pip install . && cd ..
 
 cd ..
-python setup.py install && \
+python3 setup.py install
 
 echo "Starting model server..."
-python -m resnet_base \
-    --pretrained_checkpoint "${HOME}/.data/tiny_imagenet_alp05_2018_06_26.ckpt"
-    # when available, add --global_checkpoint "${HOME}/.data/resnet_base_global.ckpt"
+python3 -m resnet_base \
+    --pretrained_checkpoint "${HOME}/.models/tiny_imagenet_alp05_2018_06_26.ckpt"
+    # when available, add --global_checkpoint "${HOME}/.models/resnet_base_global.ckpt"
