@@ -7,13 +7,13 @@ from resnet_base.util.logger.factory import LoggerFactory
 
 def main(args):
     tf.logging.set_verbosity(tf.logging.DEBUG)
-    tf.set_random_seed(234957)
+    tf.set_random_seed(15092017)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
     sess = tf.Session(config=config)
     with sess:
-        pipeline = TinyImageNetPipeline(batch_size=128)
+        pipeline = TinyImageNetPipeline(batch_size=64)
         imgs, labels = pipeline.get_iterator().get_next()
 
         logger_factory = LoggerFactory(TinyImageNetPipeline.num_valid_samples // pipeline.batch_size)
