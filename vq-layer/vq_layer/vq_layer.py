@@ -4,13 +4,13 @@ from typing import Union
 from collections import namedtuple
 
 VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count', 'distance', 'emb_spacing',
-                                         'replace_embeds'])
+                                         'replace_embeds', 'emb_space_batch_init'])
 
 
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
                         lookup_ord: int = 2,
-                        embedding_initializer: tf.keras.initializers.Initializer = tf.random_normal_initializer,
+                        embedding_initializer: Union[str, tf.keras.initializers.Initializer] = tf.random_normal_initializer,
                         num_splits: int = 1, num_embeds_replaced: int = 0, return_endpoints: bool = False)\
         -> Union[tf.Tensor, VQEndpoints]:
     """
@@ -21,7 +21,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param beta: Weighting of the beta-loss term (all vectors distance penalty)
     :param gamma: Weighting of the coulomb-loss term (embedding space spacing)
     :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]
-    :param embedding_initializer: Initializer for the embedding space variable
+    :param embedding_initializer: Initializer for the embedding space variable or 'emb_space_batch_init'
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param num_embeds_replaced: If greater than 0, this adds an op to the endpoints tuple which replaces the respective
     number of least used embedding vectors in the batch with the batch inputs most distant from the embedding
@@ -30,12 +30,13 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
     :return: Only the layer output if return_endpoints is False
-             5-tuple with the values:
+             VQEndpoints-tuple with the values:
                 Layer output
                 Embedding space
                 Access counter with integral values indicating how often each vector in the embedding space was used
                 Distance of inputs from the embedding space vectors
                 Embedding spacing vector where each entry indicates the distance between embedding space vectors
+                Embedding space batch initialization operation (set if embedding_initializer is 'emb_space_batch_init')
     """
     if n <= 0:
         raise ValueError("Parameter 'n' must be greater than 0.")
@@ -59,6 +60,10 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     if not in_shape[2] % num_splits == 0:
         raise ValueError("Parameter 'num_splits' must be a divisor of the third axis of 'x'. Got {} and {}."
                          .format(num_splits, in_shape[2]))
+
+    dynamic_emb_space_init = (embedding_initializer == 'emb_space_batch_init')
+    if dynamic_emb_space_init:
+        embedding_initializer = tf.zeros_initializer
 
     vec_size = in_shape[2] // num_splits
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
@@ -114,12 +119,18 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices,
                                                updates=furthest_away_inputs)
 
+        emb_space_batch_init = None
+        if dynamic_emb_space_init:
+            emb_space_batch_init = tf.assign(emb_space, tf.slice(tf.reshape(x, [-1, vec_size]), tf.zeros_like(emb_space.shape), emb_space.shape),
+                                             validate_shape=True)
+
         # return selection in original size
         # skip this layer when doing back-prop
         layer_out = tf.reshape(tf.stop_gradient(y - x) + x, in_shape)
 
         if return_endpoints:
-            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, replace_embeds)
+            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, replace_embeds,
+                               emb_space_batch_init)
         return layer_out
 
 
