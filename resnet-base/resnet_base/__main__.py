@@ -1,5 +1,5 @@
 import tensorflow as tf
-import resnet_base.mains.eval
+import resnet_base.mains.submit
 
 main = resnet_base.mains.submit.main
 
