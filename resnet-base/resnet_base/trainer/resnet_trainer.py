@@ -1,5 +1,4 @@
 import tensorflow as tf
-from collections import namedtuple
 
 from resnet_base.trainer.base_trainer import BaseTrainer
 from resnet_base.model.vq_resnet import VQResNet
@@ -18,9 +17,9 @@ class ResNetTrainer(BaseTrainer):
         self.__init_loggers()
 
     def __init_loggers(self) -> None:
-        self.__register_log_tensor(self.resnet.loss, ScalarAccumulator, 'loss', 20)
-        self.__register_log_tensor(self.resnet.accuracy, ScalarAccumulator, 'accuracy', 20)
-        self.__register_log_tensor(self.resnet.vq_access_count, HistogramAccumulator, 'access_count', 10)
+        self.__register_log_tensor(self.resnet.loss, ScalarAccumulator, 'loss', 2)
+        self.__register_log_tensor(self.resnet.accuracy, ScalarAccumulator, 'accuracy', 2)
+        self.__register_log_tensor(self.resnet.vq_access_count, HistogramAccumulator, 'access_count', 1)
 
     def __register_log_tensor(self, tensor: tf.Tensor, accumulator_class, name: str, train_accumulation: int) -> None:
         self.train_logger.add(tensor, accumulator_class(name, train_accumulation))

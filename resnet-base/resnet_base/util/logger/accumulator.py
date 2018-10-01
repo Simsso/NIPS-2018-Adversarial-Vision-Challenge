@@ -12,22 +12,22 @@ class Accumulator:
         :param name: Name of the accumulator which will appear in TensorBoard
         :param log_frequency: Lowest number of values to aggregate until writing to TensorBoard
         """
-        self.__values = []
-        self.__name = name
-        self.__log_frequency = log_frequency
+        self._values = []
+        self._name = name
+        self._log_frequency = log_frequency
 
     def log_ready(self):
         """
         :return: `True` if enough values have been accumulated to write, `False` otherwise.
         """
-        return len(self.__values) >= self.__log_frequency
+        return len(self._values) >= self._log_frequency
 
     def add(self, val: any) -> None:
         """
         Adds a new value to the accumulator. Must be called with values of the same type.
         :param val: Value to add
         """
-        self.__values.append(val)
+        self._values.append(val)
 
     def _reduce(self) -> any:
         """
@@ -56,7 +56,7 @@ class Accumulator:
         """
         Removes all accumulated values.
         """
-        self.__values = []
+        self._values = []
 
 
 class ScalarAccumulator(Accumulator):
@@ -68,13 +68,13 @@ class ScalarAccumulator(Accumulator):
         Reduces the accumulated values into a single value by computing the mean.
         :return: Accumulated value
         """
-        return np.mean(self.__values)
+        return np.mean(self._values)
 
     def _get_summary_value(self) -> tf.Summary.Value:
         """
         :return: Scalar summary value which can be added to a `tf.Summary` object
         """
-        return tf.Summary.Value(tag=self.__name, simple_value=self._reduce())
+        return tf.Summary.Value(tag=self._name, simple_value=self._reduce())
 
 
 class HistogramAccumulator(Accumulator):
@@ -86,7 +86,7 @@ class HistogramAccumulator(Accumulator):
         Reduces the accumulated values into a single value by computing the mean.
         :return: Accumulated value
         """
-        return np.mean(np.array(self.__values), axis=0)
+        return np.mean(np.array(self._values), axis=0)
 
     def _get_summary_value(self) -> tf.Summary.Value:
         """
@@ -108,4 +108,4 @@ class HistogramAccumulator(Accumulator):
         for c in counts:
             hist.bucket.append(c)
 
-        return tf.Summary.Value(tag=self.__name, histo=hist)
+        return tf.Summary.Value(tag=self._name, histo=hist)
