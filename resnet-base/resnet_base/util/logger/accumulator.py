@@ -29,7 +29,7 @@ class Accumulator:
         """
         self.__values.append(val)
 
-    def __reduce(self) -> any:
+    def _reduce(self) -> any:
         """
         Reduces the accumulated values into a single value. Implementation depends on the type of values.
         :return: Accumulated value
@@ -42,11 +42,11 @@ class Accumulator:
         of values.
         :return: Summary value which can be added to a `tf.Summary` object
         """
-        summary_value = self.__get_summary_value()
+        summary_value = self._get_summary_value()
         self.__flush()
         return summary_value
 
-    def __get_summary_value(self) -> tf.Summary.Value:
+    def _get_summary_value(self) -> tf.Summary.Value:
         """
         :return: Summary value which can be added to a `tf.Summary` object
         """
@@ -63,36 +63,36 @@ class ScalarAccumulator(Accumulator):
     """
     Accumulator for scalar values, e.g. loss or accuracy.
     """
-    def __reduce(self) -> any:
+    def _reduce(self) -> any:
         """
         Reduces the accumulated values into a single value by computing the mean.
         :return: Accumulated value
         """
         return np.mean(self.__values)
 
-    def __get_summary_value(self) -> tf.Summary.Value:
+    def _get_summary_value(self) -> tf.Summary.Value:
         """
         :return: Scalar summary value which can be added to a `tf.Summary` object
         """
-        return tf.Summary.Value(tag=self.__name, simple_value=self.__reduce())
+        return tf.Summary.Value(tag=self.__name, simple_value=self._reduce())
 
 
 class HistogramAccumulator(Accumulator):
     """
     Accumulator for histogram values, e.g. embedding space usage.
     """
-    def __reduce(self) -> any:
+    def _reduce(self) -> any:
         """
         Reduces the accumulated values into a single value by computing the mean.
         :return: Accumulated value
         """
         return np.mean(np.array(self.__values), axis=0)
 
-    def __get_summary_value(self) -> tf.Summary.Value:
+    def _get_summary_value(self) -> tf.Summary.Value:
         """
         :return: Histogram summary value which can be added to a `tf.Summary` object
         """
-        values = self.__reduce()
+        values = self._reduce()
         counts, bin_edges = np.histogram(values, bins=1000)
 
         hist = tf.HistogramProto()
