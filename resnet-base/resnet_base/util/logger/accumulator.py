@@ -74,7 +74,9 @@ class ScalarAccumulator(Accumulator):
         """
         :return: Scalar summary value which can be added to a `tf.Summary` object
         """
-        return tf.Summary.Value(tag=self._name, simple_value=self._reduce())
+        average = self._reduce()
+        tf.logging.debug(average)
+        return tf.Summary.Value(tag=self._name, simple_value=average)
 
 
 class HistogramAccumulator(Accumulator):
@@ -93,6 +95,7 @@ class HistogramAccumulator(Accumulator):
         :return: Histogram summary value which can be added to a `tf.Summary` object
         """
         values = self._reduce()
+        tf.logging.debug(values)
         counts, bin_edges = np.histogram(values, bins=1000)
 
         hist = tf.HistogramProto()

@@ -35,6 +35,7 @@ class BaseModel:
             self.current_epoch = tf.get_variable('current_epoch', shape=(), dtype=tf.int32, trainable=False,
                                                  initializer=tf.constant_initializer(0, dtype=tf.int32))
             self.increment_current_epoch = tf.assign(self.current_epoch, self.current_epoch + 1)
+            tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, self.increment_current_epoch)
 
     def init_global_step(self) -> None:
         """Initialize a TensorFlow variable to use it as global step counter"""
@@ -42,6 +43,7 @@ class BaseModel:
             self.global_step = tf.get_variable('global_step', shape=(), dtype=tf.int32, trainable=False,
                                                initializer=tf.constant_initializer(0, dtype=tf.int32))
             self.increment_global_step = tf.assign(self.global_step, self.global_step + 1)
+            tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, self.increment_global_step)
 
     def init_saver(self) -> None:
         raise NotImplementedError

@@ -17,9 +17,9 @@ class ResNetTrainer(BaseTrainer):
         self.__init_loggers()
 
     def __init_loggers(self) -> None:
-        self.__register_log_tensor(self.resnet.loss, ScalarAccumulator, 'loss', 20)
-        self.__register_log_tensor(self.resnet.accuracy, ScalarAccumulator, 'accuracy', 20)
-        self.__register_log_tensor(self.resnet.vq_access_count, HistogramAccumulator, 'access_count', 40)
+        self.__register_log_tensor(self.resnet.loss, ScalarAccumulator, 'loss', 25)
+        self.__register_log_tensor(self.resnet.accuracy, ScalarAccumulator, 'accuracy', 25)
+        self.__register_log_tensor(self.resnet.vq_access_count, HistogramAccumulator, 'access_count', 100)
 
     def __register_log_tensor(self, tensor: tf.Tensor, accumulator_class, name: str, train_accumulation: int) -> None:
         self.train_logger.add(tensor, accumulator_class(name, train_accumulation))
@@ -33,6 +33,8 @@ class ResNetTrainer(BaseTrainer):
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
+
+            # train only custom variables
             var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.resnet.custom_scope.name)
             self.train_op = optimizer.minimize(self.resnet.loss, var_list=var_list)
 

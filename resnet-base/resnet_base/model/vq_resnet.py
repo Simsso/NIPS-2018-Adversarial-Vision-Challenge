@@ -10,7 +10,7 @@ class VQResNet(ResNet):
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
             x = tf.reshape(x, [-1, 256, 64])
             x, _, counter, *_ = vq(x, n=512, alpha=1, beta=.1, gamma=0, num_splits=8, lookup_ord=1,
-                                   embedding_initializer=tf.random_normal_initializer(0, stddev=1/128.),
+                                   embedding_initializer=tf.random_normal_initializer(0, stddev=1/256., seed=15092017),
                                    return_endpoints=True)
             self.vq_access_count = counter
             x = tf.reshape(x, [-1, 16, 16, 64])
