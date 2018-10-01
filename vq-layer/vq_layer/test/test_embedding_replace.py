@@ -58,6 +58,16 @@ class TestEmbeddingReplace(TFTestCase):
 
         self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=2, num_embeds_replaced=2)
 
+    def test_full_replacement(self):
+        # initial emb space: [0, 0], [1, 1], [2, 2]
+        # x_in:                                             [[0.2, 0.2], [2.5, 2.5], [1, 1], [0.15, -0.15], [2.1, 2.1]]
+        # distance to closest embedding vector (for ord=1):     0.4           1        0          0.3           0.2
+        # used as replacement for the embedding space:           y            y        n           y             n
+        x_in = [[0.2, 0.2], [2.5, 2.5], [1, 1], [0.15, -0.15], [2.1, 2.1]]
+        emb_target = [[0.2, 0.2], [2.5, 2.5], [0.15, -0.15]]
+
+        self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=1, num_embeds_replaced=3)
+
 
 if __name__ == '__main__':
     unittest.main()
