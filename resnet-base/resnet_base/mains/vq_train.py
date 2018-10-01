@@ -6,6 +6,7 @@ from resnet_base.util.logger.factory import LoggerFactory
 
 
 def main(args):
+    tf.reset_default_graph()
     tf.logging.set_verbosity(tf.logging.DEBUG)
     tf.set_random_seed(15092017)
 
@@ -13,14 +14,14 @@ def main(args):
     config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
     sess = tf.Session(config=config)
     with sess:
-        pipeline = TinyImageNetPipeline(batch_size=8)
+        pipeline = TinyImageNetPipeline(batch_size=1)
         imgs, labels = pipeline.get_iterator().get_next()
 
         logger_factory = LoggerFactory(TinyImageNetPipeline.num_valid_samples // pipeline.batch_size)
 
         model = VQResNet(logger_factory, imgs, labels)
 
-        trainer = ResNetTrainer(model, pipeline, virtual_batch_size_factor=1)
+        trainer = ResNetTrainer(model, pipeline, virtual_batch_size_factor=16)
         trainer.train()
 
 

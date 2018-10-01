@@ -33,7 +33,11 @@ class ResNetTrainer(BaseTrainer):
         with tf.control_dependencies(update_ops):
             self.accumulate_gradients_op = [accum_vars[i].assign_add(g[0]) for i, g in enumerate(gradients)]
 
-        self.apply_gradients_op = optimizer.apply_gradients([(accum_vars[i], g[1]) for i, g in enumerate(gradients)])
+            grad_scaling = 1. / self.virtual_batch_size_factor
+        self.apply_gradients_op = optimizer.apply_gradients([
+            (tf.multiply(accum_vars[i], grad_scaling),  # accumulated, averaged gradients
+             g[1])  # variable to update
+            for i, g in enumerate(gradients)])
 
     def train_epoch(self) -> None:
         num_samples = TinyImageNetPipeline.num_train_samples

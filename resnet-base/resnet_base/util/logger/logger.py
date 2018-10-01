@@ -40,7 +40,7 @@ class Logger:
         """
         assert len(vals) == len(self.tensors)
         for i, val in enumerate(vals):
-            self.__accumulators[i].add(val)
+            self.__accumulators[i].add(val, increment)
 
     def step_completed(self, vals: List[any], increment: bool = True) -> None:
         """

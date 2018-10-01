@@ -7,6 +7,7 @@ class Accumulator:
     Abstract class for TensorBoard logging accumulators. An accumulator aggregates multiple values of the same kind and
     reduces them into a `tf.Summary.Value` object which can then be written to TensorBoard.
     """
+
     def __init__(self, name: str, log_frequency: int):
         """
         :param name: Name of the accumulator which will appear in TensorBoard
@@ -68,6 +69,7 @@ class ScalarAccumulator(Accumulator):
     """
     Accumulator for scalar values, e.g. loss or accuracy.
     """
+
     def _reduce(self) -> any:
         """
         Reduces the accumulated values into a single value by computing the mean.
@@ -84,10 +86,24 @@ class ScalarAccumulator(Accumulator):
         return tf.Summary.Value(tag=self._name, simple_value=average)
 
 
+class ScalarSumAccumulator(ScalarAccumulator):
+    """
+    Accumulator for scalar values which are a sum depending on the batch size.
+    """
+
+    def _reduce(self) -> any:
+        """
+        Reduces the accumulated values into a single value by computing the mean corrected by the number of increments.
+        :return: Accumulated value
+        """
+        return np.sum(self._values) / float(len(self._values) - self._non_increments_added)
+
+
 class HistogramAccumulator(Accumulator):
     """
     Accumulator for histogram values, e.g. embedding space usage.
     """
+
     def _reduce(self) -> any:
         """
         Reduces the accumulated values into a single value by computing the mean.
@@ -117,3 +133,12 @@ class HistogramAccumulator(Accumulator):
             hist.bucket.append(c)
 
         return tf.Summary.Value(tag=self._name, histo=hist)
+
+
+class HistogramSumAccumulator(HistogramAccumulator):
+    def _reduce(self) -> any:
+        """
+        Reduces the accumulated values into a single value by computing the mean corrected by the number of increments.
+        :return: Accumulated value
+        """
+        return np.sum(np.array(self._values), axis=0) / float(len(self._values) - self._non_increments_added)
