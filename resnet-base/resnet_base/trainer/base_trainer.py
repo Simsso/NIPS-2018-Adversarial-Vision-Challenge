@@ -17,8 +17,8 @@ class BaseTrainer:
         self.__build_log_writer()
 
     def __build_log_writer(self) -> None:
-        self.train_logger = Logger(self.sess, FLAGS.train_log_dir)
-        self.validation_logger = Logger(self.sess, FLAGS.val_log_dir)
+        self.train_logger = Logger(self.sess, FLAGS.train_log_dir, self.model.global_step)
+        self.validation_logger = Logger(self.sess, FLAGS.val_log_dir, self.model.global_step)
 
     def train(self) -> None:
         """

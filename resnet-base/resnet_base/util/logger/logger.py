@@ -10,17 +10,17 @@ class Logger:
     A logger instance can be used to log to TensorBoard. Opposed to common `tf.summary.` calls, it uses accumulators
     to create summaries over multiple batches.
     """
-    def __init__(self, sess: tf.Session, log_dir: str):
+    def __init__(self, sess: tf.Session, log_dir: str, global_step: tf.Tensor):
         """
         :param sess: TensorFlow session
         :param log_dir: Directory to log the TensorBoard log output to
         """
         self.__log_dir = log_dir
-        self.__step_count = 0
         self.__writer = tf.summary.FileWriter(log_dir, sess.graph)
         self.__sess = sess
         self.tensors = []
         self.__accumulators = []
+        self.__global_step = global_step
 
     def add(self, tensor: tf.Tensor, acc: Accumulator) -> None:
         """
@@ -47,7 +47,6 @@ class Logger:
         :param vals: One value for each entry in the self.tensors list. Commonly called with the return value of
                      `sess.run(logger.tensors)`.
         """
-        self.__step_count += 1
         self.__update_accumulators(vals)
         summary_values = []
         for acc in self.__accumulators:
@@ -58,4 +57,4 @@ class Logger:
             tf.logging.info("Writing custom summary object to '{}'".format(self.__log_dir))
             tf.logging.debug(summary_values)
             summary = tf.Summary(value=summary_values)
-            self.__writer.add_summary(summary, global_step=self.__step_count)
+            self.__writer.add_summary(summary, global_step=self.__global_step)
