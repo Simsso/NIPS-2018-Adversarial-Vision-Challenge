@@ -3,7 +3,7 @@
 # add this when the vq-layer library is needed
 # cd vq-layer && pip install . && cd ..
 
-cd ..
+cd resnet-base
 python3 setup.py install
 
 echo "Starting model server..."
