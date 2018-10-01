@@ -10,7 +10,7 @@ class VQResNet(ResNet):
             x = tf.reshape(x, [-1, 256, 64])
             vq_endpoints = vq(x, n=1024, alpha=.1, beta=.1, gamma=.1, num_splits=16, lookup_ord=1, return_endpoints=True,
                               embedding_initializer=tf.random_normal_initializer(0, stddev=1 / 32., seed=15092017),
-                              num_embeds_replaced=8)
+                              num_embeds_replaced=1)
             x = vq_endpoints.layer_out
             access_count = vq_endpoints.access_count
             self.logger_factory.add_histogram('access_count', access_count, log_frequency=50)
