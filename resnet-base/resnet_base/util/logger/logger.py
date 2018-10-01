@@ -15,6 +15,7 @@ class Logger:
         :param sess: TensorFlow session
         :param log_dir: Directory to log the TensorBoard log output to
         """
+        self.__log_dir = log_dir
         self.__step_count = 0
         self.__writer = tf.summary.FileWriter(log_dir, sess.graph)
         self.__sess = sess
@@ -54,5 +55,7 @@ class Logger:
             if acc.log_ready():
                 summary_values.append(acc.to_summary_value())
         if len(summary_values) > 0:
+            tf.logging.info("Writing custom summary object to '{}'".format(self.__log_dir))
+            tf.logging.debug(summary_values)
             summary = tf.Summary(value=summary_values)
             self.__writer.add_summary(summary, global_step=self.__step_count)
