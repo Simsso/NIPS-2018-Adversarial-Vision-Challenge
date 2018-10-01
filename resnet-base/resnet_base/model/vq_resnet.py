@@ -1,5 +1,4 @@
 import tensorflow as tf
-
 from resnet_base.model.resnet import ResNet
 from vq_layer import vector_quantization as vq
 
@@ -9,10 +8,11 @@ class VQResNet(ResNet):
         x = ResNet._first_conv(x)  # 16x16x64
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
             x = tf.reshape(x, [-1, 256, 64])
-            x, _, counter, *_ = vq(x, n=512, alpha=1, beta=.1, gamma=0, num_splits=8, lookup_ord=1,
-                                   embedding_initializer=tf.random_normal_initializer(0, stddev=1/256., seed=15092017),
+            x, _, counter, *_ = vq(x, n=512, alpha=1, beta=.5, gamma=0, num_splits=16, lookup_ord=1,
+                                   embedding_initializer=tf.random_normal_initializer(0, stddev=1/32., seed=15092017),
                                    return_endpoints=True)
-            self.vq_access_count = counter
+            self.logger_factory.add_histogram('access_count', counter, 50)
+            self.logger_factory.add_scalar('unused_embeddings', tf.nn.zero_fraction(counter), 25)
             x = tf.reshape(x, [-1, 16, 16, 64])
         x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
         x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
