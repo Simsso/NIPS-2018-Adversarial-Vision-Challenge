@@ -1,9 +1,8 @@
 import tensorflow as tf
 from resnet_base.model.base_model import BaseModel
-from resnet_base.util.logger.logger import Logger
 
 tf.flags.DEFINE_float("learning_rate", 1e-3, "The learning rate used for training.")
-tf.flags.DEFINE_integer("num_epochs", 10, "The number of epochs for which training is performed.")
+tf.flags.DEFINE_integer("num_epochs", 25, "The number of epochs for which training is performed.")
 tf.flags.DEFINE_string("train_log_dir", "../tf_logs/train", "The directory used to save the training summaries.")
 tf.flags.DEFINE_string("val_log_dir", "../tf_logs/val", "The directory used to save the validation summaries.")
 
@@ -14,11 +13,12 @@ class BaseTrainer:
     def __init__(self, model: BaseModel):
         self.model = model
         self.sess = tf.get_default_session()
-        self.__build_log_writer()
+        self.__init_log_writer()
 
-    def __build_log_writer(self) -> None:
-        self.train_logger = Logger(self.sess, FLAGS.train_log_dir, self.model.global_step)
-        self.validation_logger = Logger(self.sess, FLAGS.val_log_dir, self.model.global_step)
+    def __init_log_writer(self) -> None:
+        self.train_logger, self.valid_logger = \
+            self.model.logger_factory.create_loggers(self.sess, FLAGS.train_log_dir, FLAGS.val_log_dir,
+                                                     self.model.global_step)
 
     def train(self) -> None:
         """
