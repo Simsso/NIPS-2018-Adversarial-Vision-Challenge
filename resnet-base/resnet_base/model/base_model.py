@@ -6,12 +6,19 @@ https://github.com/MrGemy95/Tensorflow-Project-Template/blob/master/base/base_mo
 import tensorflow as tf
 from typing import Optional
 
+from resnet_base.util.logger.factory import LoggerFactory
+
 tf.flags.DEFINE_string("global_checkpoint", "", "Checkpoint path of all weights.")
 FLAGS = tf.flags.FLAGS
 
 
 class BaseModel:
-    def __init__(self):
+    def __init__(self, logger_factory: LoggerFactory = None):
+
+        if logger_factory is None:
+            logger_factory = LoggerFactory()
+        self.logger_factory = logger_factory
+
         # attributes needed for global_step and global_epoch
         self.current_epoch = None
         self.increment_current_epoch = None

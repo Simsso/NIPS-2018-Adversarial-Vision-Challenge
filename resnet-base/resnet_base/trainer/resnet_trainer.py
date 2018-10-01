@@ -1,30 +1,17 @@
 import tensorflow as tf
-
 from resnet_base.trainer.base_trainer import BaseTrainer
-from resnet_base.model.vq_resnet import VQResNet
+from resnet_base.model.resnet import ResNet
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
-from resnet_base.util.logger.accumulator import ScalarAccumulator, HistogramAccumulator
 
 FLAGS = tf.flags.FLAGS
 
 
 class ResNetTrainer(BaseTrainer):
-    def __init__(self, model: VQResNet, pipeline: TinyImageNetPipeline):
+    def __init__(self, model: ResNet, pipeline: TinyImageNetPipeline):
         super().__init__(model)
         self.resnet = model
         self.pipeline = pipeline
         self.__build_train_op()
-        self.__init_loggers()
-
-    def __init_loggers(self) -> None:
-        self.__register_log_tensor(self.resnet.loss, ScalarAccumulator, 'loss', 25)
-        self.__register_log_tensor(self.resnet.accuracy, ScalarAccumulator, 'accuracy', 25)
-        self.__register_log_tensor(self.resnet.vq_access_count, HistogramAccumulator, 'access_count', 100)
-
-    def __register_log_tensor(self, tensor: tf.Tensor, accumulator_class, name: str, train_accumulation: int) -> None:
-        self.train_logger.add(tensor, accumulator_class(name, train_accumulation))
-        valid_steps = TinyImageNetPipeline.num_valid_samples // self.pipeline.batch_size
-        self.validation_logger.add(tensor, accumulator_class(name, valid_steps))
 
     def __build_train_op(self) -> None:
         """
@@ -61,8 +48,8 @@ class ResNetTrainer(BaseTrainer):
         """
         Performs one validation step (i.e. one batch).
         """
-        vals = self.sess.run(self.validation_logger.tensors, feed_dict={self.resnet.is_training: False})
-        self.validation_logger.step_completed(vals)
+        vals = self.sess.run(self.valid_logger.tensors, feed_dict={self.resnet.is_training: False})
+        self.valid_logger.step_completed(vals)
 
     @staticmethod
     def __generic_epoch_with_params(batch_size: int, num_samples: int, batch_step):
