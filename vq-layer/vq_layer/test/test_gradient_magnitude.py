@@ -79,7 +79,3 @@ class TestGradientMagnitude(TFTestCase):
         emb_space2 = self.feed(batch2, emb_space_initial, alpha=0, beta=0, gamma=1)
 
         self.assert_output(emb_space1, emb_space2)
-
-
-if __name__ == '__main__':
-    unittest.main()

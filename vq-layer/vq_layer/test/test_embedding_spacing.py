@@ -38,7 +38,3 @@ class TestEmbeddingSpacing(TFTestCase):
         Spacing between multiple embeddings in the space
         """
         self.feed([[3, 3], [1, 2], [5, -1], [0, 0]], [3, 6, 6, 7, 3, 6])
-
-
-if __name__ == '__main__':
-    unittest.main()

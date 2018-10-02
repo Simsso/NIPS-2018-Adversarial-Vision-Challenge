@@ -79,7 +79,3 @@ class TestEmbeddingReplace(TFTestCase):
         emb_target = [[0, 0], [20, 20], [-4, -4]]
 
         self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=2, num_embeds_replaced=2)
-
-
-if __name__ == '__main__':
-    unittest.main()

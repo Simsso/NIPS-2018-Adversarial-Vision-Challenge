@@ -45,7 +45,3 @@ class TestNorm(TFTestCase):
         L infinity distance test
         """
         self.feed(x_in=[[0, 5], [3, -3]], y_target=[[[1, .5]], [[0, 0]]], lookup_ord=np.inf)
-
-
-if __name__ == '__main__':
-    unittest.main()

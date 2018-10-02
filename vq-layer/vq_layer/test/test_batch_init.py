@@ -48,7 +48,3 @@ class TestEmbeddingSpaceBatchInit(TFTestCase):
         """
         with self.assertRaises(tf.errors.InvalidArgumentError):
             self.feed(x_in=[[0.1, -0.1]], emb_target=[])
-
-
-if __name__ == '__main__':
-    unittest.main()

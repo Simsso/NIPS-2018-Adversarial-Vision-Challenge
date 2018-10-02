@@ -37,7 +37,3 @@ class TestSplitProjection(TFTestCase):
         """
         access_count_val = self.sess.run(self.access_count)
         self.assert_output(access_count_val, [2, 2, 1, 0, 1])
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -30,7 +30,3 @@ class TestProjection(TFTestCase):
     def test_usage_count(self) -> None:
         access_count_val = self.sess.run(self.access_count)
         self.assert_output(access_count_val, [1, 2, 0, 0])
-
-
-if __name__ == '__main__':
-    unittest.main()

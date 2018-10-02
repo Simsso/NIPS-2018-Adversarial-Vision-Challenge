@@ -79,7 +79,3 @@ class TestInputValidation(TFTestCase):
 
         # valid input
         vector_quantization(tf.placeholder(tf.float32, [None, 5, 200]), 4, num_splits=20)
-
-
-if __name__ == '__main__':
-    unittest.main()
