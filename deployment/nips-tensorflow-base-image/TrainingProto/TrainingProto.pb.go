@@ -23,22 +23,45 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type Event_Event int32
+
+const (
+	Event_UPDATE   Event_Event = 0
+	Event_SHUTDOWN Event_Event = 1
+)
+
+var Event_Event_name = map[int32]string{
+	0: "UPDATE",
+	1: "SHUTDOWN",
+}
+var Event_Event_value = map[string]int32{
+	"UPDATE":   0,
+	"SHUTDOWN": 1,
+}
+
+func (x Event_Event) String() string {
+	return proto.EnumName(Event_Event_name, int32(x))
+}
+func (Event_Event) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_TrainingProto_66dac3e49a599bd4, []int{0, 0}
+}
+
 // Represents an event cause by the server.
 //
 // event describes the resolved Event and data represents the given payload.
 type Event struct {
-	Event                string   `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
-	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Event                Event_Event `protobuf:"varint,1,opt,name=event,proto3,enum=Event_Event" json:"event,omitempty"`
+	Data                 []byte      `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
 }
 
 func (m *Event) Reset()         { *m = Event{} }
 func (m *Event) String() string { return proto.CompactTextString(m) }
 func (*Event) ProtoMessage()    {}
 func (*Event) Descriptor() ([]byte, []int) {
-	return fileDescriptor_TrainingProto_38af8293a7064cf1, []int{0}
+	return fileDescriptor_TrainingProto_66dac3e49a599bd4, []int{0}
 }
 func (m *Event) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Event.Unmarshal(m, b)
@@ -58,11 +81,11 @@ func (m *Event) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Event proto.InternalMessageInfo
 
-func (m *Event) GetEvent() string {
+func (m *Event) GetEvent() Event_Event {
 	if m != nil {
 		return m.Event
 	}
-	return ""
+	return Event_UPDATE
 }
 
 func (m *Event) GetData() []byte {
@@ -76,9 +99,10 @@ func (m *Event) GetData() []byte {
 //
 // stopTime may be 0, if training hasn't finished yet.
 type TrainingJob struct {
-	TrainingId           string   `protobuf:"bytes,1,opt,name=trainingId,proto3" json:"trainingId,omitempty"`
+	ModelId              string   `protobuf:"bytes,1,opt,name=modelId,proto3" json:"modelId,omitempty"`
 	StartTime            int64    `protobuf:"varint,2,opt,name=startTime,proto3" json:"startTime,omitempty"`
 	StopTime             int64    `protobuf:"varint,3,opt,name=stopTime,proto3" json:"stopTime,omitempty"`
+	Running              bool     `protobuf:"varint,4,opt,name=running,proto3" json:"running,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -88,7 +112,7 @@ func (m *TrainingJob) Reset()         { *m = TrainingJob{} }
 func (m *TrainingJob) String() string { return proto.CompactTextString(m) }
 func (*TrainingJob) ProtoMessage()    {}
 func (*TrainingJob) Descriptor() ([]byte, []int) {
-	return fileDescriptor_TrainingProto_38af8293a7064cf1, []int{1}
+	return fileDescriptor_TrainingProto_66dac3e49a599bd4, []int{1}
 }
 func (m *TrainingJob) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TrainingJob.Unmarshal(m, b)
@@ -108,9 +132,9 @@ func (m *TrainingJob) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_TrainingJob proto.InternalMessageInfo
 
-func (m *TrainingJob) GetTrainingId() string {
+func (m *TrainingJob) GetModelId() string {
 	if m != nil {
-		return m.TrainingId
+		return m.ModelId
 	}
 	return ""
 }
@@ -129,6 +153,13 @@ func (m *TrainingJob) GetStopTime() int64 {
 	return 0
 }
 
+func (m *TrainingJob) GetRunning() bool {
+	if m != nil {
+		return m.Running
+	}
+	return false
+}
+
 // Represents a response.
 //
 // success is true, if the request was processed successfully.
@@ -143,7 +174,7 @@ func (m *Response) Reset()         { *m = Response{} }
 func (m *Response) String() string { return proto.CompactTextString(m) }
 func (*Response) ProtoMessage()    {}
 func (*Response) Descriptor() ([]byte, []int) {
-	return fileDescriptor_TrainingProto_38af8293a7064cf1, []int{2}
+	return fileDescriptor_TrainingProto_66dac3e49a599bd4, []int{2}
 }
 func (m *Response) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Response.Unmarshal(m, b)
@@ -174,6 +205,7 @@ func init() {
 	proto.RegisterType((*Event)(nil), "Event")
 	proto.RegisterType((*TrainingJob)(nil), "TrainingJob")
 	proto.RegisterType((*Response)(nil), "Response")
+	proto.RegisterEnum("Event_Event", Event_Event_name, Event_Event_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -195,14 +227,20 @@ type TrainingProtoClient interface {
 	RegisterTraining(ctx context.Context, in *TrainingJob, opts ...grpc.CallOption) (*Response, error)
 	// Updates the started training at the server,
 	//
-	// A Respone object with responseString 'true' is returned, if the
+	// A Response object with success 'true' is returned, if the
 	// training was updated. Otherwise 'false'.
 	UpdateTraining(ctx context.Context, in *TrainingJob, opts ...grpc.CallOption) (*Response, error)
 	// Sends the server a request to receive an event-stream.
 	// The event stream has orders from the server to the client.
 	//
 	// A stream of Event is returned.
-	ReceiveEvents(ctx context.Context, in *TrainingJob, opts ...grpc.CallOption) (TrainingProto_ReceiveEventsClient, error)
+	ReceiveEvent(ctx context.Context, in *TrainingJob, opts ...grpc.CallOption) (TrainingProto_ReceiveEventClient, error)
+	// Sends the server a request that the current running training
+	// has been finished successfully.
+	//
+	// A Response object with success 'true' is returned, if the
+	// server has been acknowledged successfully about the end of the training.
+	FinishTraining(ctx context.Context, in *TrainingJob, opts ...grpc.CallOption) (*Response, error)
 }
 
 type trainingProtoClient struct {
@@ -231,12 +269,12 @@ func (c *trainingProtoClient) UpdateTraining(ctx context.Context, in *TrainingJo
 	return out, nil
 }
 
-func (c *trainingProtoClient) ReceiveEvents(ctx context.Context, in *TrainingJob, opts ...grpc.CallOption) (TrainingProto_ReceiveEventsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_TrainingProto_serviceDesc.Streams[0], "/TrainingProto/ReceiveEvents", opts...)
+func (c *trainingProtoClient) ReceiveEvent(ctx context.Context, in *TrainingJob, opts ...grpc.CallOption) (TrainingProto_ReceiveEventClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_TrainingProto_serviceDesc.Streams[0], "/TrainingProto/ReceiveEvent", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &trainingProtoReceiveEventsClient{stream}
+	x := &trainingProtoReceiveEventClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -246,21 +284,30 @@ func (c *trainingProtoClient) ReceiveEvents(ctx context.Context, in *TrainingJob
 	return x, nil
 }
 
-type TrainingProto_ReceiveEventsClient interface {
+type TrainingProto_ReceiveEventClient interface {
 	Recv() (*Event, error)
 	grpc.ClientStream
 }
 
-type trainingProtoReceiveEventsClient struct {
+type trainingProtoReceiveEventClient struct {
 	grpc.ClientStream
 }
 
-func (x *trainingProtoReceiveEventsClient) Recv() (*Event, error) {
+func (x *trainingProtoReceiveEventClient) Recv() (*Event, error) {
 	m := new(Event)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (c *trainingProtoClient) FinishTraining(ctx context.Context, in *TrainingJob, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/TrainingProto/FinishTraining", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // TrainingProtoServer is the server API for TrainingProto service.
@@ -272,14 +319,20 @@ type TrainingProtoServer interface {
 	RegisterTraining(context.Context, *TrainingJob) (*Response, error)
 	// Updates the started training at the server,
 	//
-	// A Respone object with responseString 'true' is returned, if the
+	// A Response object with success 'true' is returned, if the
 	// training was updated. Otherwise 'false'.
 	UpdateTraining(context.Context, *TrainingJob) (*Response, error)
 	// Sends the server a request to receive an event-stream.
 	// The event stream has orders from the server to the client.
 	//
 	// A stream of Event is returned.
-	ReceiveEvents(*TrainingJob, TrainingProto_ReceiveEventsServer) error
+	ReceiveEvent(*TrainingJob, TrainingProto_ReceiveEventServer) error
+	// Sends the server a request that the current running training
+	// has been finished successfully.
+	//
+	// A Response object with success 'true' is returned, if the
+	// server has been acknowledged successfully about the end of the training.
+	FinishTraining(context.Context, *TrainingJob) (*Response, error)
 }
 
 func RegisterTrainingProtoServer(s *grpc.Server, srv TrainingProtoServer) {
@@ -322,25 +375,43 @@ func _TrainingProto_UpdateTraining_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TrainingProto_ReceiveEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _TrainingProto_ReceiveEvent_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(TrainingJob)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(TrainingProtoServer).ReceiveEvents(m, &trainingProtoReceiveEventsServer{stream})
+	return srv.(TrainingProtoServer).ReceiveEvent(m, &trainingProtoReceiveEventServer{stream})
 }
 
-type TrainingProto_ReceiveEventsServer interface {
+type TrainingProto_ReceiveEventServer interface {
 	Send(*Event) error
 	grpc.ServerStream
 }
 
-type trainingProtoReceiveEventsServer struct {
+type trainingProtoReceiveEventServer struct {
 	grpc.ServerStream
 }
 
-func (x *trainingProtoReceiveEventsServer) Send(m *Event) error {
+func (x *trainingProtoReceiveEventServer) Send(m *Event) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _TrainingProto_FinishTraining_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TrainingJob)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TrainingProtoServer).FinishTraining(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/TrainingProto/FinishTraining",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TrainingProtoServer).FinishTraining(ctx, req.(*TrainingJob))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 var _TrainingProto_serviceDesc = grpc.ServiceDesc{
@@ -355,34 +426,42 @@ var _TrainingProto_serviceDesc = grpc.ServiceDesc{
 			MethodName: "UpdateTraining",
 			Handler:    _TrainingProto_UpdateTraining_Handler,
 		},
+		{
+			MethodName: "FinishTraining",
+			Handler:    _TrainingProto_FinishTraining_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "ReceiveEvents",
-			Handler:       _TrainingProto_ReceiveEvents_Handler,
+			StreamName:    "ReceiveEvent",
+			Handler:       _TrainingProto_ReceiveEvent_Handler,
 			ServerStreams: true,
 		},
 	},
 	Metadata: "TrainingProto.proto",
 }
 
-func init() { proto.RegisterFile("TrainingProto.proto", fileDescriptor_TrainingProto_38af8293a7064cf1) }
+func init() { proto.RegisterFile("TrainingProto.proto", fileDescriptor_TrainingProto_66dac3e49a599bd4) }
 
-var fileDescriptor_TrainingProto_38af8293a7064cf1 = []byte{
-	// 240 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x90, 0xcf, 0x4e, 0xc3, 0x30,
-	0x0c, 0xc6, 0x17, 0xc6, 0x46, 0x6b, 0x36, 0x84, 0x0c, 0x87, 0x6a, 0x42, 0x68, 0x8a, 0x38, 0x0c,
-	0x21, 0x2a, 0xfe, 0x3c, 0x03, 0x07, 0x38, 0xa1, 0x68, 0x3c, 0x40, 0xd6, 0x5a, 0x55, 0x0e, 0x34,
-	0x55, 0x6d, 0xf6, 0x28, 0x3c, 0x2f, 0x9a, 0x59, 0x60, 0x70, 0xda, 0x25, 0xf2, 0xef, 0xfb, 0x9c,
-	0x2f, 0xb1, 0xe1, 0x6c, 0xd9, 0xfb, 0xd0, 0x86, 0xb6, 0x79, 0xed, 0xa3, 0xc4, 0xb2, 0xdb, 0x9c,
-	0xf6, 0x1e, 0x46, 0x4f, 0x6b, 0x6a, 0x05, 0xcf, 0x61, 0x44, 0x9b, 0xa2, 0x30, 0x73, 0xb3, 0xc8,
-	0xdd, 0x37, 0x20, 0xc2, 0x61, 0xed, 0xc5, 0x17, 0x07, 0x73, 0xb3, 0x98, 0x38, 0xad, 0x6d, 0x03,
-	0xc7, 0x29, 0xe9, 0x25, 0xae, 0xf0, 0x12, 0x40, 0xb6, 0xf8, 0x5c, 0x6f, 0x6f, 0xef, 0x28, 0x78,
-	0x01, 0x39, 0x8b, 0xef, 0x65, 0x19, 0xde, 0x49, 0x73, 0x86, 0xee, 0x57, 0xc0, 0x19, 0x64, 0x2c,
-	0xb1, 0x53, 0x73, 0xa8, 0xe6, 0x0f, 0xdb, 0x2b, 0xc8, 0x1c, 0x71, 0x17, 0x5b, 0x26, 0x2c, 0xe0,
-	0x88, 0x3f, 0xaa, 0x8a, 0x98, 0xf5, 0x89, 0xcc, 0x25, 0x7c, 0xf8, 0x34, 0x30, 0xfd, 0x33, 0x19,
-	0xde, 0xc2, 0xa9, 0xa3, 0x26, 0xb0, 0x50, 0x9f, 0x0c, 0x9c, 0x94, 0x3b, 0x7f, 0x9e, 0xe5, 0x65,
-	0x0a, 0xb6, 0x03, 0xbc, 0x81, 0x93, 0xb7, 0xae, 0xf6, 0x42, 0xfb, 0x34, 0x5f, 0xc3, 0xd4, 0x51,
-	0x45, 0x61, 0x4d, 0xba, 0x36, 0xfe, 0xd7, 0x3b, 0x2e, 0x55, 0xb6, 0x83, 0x3b, 0xb3, 0x1a, 0xeb,
-	0x86, 0x1f, 0xbf, 0x02, 0x00, 0x00, 0xff, 0xff, 0x84, 0xec, 0x95, 0x0f, 0x78, 0x01, 0x00, 0x00,
+var fileDescriptor_TrainingProto_66dac3e49a599bd4 = []byte{
+	// 293 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x51, 0x4f, 0x4b, 0xfb, 0x40,
+	0x14, 0xec, 0xfe, 0xda, 0xe6, 0x97, 0x3c, 0x63, 0x09, 0xeb, 0x25, 0x14, 0x0f, 0x71, 0xf1, 0x10,
+	0x10, 0x83, 0xd4, 0x4f, 0x20, 0xb4, 0xa2, 0x1e, 0xb4, 0xac, 0x09, 0x9e, 0xf3, 0xe7, 0x51, 0x17,
+	0xec, 0x6e, 0xc8, 0x6e, 0x7b, 0xf1, 0xdb, 0xf9, 0xc9, 0x24, 0x1b, 0x56, 0xed, 0xad, 0x97, 0xc7,
+	0x9b, 0x37, 0xc3, 0x0c, 0x3b, 0x0b, 0x67, 0x79, 0x57, 0x0a, 0x29, 0xe4, 0x66, 0xdd, 0x29, 0xa3,
+	0xb2, 0xb6, 0x9f, 0xac, 0x82, 0xe9, 0x6a, 0x8f, 0xd2, 0x50, 0x06, 0x53, 0xec, 0x97, 0x98, 0x24,
+	0x24, 0x9d, 0x2d, 0xc2, 0xcc, 0x9e, 0x87, 0xc9, 0x07, 0x8a, 0x52, 0x98, 0x34, 0xa5, 0x29, 0xe3,
+	0x7f, 0x09, 0x49, 0x43, 0x6e, 0x77, 0x76, 0xe1, 0x0c, 0x00, 0xbc, 0x62, 0xbd, 0xbc, 0xcb, 0x57,
+	0xd1, 0x88, 0x86, 0xe0, 0xbf, 0x3e, 0x14, 0xf9, 0xf2, 0xe5, 0xed, 0x39, 0x22, 0xec, 0x13, 0x4e,
+	0x5c, 0xf4, 0x93, 0xaa, 0x68, 0x0c, 0xff, 0xb7, 0xaa, 0xc1, 0x8f, 0xc7, 0xc6, 0x66, 0x05, 0xdc,
+	0x41, 0x7a, 0x0e, 0x81, 0x36, 0x65, 0x67, 0x72, 0xb1, 0x45, 0x1b, 0x32, 0xe6, 0xbf, 0x07, 0x3a,
+	0x07, 0x5f, 0x1b, 0xd5, 0x5a, 0x72, 0x6c, 0xc9, 0x1f, 0xdc, 0x7b, 0x76, 0x3b, 0xd9, 0x27, 0xc4,
+	0x93, 0x84, 0xa4, 0x3e, 0x77, 0x90, 0x5d, 0x82, 0xcf, 0x51, 0xb7, 0x4a, 0x6a, 0xab, 0xd2, 0xbb,
+	0xba, 0x46, 0xad, 0x6d, 0xb2, 0xcf, 0x1d, 0x5c, 0x7c, 0x11, 0x38, 0x3d, 0xa8, 0x87, 0x5e, 0x43,
+	0xc4, 0x71, 0x23, 0xb4, 0xc1, 0xce, 0x11, 0x34, 0xcc, 0xfe, 0xbc, 0x63, 0x1e, 0x64, 0xce, 0x98,
+	0x8d, 0xe8, 0x15, 0xcc, 0x8a, 0xb6, 0x29, 0x0d, 0x1e, 0x23, 0x4e, 0x21, 0xe4, 0x58, 0xa3, 0xd8,
+	0xe3, 0x50, 0xdd, 0xa1, 0xd4, 0x1b, 0x4a, 0x67, 0xa3, 0x1b, 0xd2, 0xdb, 0xde, 0x0b, 0x29, 0xf4,
+	0xfb, 0x11, 0xb6, 0x95, 0x67, 0xbf, 0xf4, 0xf6, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x9a, 0xa7, 0x8e,
+	0x33, 0xe9, 0x01, 0x00, 0x00,
 }

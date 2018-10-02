@@ -4,6 +4,8 @@ from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data
 import tensorflow as tf
 from typing import Dict, Optional
 
+from resnet_base.util.logger.factory import LoggerFactory
+
 slim = tf.contrib.slim
 
 # define flags
@@ -20,13 +22,13 @@ class ResNet(BaseModel):
     https://github.com/tensorflow/models/tree/master/research/adversarial_logit_pairing.
     ResNet paper: https://arxiv.org/abs/1512.03385
     """
-    def __init__(self, x: tf.Tensor = None, labels: tf.Tensor = None):
-        super().__init__()
+    def __init__(self, logger_factory: LoggerFactory, x: tf.Tensor = None, labels: tf.Tensor = None):
+        super().__init__(logger_factory)
 
-        self.accuracy: tf.Tensor = None  # percentage of correctly classified samples
-        self.loss: tf.Tensor = None
-        self.logits: tf.Tensor = None
-        self.softmax: tf.Tensor = None
+        self.accuracy = None  # percentage of correctly classified samples
+        self.loss = None
+        self.logits = None
+        self.softmax = None
 
         if x is None:
             x = tf.placeholder(tf.float32, name='x', shape=[None, Data.img_width, Data.img_height, Data.img_channels])
@@ -36,14 +38,14 @@ class ResNet(BaseModel):
             labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
         self.labels = labels
 
-        self.is_training: tf.Tensor = tf.placeholder_with_default(False, (), 'is_training')
-        self.num_classes: int = 200
+        self.is_training = tf.placeholder_with_default(False, (), 'is_training')
+        self.num_classes = 200
 
-        self.pretrained_saver: tf.train.Saver = None
-        self.custom_saver: tf.train.Saver = None
+        self.pretrained_saver = None
+        self.custom_saver = None
         
         with tf.variable_scope('custom') as scope:
-            self.custom_scope: tf.VariableScope = scope
+            self.custom_scope = scope
         
         with tf.variable_scope('resnet_v2_50', 'resnet_v2', [self.x], reuse=tf.AUTO_REUSE):
             with slim.arg_scope(self._resnet_arg_scope()):
@@ -108,6 +110,7 @@ class ResNet(BaseModel):
         # cross_entropy_loss is a scalar
         tf.add_to_collection(tf.GraphKeys.LOSSES, cross_entropy_loss)
         self.loss = tf.add_n(tf.get_collection(tf.GraphKeys.LOSSES))
+        self.logger_factory.add_scalar('loss', self.loss, log_frequency=25)
 
     def _init_accuracy(self) -> None:
         """
@@ -115,6 +118,7 @@ class ResNet(BaseModel):
         """
         correct = tf.cast(tf.equal(tf.argmax(self.softmax, axis=1), tf.cast(self.labels, tf.int64)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(correct, name='accuracy')
+        self.logger_factory.add_scalar('accuracy', self.accuracy, log_frequency=25)
 
     def _resnet_arg_scope(self, weight_decay: float = 0.0001) -> Dict:
         """

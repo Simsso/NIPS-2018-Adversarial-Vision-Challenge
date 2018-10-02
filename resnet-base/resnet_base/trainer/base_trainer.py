@@ -1,8 +1,10 @@
 import tensorflow as tf
 from resnet_base.model.base_model import BaseModel
 
-tf.flags.DEFINE_float("learning_rate", 1e-4, "The learning rate used for training.")
-tf.flags.DEFINE_integer("num_epochs", 10, "The number of epochs for which training is performed.")
+tf.flags.DEFINE_float("learning_rate", 1e-3, "The learning rate used for training.")
+tf.flags.DEFINE_integer("num_epochs", 25, "The number of epochs for which training is performed.")
+tf.flags.DEFINE_string("train_log_dir", "../tf_logs/train", "The directory used to save the training summaries.")
+tf.flags.DEFINE_string("val_log_dir", "../tf_logs/val", "The directory used to save the validation summaries.")
 
 FLAGS = tf.flags.FLAGS
 
@@ -11,6 +13,12 @@ class BaseTrainer:
     def __init__(self, model: BaseModel):
         self.model = model
         self.sess = tf.get_default_session()
+        self.__init_log_writer()
+
+    def __init_log_writer(self) -> None:
+        self.train_logger, self.valid_logger = \
+            self.model.logger_factory.create_loggers(self.sess, FLAGS.train_log_dir, FLAGS.val_log_dir,
+                                                     self.model.global_step)
 
     def train(self) -> None:
         """
@@ -20,17 +28,15 @@ class BaseTrainer:
         self.sess.run(init)
 
         # restore weights (as specified in the FLAGS)
-        self.model.load(self.sess)
+        self.model.restore(self.sess)
 
         # get the current epoch so we can re-start training from there
         start_epoch = self.model.current_epoch.eval(self.sess)
 
+        self.val_epoch()  # perform at least one validation epoch before training
         for _ in range(start_epoch, FLAGS.num_epochs + 1):
             self.train_epoch()
-            self.sess.run(self.model.increment_current_epoch)
-
-            # run validation epoch to monitor training
-            self.val_epoch()
+            self.val_epoch()  # run validation epoch to monitor training
 
     def train_epoch(self) -> None:
         """
@@ -45,4 +51,3 @@ class BaseTrainer:
         Should use the batch size defined in FLAGS.val_batch_size.
         """
         raise NotImplementedError
-
