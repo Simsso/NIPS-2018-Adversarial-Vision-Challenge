@@ -5,10 +5,14 @@ https://github.com/MrGemy95/Tensorflow-Project-Template/blob/master/base/base_mo
 
 import tensorflow as tf
 from typing import Optional
+import os
 
 from resnet_base.util.logger.factory import LoggerFactory
 
-tf.flags.DEFINE_string("global_checkpoint", "", "Checkpoint path of all weights.")
+tf.flags.DEFINE_string("save_directory", "", "Checkpoint directory of the complete graph's variables. Used both to \
+                                              restore (if available) and to save the model.")
+tf.flags.DEFINE_string("name", "model", "The name of the model (may contain hyperparameter information), used when \
+                                        saving the model.")
 FLAGS = tf.flags.FLAGS
 
 
@@ -56,16 +60,22 @@ class BaseModel:
         raise NotImplementedError
 
     def save(self, sess: tf.Session) -> None:
-        BaseModel._save_to_path(sess, self.saver, self.global_step, FLAGS.global_checkpoint)
+        BaseModel._save_to_path(sess, self.saver, self.global_step, path=FLAGS.save_directory)
 
     def restore(self, sess: tf.Session) -> None:
-        BaseModel._restore_checkpoint(self.saver, sess, FLAGS.global_checkpoint)
+        BaseModel._restore_checkpoint(self.saver, sess, path=FLAGS.save_directory)
 
     @staticmethod
     def _restore_checkpoint(saver: tf.train.Saver, sess: tf.Session, path: Optional[str] = None):
         if path and saver:
-            saver.restore(sess, path)
-            tf.logging.info("Model loaded from {}".format(path))
+            # if a directory is given instead of a path, try to find a checkpoint file there
+            checkpoint_file = tf.train.latest_checkpoint(path) if os.path.isdir(path) else path
+
+            if checkpoint_file and tf.train.checkpoint_exists(checkpoint_file):
+                saver.restore(sess, checkpoint_file)
+                tf.logging.info("Model loaded from {}".format(checkpoint_file))
+            else:
+                tf.logging.info("No valid checkpoint has been found at {}. Ignoring.".format(path))
 
     @staticmethod
     def _create_saver(collection_name: str) -> Optional[tf.train.Saver]:
@@ -77,6 +87,7 @@ class BaseModel:
     @staticmethod
     def _save_to_path(sess: tf.Session, saver: Optional[tf.train.Saver], global_step: tf.Tensor, path: Optional[str]):
         if saver and path:
-            tf.logging.info("Saving model...")
-            saver.save(sess, path, global_step=global_step)
-            tf.logging.info("Model saved to {}".format(path))
+            if os.path.isdir(path):
+                path = os.path.join(path, FLAGS.name + ".ckpt")
+            save_path = saver.save(sess, path, global_step=global_step)
+            tf.logging.info("Model saved to {}".format(save_path))
