@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import tensorflow as tf
 import unittest
@@ -6,13 +8,20 @@ from vq_layer.vq_layer import vector_quantization
 
 
 class TestGradientMagnitude(TFTestCase):
-    def setUp(self):
+    """
+    Testing the behavior of the gradient / embedding space update depending on batch size, embedding space size, ...
+    """
+
+    def setUp(self) -> None:
         super(TestGradientMagnitude, self).setUp()
 
         self.x = tf.placeholder(tf.float32, shape=[None, 2])
         self.x_reshaped = tf.expand_dims(self.x, axis=1)
 
-    def feed(self, x_in1, emb_space_val, alpha=1, beta=1, gamma=1):
+    def feed(self, x_in1: List, emb_space_val: List, alpha: float = 1., beta: float = 1., gamma: float = 1.) -> List:
+        """
+        :return: New value of the embedding space
+        """
         x_val1 = np.array(x_in1, dtype=np.float32)
 
         emb_space_val = np.array(emb_space_val, dtype=np.float32)
@@ -28,7 +37,7 @@ class TestGradientMagnitude(TFTestCase):
         emb_space_val_updated, _ = self.sess.run([emb_space, train_op], feed_dict={self.x: x_val1})
         return emb_space_val_updated
 
-    def test_batch_size_irrelevant(self):
+    def test_batch_size_irrelevant(self) -> None:
         """
         Larger batches must not lead to larger updates of the trained variables (here the embedding space).
         """
@@ -42,7 +51,7 @@ class TestGradientMagnitude(TFTestCase):
 
         self.assert_output(emb_space1, emb_space2)
 
-    def test_unused_embedding_vectors_irrelevant(self):
+    def test_unused_embedding_vectors_irrelevant(self) -> None:
         """
         Having multiple vectors in the embedding space which are unused must not affect the update of the other vectors,
         if the coulomb loss is disabled.
@@ -57,7 +66,7 @@ class TestGradientMagnitude(TFTestCase):
 
         self.assert_output(emb_space1, emb_space2[:len(emb_space1)])
 
-    def test_coulomb_loss_agnostic_to_input(self):
+    def test_coulomb_loss_agnostic_to_input(self) -> None:
         """
         When training with the coulomb loss only, the inputs must not have an effect.
         """

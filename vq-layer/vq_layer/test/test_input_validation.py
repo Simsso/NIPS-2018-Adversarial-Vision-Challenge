@@ -6,13 +6,21 @@ from vq_layer.vq_layer import vector_quantization
 
 
 class TestInputValidation(TFTestCase):
-    def test_x_is_tensor(self):
-        """Input x must be a tensor."""
+    """
+    Validation of input values of the VQ layer function. Checking with valid and invalid inputs.
+    """
+
+    def test_x_is_tensor(self) -> None:
+        """
+        Input x must be a tensor
+        """
         with self.assertRaises(AttributeError):
             vector_quantization([1, 2], 2)
 
-    def test_x_shape(self):
-        """Input x must be 3-dimensional."""
+    def test_x_shape(self) -> None:
+        """
+        Input x must be 3-dimensional
+        """
         # invalid inputs
         for x in [
             tf.placeholder(tf.float32, [None, 5]),
@@ -26,14 +34,18 @@ class TestInputValidation(TFTestCase):
         # valid input
         vector_quantization(tf.placeholder(tf.float32, [None, 1, 5]), 5)
 
-    def test_n_is_positive(self):
-        """Input n (number of vectors in the embedding space) must be greater than 0."""
+    def test_n_is_positive(self) -> None:
+        """
+        Input n (number of vectors in the embedding space) must be greater than 0.
+        """
         for n in [-10000, -5, -1, 0]:
             with self.assertRaises(ValueError):
                 vector_quantization(tf.placeholder(tf.float32, [None, 1, 3]), n)
 
-    def test_lookup_ord_is_valid(self):
-        """Input lookup_ord must be an input that is valid for tf.norm's order parameter."""
+    def test_lookup_ord_is_valid(self) -> None:
+        """
+        Input lookup_ord must be an input that is valid for tf.norm's order parameter.
+        """
         # valid inputs
         n = 5
         for lookup_ord in [1, 2, np.inf]:
@@ -45,8 +57,10 @@ class TestInputValidation(TFTestCase):
             with self.assertRaises(ValueError):
                 vector_quantization(tf.placeholder(tf.float32, [None, 1, 3]), n, lookup_ord=lookup_ord)
 
-    def test_num_splits_gt_zero(self):
-        """Input num_splits must be greater than 0."""
+    def test_num_splits_gt_zero(self) -> None:
+        """
+        Input num_splits must be greater than 0.
+        """
         # invalid inputs
         for num_splits in [-5, -1, 0]:
             with self.assertRaises(ValueError):
@@ -55,7 +69,10 @@ class TestInputValidation(TFTestCase):
         # valid input (1 is always valid)
         vector_quantization(tf.placeholder(tf.float32, [None, 1, 3]), 4, num_splits=1)
 
-    def test_num_splits_is_divisor(self):
+    def test_num_splits_is_divisor(self) -> None:
+        """
+        Number of splits must divide the number of embedding n without remainder.
+        """
         # invalid input
         with self.assertRaises(ValueError):
             vector_quantization(tf.placeholder(tf.float32, [None, 5, 200]), 4, num_splits=21)
