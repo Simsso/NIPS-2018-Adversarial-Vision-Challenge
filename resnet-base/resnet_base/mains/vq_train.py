@@ -21,7 +21,7 @@ def main(args):
 
         model = VQResNet(logger_factory, imgs, labels)
 
-        trainer = ResNetTrainer(model, pipeline, virtual_batch_size_factor=1)
+        trainer = ResNetTrainer(model, pipeline, virtual_batch_size_factor=2)
         trainer.train()
 
 
