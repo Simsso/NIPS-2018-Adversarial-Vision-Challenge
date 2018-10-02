@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from typing import List
+from typing import List, Union
 from unittest import TestCase
 
 
@@ -20,8 +20,12 @@ class TFTestCase(TestCase):
     def tearDown(self):
         self.sess.close()
 
-    def assert_output(self, output: np.ndarray, desired: List[any]):
+    def assert_output(self, output: np.ndarray, desired: Union[List[any], np.ndarray]):
         """
         Compares two arrays numerically (small differences are tolerated).
         """
-        self.assertTrue(np.allclose(output, np.array(desired, dtype=np.float32)), self.msg_output_wrong)
+        if not type(output) is np.ndarray:
+            output = np.array(output, dtype=np.float32)
+        if not type(desired) is np.ndarray:
+            desired = np.array(desired, dtype=np.float32)
+        self.assertTrue(np.allclose(output, desired), self.msg_output_wrong)

@@ -121,7 +121,8 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
         emb_space_batch_init = None
         if dynamic_emb_space_init:
-            emb_space_batch_init = tf.assign(emb_space, tf.slice(tf.reshape(x, [-1, vec_size]), tf.zeros_like(emb_space.shape), emb_space.shape),
+            emb_space_batch_init = tf.assign(emb_space, tf.slice(tf.reshape(x, [-1, vec_size]),
+                                                                 tf.zeros_like(emb_space.shape), emb_space.shape),
                                              validate_shape=True)
 
         # return selection in original size
