@@ -8,13 +8,13 @@ class VQResNet(ResNet):
         x = ResNet._first_conv(x)  # 16x16x64
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
             x = tf.reshape(x, [-1, 256, 64])
-            vq_endpoints = vq(x, n=128, alpha=.1, beta=.1, gamma=.1, num_splits=16, lookup_ord=2, num_embeds_replaced=1,
+            vq_endpoints = vq(x, n=128, alpha=.1, beta=.1, gamma=0, num_splits=32, lookup_ord=2, num_embeds_replaced=1,
                               return_endpoints=True, embedding_initializer=tf.random_normal_initializer(0, stddev=1e-4,
                                                                                                         seed=15092017))
             x = vq_endpoints.layer_out
             access_count = vq_endpoints.access_count
             self.logger_factory.add_histogram('access_count', access_count, is_sum_value=True, log_frequency=50)
-            self.logger_factory.add_scalar('unused_embeddings', tf.nn.zero_fraction(access_count), log_frequency=5)
+            self.logger_factory.add_scalar('unused_embeddings', tf.nn.zero_fraction(access_count), log_frequency=10)
             x = tf.reshape(x, [-1, 16, 16, 64])
         x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
         x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)

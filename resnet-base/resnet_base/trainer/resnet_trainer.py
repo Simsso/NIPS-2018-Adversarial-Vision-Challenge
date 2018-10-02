@@ -25,15 +25,16 @@ class ResNetTrainer(BaseTrainer):
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
         # train only custom variables
         var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.resnet.custom_scope.name)
-        accum_vars = [tf.Variable(tf.zeros_like(var.initialized_value()), trainable=False) for var in var_list]
+        accum_vars = [tf.get_variable('accum_vars', var.shape, tf.float32, tf.zeros_initializer, trainable=False)
+                      for var in var_list]
         self.zero_gradients_op = [var.assign(tf.zeros_like(var)) for var in accum_vars]
-        gradients = optimizer.compute_gradients(self.resnet.loss, var_list)
+        gradients = optimizer.compute_gradients(loss=self.resnet.loss, var_list=var_list,
+                                                aggregation_method=tf.AggregationMethod.ADD_N)
 
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            self.accumulate_gradients_op = [accum_vars[i].assign_add(g[0]) for i, g in enumerate(gradients)]
+        # insert UPDATE_OPS if needed
+        self.accumulate_gradients_op = [accum_vars[i].assign_add(g[0]) for i, g in enumerate(gradients)]
 
-            grad_scaling = 1. / self.virtual_batch_size_factor
+        grad_scaling = 1. / self.virtual_batch_size_factor
         self.apply_gradients_op = optimizer.apply_gradients([
             (tf.multiply(accum_vars[i], grad_scaling),  # accumulated, averaged gradients
              g[1])  # variable to update

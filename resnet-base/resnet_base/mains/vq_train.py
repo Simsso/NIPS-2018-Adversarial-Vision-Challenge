@@ -14,14 +14,16 @@ def main(args):
     config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
     sess = tf.Session(config=config)
     with sess:
-        pipeline = TinyImageNetPipeline(batch_size=256)
+        # dataset
+        pipeline = TinyImageNetPipeline(batch_size=32)
         imgs, labels = pipeline.get_iterator().get_next()
 
-        logger_factory = LoggerFactory(TinyImageNetPipeline.num_valid_samples // pipeline.batch_size)
-
+        # model
+        logger_factory = LoggerFactory(num_valid_steps=TinyImageNetPipeline.num_valid_samples // pipeline.batch_size)
         model = VQResNet(logger_factory, imgs, labels)
 
-        trainer = ResNetTrainer(model, pipeline, virtual_batch_size_factor=2)
+        # training
+        trainer = ResNetTrainer(model, pipeline, virtual_batch_size_factor=256)
         trainer.train()
 
 
