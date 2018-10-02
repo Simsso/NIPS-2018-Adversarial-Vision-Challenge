@@ -4,6 +4,9 @@ from resnet_base.trainer.resnet_trainer import ResNetTrainer
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.util.logger.factory import LoggerFactory
 
+tf.flags.DEFINE_integer("batch_size", 32, "Number of samples per batch that is fed through the GPU at once.")
+tf.flags.DEFINE_integer("virtual_batch_size_factor", 8, "Number of batches per weight update.")
+FLAGS = tf.flags.FLAGS
 
 def main(args):
     tf.reset_default_graph()
@@ -15,7 +18,7 @@ def main(args):
     sess = tf.Session(config=config)
     with sess:
         # dataset
-        pipeline = TinyImageNetPipeline(batch_size=32)
+        pipeline = TinyImageNetPipeline(batch_size=FLAGS.batch_size)
         imgs, labels = pipeline.get_iterator().get_next()
 
         # model
@@ -23,7 +26,7 @@ def main(args):
         model = VQResNet(logger_factory, imgs, labels)
 
         # training
-        trainer = ResNetTrainer(model, pipeline, virtual_batch_size_factor=256)
+        trainer = ResNetTrainer(model, pipeline, FLAGS.virtual_batch_size_factor)
         trainer.train()
 
 
