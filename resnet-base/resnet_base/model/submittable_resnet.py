@@ -1,16 +1,18 @@
-from resnet_base.model.resnet import ResNet
+from resnet_base.model.vq_resnet import VQResNet
 import tensorflow as tf
 
 from foolbox.models import TensorFlowModel
+from resnet_base.util.logger.factory import LoggerFactory
 
 
-class SubmittableResNet(ResNet):
+class SubmittableResNet(VQResNet):
     """
     This is a simple wrapper around the ResNet model which offers a function that converts the model to a
     foolbox model which can easily be submitted to the challenge website.
     """
     def __init__(self, x: tf.Tensor = None, labels: tf.Tensor = None):
-        super().__init__(x, labels)
+        logger_factory = LoggerFactory()    # a logger is not needed here, so just pass a dummy object
+        super().__init__(logger_factory=logger_factory, x=x, labels=labels)
 
     """
     Returns an instance of a foolbox Model (more specifically, a TensorFlowModel) which is configured to use
