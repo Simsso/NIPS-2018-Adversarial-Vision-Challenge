@@ -3,6 +3,8 @@ from resnet_base.model.vq_resnet import VQResNet
 from resnet_base.trainer.resnet_trainer import ResNetTrainer
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.util.logger.factory import LoggerFactory
+from logging
+from sys
 
 tf.flags.DEFINE_integer("batch_size", 32, "Number of samples per batch that is fed through the GPU at once.")
 tf.flags.DEFINE_integer("virtual_batch_size_factor", 8, "Number of batches per weight update.")
@@ -12,6 +14,14 @@ def main(args):
     tf.reset_default_graph()
     tf.logging.set_verbosity(tf.logging.DEBUG)
     tf.set_random_seed(15092017)
+
+    tf.logging.set_verbosity(tf.logging.DEBUG)
+    tf_logger = tf_logging._get_logger()
+    handler = logging.StreamHandler(sys.stdout) # create stdout handler
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    tf_logger.handlers = [handler] # redirect tf.logging to stdout instead of stderr
+    tf_logging.propagate = False
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
