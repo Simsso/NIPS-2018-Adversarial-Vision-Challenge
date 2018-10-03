@@ -6,11 +6,13 @@ from collections import namedtuple
 VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count', 'distance', 'emb_spacing',
                                          'replace_embeds', 'emb_space_batch_init'])
 
+__valid_lookup_ord_values = [1, 2, np.inf]
+
 
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
-                        lookup_ord: int = 2,
-                        embedding_initializer: Union[str, tf.keras.initializers.Initializer] = tf.random_normal_initializer,
+                        lookup_ord: int = 2, embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
+                        tf.random_normal_initializer,
                         num_splits: int = 1, num_embeds_replaced: int = 0, return_endpoints: bool = False)\
         -> Union[tf.Tensor, VQEndpoints]:
     """
@@ -24,19 +26,20 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param embedding_initializer: Initializer for the embedding space variable or 'emb_space_batch_init'
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param num_embeds_replaced: If greater than 0, this adds an op to the endpoints tuple which replaces the respective
-    number of least used embedding vectors in the batch with the batch inputs most distant from the embedding
-    vectors. If the batch size is smaller than this number, it will throw a
-    tensorflow.python.framework.errors_impl.InvalidArgumentError.
-    If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
+           number of least used embedding vectors in the batch with the batch inputs most distant from the embedding
+           vectors. If the batch size is smaller than this number, it will throw a ValueError.
+           If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
     :return: Only the layer output if return_endpoints is False
              VQEndpoints-tuple with the values:
-                Layer output
-                Embedding space
-                Access counter with integral values indicating how often each vector in the embedding space was used
-                Distance of inputs from the embedding space vectors
-                Embedding spacing vector where each entry indicates the distance between embedding space vectors
-                Embedding space batch initialization operation (set if embedding_initializer is 'emb_space_batch_init')
+                layer_out: Layer output
+                emb_space: Embedding space
+                access_count: Access counter with integral values indicating how often each embedding vector was used
+                distance: Distance of inputs from the embedding space vectors
+                emb_spacing: Embedding spacing vector where each entry indicates the distance between embedding vectors
+                replace_embeds: Op that replaces the least used embedding vectors with the most distant input vectors
+                emb_space_batch_init: Embedding space batch init op (is set if embedding_initializer is
+                    'emb_space_batch_init')
     """
     if n <= 0:
         raise ValueError("Parameter 'n' must be greater than 0.")
@@ -49,10 +52,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         raise ValueError("Parameter 'x' must be a tensor of shape [batch, a, q]. Got {}.".format(in_shape))
     in_shape[0] = in_shape[0] if in_shape[0] is not None else -1  # allow for variable-sized batch dimension
 
-    valid_lookup_ord_values = [1, 2, np.inf]
-    if lookup_ord not in valid_lookup_ord_values:
+    if lookup_ord not in __valid_lookup_ord_values:
         raise ValueError("Parameter 'lookup_ord' must be one of {}. Got '{}'."
-                         .format(valid_lookup_ord_values, lookup_ord))
+                         .format(__valid_lookup_ord_values, lookup_ord))
 
     if num_splits <= 0:
         raise ValueError("Parameter 'num_splits' must be greater than 0. Got '{}'.".format(num_splits))

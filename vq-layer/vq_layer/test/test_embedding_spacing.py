@@ -23,7 +23,7 @@ class TestEmbeddingSpacing(TFTestCase):
     def feed(self, emb_space_val: List, emb_spacing_target: List) -> None:
         emb_space_val = np.array(emb_space_val, dtype=np.float32)
         x_val = np.array(self.x_in, dtype=np.float32)
-        endpoints = vq(self.x_reshaped, len(emb_space_val), lookup_ord=self.lookup_ord, return_endpoints=True,
+        endpoints = vq(self.x_reshaped, n=len(emb_space_val), lookup_ord=self.lookup_ord, return_endpoints=True,
                        embedding_initializer=tf.constant_initializer(emb_space_val))
         self.init_vars()
         emb_spacing_val = self.sess.run(endpoints.emb_spacing, feed_dict={self.x: x_val})
