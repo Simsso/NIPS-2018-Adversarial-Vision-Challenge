@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import unittest
 from vq_layer.test.tf_test_case import TFTestCase
 from vq_layer.vq_layer import vector_quantization
 

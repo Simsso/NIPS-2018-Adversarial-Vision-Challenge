@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import unittest
 from vq_layer.test.tf_test_case import TFTestCase
 from vq_layer.vq_layer import vector_quantization
 
@@ -8,6 +7,7 @@ from vq_layer.vq_layer import vector_quantization
 class TestProjection(TFTestCase):
     """
     Test the projection feature of the layer, i.e. the mapping of inputs to the closest vector in the embedding space.
+    Test the usage count of embedding vectors.
     """
 
     def setUp(self) -> None:
@@ -24,9 +24,16 @@ class TestProjection(TFTestCase):
         self.init_vars()
 
     def test_projection(self) -> None:
+        """
+        Test whether inputs are being projected to embedding space vectors.
+        """
         y_val = self.sess.run(self.y)
-        self.assert_output(y_val, [[[1.1, 1]], [[2.1, 2.1]], [[2.1, 2.1]]])
+        self.assert_numerically_equal(y_val, [[[1.1, 1]], [[2.1, 2.1]], [[2.1, 2.1]]])
 
     def test_usage_count(self) -> None:
+        """
+        Test whether the usage count corresponds to the number of times inputs were mapped to a given embedding space
+        vector.
+        """
         access_count_val = self.sess.run(self.access_count)
-        self.assert_output(access_count_val, [1, 2, 0, 0])
+        self.assert_numerically_equal(access_count_val, [1, 2, 0, 0])

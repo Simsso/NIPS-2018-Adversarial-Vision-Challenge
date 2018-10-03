@@ -2,7 +2,6 @@ from typing import List
 
 import numpy as np
 import tensorflow as tf
-import unittest
 from vq_layer.test.tf_test_case import TFTestCase
 from vq_layer.vq_layer import vector_quantization
 
@@ -28,9 +27,9 @@ class TestEmbeddingSpaceBatchInit(TFTestCase):
         self.init_vars()
 
         self.sess.run(endpoints.emb_space_batch_init, feed_dict={self.x: x_val})
-        emb_val = self.sess.run(endpoints.emb_space, feed_dict={self.x: x_val})
+        emb_val = self.sess.run(endpoints.emb_space)
 
-        self.assert_output(emb_val, emb_target)
+        self.assert_numerically_equal(emb_val, emb_target)
 
     def test_batch_init(self) -> None:
         """

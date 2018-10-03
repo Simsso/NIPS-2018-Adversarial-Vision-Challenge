@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import unittest
 from vq_layer.test.tf_test_case import TFTestCase
 from vq_layer.vq_layer import vector_quantization
 
@@ -29,11 +28,11 @@ class TestSplitProjection(TFTestCase):
         Test whether the projection is correct when splitting.
         """
         y_val = self.sess.run(self.y)
-        self.assert_output(y_val, [[[1.1, 1, 5, 5]], [[2.1, 2.1, -3, -3]], [[2.1, 2.1, 1.1, 1]]])
+        self.assert_numerically_equal(y_val, [[[1.1, 1, 5, 5]], [[2.1, 2.1, -3, -3]], [[2.1, 2.1, 1.1, 1]]])
 
     def test_split_usage_count(self) -> None:
         """
         Test whether the usage counter is correct when splitting.
         """
         access_count_val = self.sess.run(self.access_count)
-        self.assert_output(access_count_val, [2, 2, 1, 0, 1])
+        self.assert_numerically_equal(access_count_val, [2, 2, 1, 0, 1])

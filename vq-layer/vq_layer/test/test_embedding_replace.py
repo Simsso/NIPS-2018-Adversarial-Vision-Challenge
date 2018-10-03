@@ -2,7 +2,6 @@ from typing import List, Union
 
 import numpy as np
 import tensorflow as tf
-import unittest
 from vq_layer.test.tf_test_case import TFTestCase
 from vq_layer.vq_layer import vector_quantization
 
@@ -31,9 +30,9 @@ class TestEmbeddingReplace(TFTestCase):
         # run the replacement op (if existent) and then check the embedding space
         if endpoints.replace_embeds is not None:
             self.sess.run(endpoints.replace_embeds, feed_dict={self.x: x_val})
-        emb_val = self.sess.run(endpoints.emb_space, feed_dict={self.x: x_val})
+        emb_val = self.sess.run(endpoints.emb_space)
 
-        self.assert_output(emb_val, emb_target)
+        self.assert_numerically_equal(emb_val, emb_target)
 
     def test_no_action_for_no_replacements(self) -> None:
         """
@@ -58,12 +57,12 @@ class TestEmbeddingReplace(TFTestCase):
     def test_error_if_batch_too_small(self) -> None:
         """
         Test the case where the number of replacements is larger than the number of inputs.
+        num_embeds_replaced = 4 > 3 = batch_size ==> should raise error
         """
         x_in = [[1.1, 0.9], [2.1, 1.8], [5, 5]]
         emb_target = [[5, 5], [1, 1], [2, 2]]
 
         with self.assertRaises(ValueError):
-            # num_embeds_replaced = 4 > 3 = batch_size ==> should raise error
             self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=1, num_embeds_replaced=len(x_in)+1)
 
     def test_two_replacements(self) -> None:

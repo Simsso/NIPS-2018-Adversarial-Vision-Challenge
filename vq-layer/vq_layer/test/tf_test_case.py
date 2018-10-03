@@ -20,7 +20,7 @@ class TFTestCase(TestCase):
     def tearDown(self) -> None:
         self.sess.close()
 
-    def assert_output(self, output: Union[List, np.ndarray], desired: Union[List, np.ndarray]) -> None:
+    def assert_numerically_equal(self, output: Union[List, np.ndarray], desired: Union[List, np.ndarray]) -> None:
         """
         Compares two arrays numerically (small differences are tolerated).
         """

@@ -2,7 +2,6 @@ from typing import List
 
 import numpy as np
 import tensorflow as tf
-import unittest
 from vq_layer.test.tf_test_case import TFTestCase
 from vq_layer.vq_layer import vector_quantization
 
@@ -26,7 +25,7 @@ class TestNorm(TFTestCase):
                                         return_endpoints=True)
         self.init_vars()
         y_val, dist_val = self.sess.run([endpoints.layer_out, endpoints.distance], feed_dict={self.x: x_val})
-        self.assert_output(y_val, y_target)
+        self.assert_numerically_equal(y_val, y_target)
 
     def test_ord_1(self) -> None:
         """

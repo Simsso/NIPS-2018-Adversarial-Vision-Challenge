@@ -2,7 +2,6 @@ from typing import List
 
 import numpy as np
 import tensorflow as tf
-import unittest
 from vq_layer.test.tf_test_case import TFTestCase
 from vq_layer.vq_layer import vector_quantization
 
@@ -49,7 +48,7 @@ class TestGradientMagnitude(TFTestCase):
         self.setUp()  # reset embedding space and optimizer
         emb_space2 = self.feed(batch2, emb_space_initial)
 
-        self.assert_output(emb_space1, emb_space2)
+        self.assert_numerically_equal(emb_space1, emb_space2)
 
     def test_unused_embedding_vectors_irrelevant(self) -> None:
         """
@@ -64,7 +63,7 @@ class TestGradientMagnitude(TFTestCase):
         self.setUp()
         emb_space2 = self.feed(batch, emb_space_initial2, gamma=0)
 
-        self.assert_output(emb_space1, emb_space2[:len(emb_space1)])
+        self.assert_numerically_equal(emb_space1, emb_space2[:len(emb_space1)])
 
     def test_coulomb_loss_agnostic_to_input(self) -> None:
         """
@@ -78,4 +77,4 @@ class TestGradientMagnitude(TFTestCase):
         self.setUp()
         emb_space2 = self.feed(batch2, emb_space_initial, alpha=0, beta=0, gamma=1)
 
-        self.assert_output(emb_space1, emb_space2)
+        self.assert_numerically_equal(emb_space1, emb_space2)
