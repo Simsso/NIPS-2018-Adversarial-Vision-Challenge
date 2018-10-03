@@ -8,17 +8,22 @@ class Accumulator:
     reduces them into a `tf.Summary.Value` object which can then be written to TensorBoard.
     """
 
-    def __init__(self, name: str, log_frequency: int):
+    def __init__(self, name: str, log_frequency: int) -> None:
         """
         :param name: Name of the accumulator which will appear in TensorBoard
         :param log_frequency: Lowest number of values to aggregate until writing to TensorBoard
         """
+        if log_frequency < 1:
+            raise ValueError("Log frequency must be greater than or equal to 1. Got '{}'.".format(log_frequency))
+
         self._values = []
         self._name = name
         self._log_frequency = log_frequency
+
+        # stores the number of times the add method was called even though the model weights were not updated (no step)
         self._non_increments_added = 0
 
-    def log_ready(self):
+    def log_ready(self) -> bool:
         """
         :return: `True` if enough values have been accumulated to write, `False` otherwise.
         """
@@ -44,9 +49,11 @@ class Accumulator:
     def to_summary_value(self) -> tf.Summary.Value:
         """
         Converts the accumulator into a summary value and deletes the accumulated values in order to collect a new list
-        of values.
+        of values. Must not be called if `log_ready` returns `False`.
         :return: Summary value which can be added to a `tf.Summary` object
         """
+        if not self.log_ready():
+            raise ValueError('Not ready to log, make sure to `add` more values before calling this method.')
         summary_value = self._get_summary_value()
         self.__flush()
         return summary_value
