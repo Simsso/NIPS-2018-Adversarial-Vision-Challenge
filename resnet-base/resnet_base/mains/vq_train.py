@@ -3,12 +3,14 @@ from resnet_base.model.vq_resnet import VQResNet
 from resnet_base.trainer.resnet_trainer import ResNetTrainer
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.util.logger.factory import LoggerFactory
-from logging
-from sys
+from tensorflow.python.platform import tf_logging
+import logging
+import sys
 
 tf.flags.DEFINE_integer("batch_size", 32, "Number of samples per batch that is fed through the GPU at once.")
 tf.flags.DEFINE_integer("virtual_batch_size_factor", 8, "Number of batches per weight update.")
 FLAGS = tf.flags.FLAGS
+
 
 def main(args):
     tf.reset_default_graph()
