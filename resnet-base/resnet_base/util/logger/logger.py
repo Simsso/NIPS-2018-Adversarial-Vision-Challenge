@@ -32,22 +32,24 @@ class Logger:
         self.tensors.append(tensor)
         self.__accumulators.append(acc)
 
-    def __update_accumulators(self, vals: List[any]) -> None:
+    def __update_accumulators(self, vals: List[any], increment: bool = True) -> None:
         """
         Updates the accumulators by adding a new value to each of them.
         :param vals: New values to add (each entry in the list belongs to one entry in the `self.tensors` list.
+        :param increment: Whether or not to increment the step counter.
         """
         assert len(vals) == len(self.tensors)
         for i, val in enumerate(vals):
-            self.__accumulators[i].add(val)
+            self.__accumulators[i].add(val, increment)
 
-    def step_completed(self, vals: List[any]) -> None:
+    def step_completed(self, vals: List[any], increment: bool = True) -> None:
         """
         Called after completion of a step / batch forward pass.
         :param vals: One value for each entry in the self.tensors list. Commonly called with the return value of
                      `sess.run(logger.tensors)`.
+        :param increment: Whether or not to increment the step counter.
         """
-        self.__update_accumulators(vals)
+        self.__update_accumulators(vals, increment)
         summary_values = []
         for acc in self.__accumulators:
             # check whether the accumulator contains enough values to be written out to the log

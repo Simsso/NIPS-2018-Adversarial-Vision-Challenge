@@ -6,9 +6,14 @@ from resnet_base.util.logger.factory import LoggerFactory
 from logging
 from sys
 
-def main(args):
+tf.flags.DEFINE_integer("batch_size", 32, "Number of samples per batch that is fed through the GPU at once.")
+tf.flags.DEFINE_integer("virtual_batch_size_factor", 8, "Number of batches per weight update.")
+FLAGS = tf.flags.FLAGS
 
-    tf.set_random_seed(234957)
+def main(args):
+    tf.reset_default_graph()
+    tf.logging.set_verbosity(tf.logging.DEBUG)
+    tf.set_random_seed(15092017)
 
     tf.logging.set_verbosity(tf.logging.DEBUG)
     tf_logger = tf_logging._get_logger()
@@ -22,14 +27,16 @@ def main(args):
     config.gpu_options.allow_growth = True  # dynamic GPU memory allocation
     sess = tf.Session(config=config)
     with sess:
-        pipeline = TinyImageNetPipeline(batch_size=128)
+        # dataset
+        pipeline = TinyImageNetPipeline(batch_size=FLAGS.batch_size)
         imgs, labels = pipeline.get_iterator().get_next()
 
-        logger_factory = LoggerFactory(TinyImageNetPipeline.num_valid_samples // pipeline.batch_size)
-
+        # model
+        logger_factory = LoggerFactory(num_valid_steps=TinyImageNetPipeline.num_valid_samples // pipeline.batch_size)
         model = VQResNet(logger_factory, imgs, labels)
 
-        trainer = ResNetTrainer(model, pipeline)
+        # training
+        trainer = ResNetTrainer(model, pipeline, FLAGS.virtual_batch_size_factor)
         trainer.train()
 
 

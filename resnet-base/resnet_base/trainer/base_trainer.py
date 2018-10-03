@@ -2,7 +2,7 @@ import tensorflow as tf
 from resnet_base.model.base_model import BaseModel
 
 tf.flags.DEFINE_float("learning_rate", 1e-3, "The learning rate used for training.")
-tf.flags.DEFINE_integer("num_epochs", 25, "The number of epochs for which training is performed.")
+tf.flags.DEFINE_integer("num_epochs", 100, "The number of epochs for which training is performed.")
 tf.flags.DEFINE_string("train_log_dir", "../tf_logs/train", "The directory used to save the training summaries.")
 tf.flags.DEFINE_string("val_log_dir", "../tf_logs/val", "The directory used to save the validation summaries.")
 
