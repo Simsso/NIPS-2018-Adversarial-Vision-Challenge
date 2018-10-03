@@ -14,8 +14,7 @@ class TFTestCase(TestCase):
         self.sess.as_default()
 
     def init_vars(self) -> None:
-        init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-        self.sess.run(init)
+        self.sess.run(tf.global_variables_initializer())
 
     def tearDown(self) -> None:
         self.sess.close()
