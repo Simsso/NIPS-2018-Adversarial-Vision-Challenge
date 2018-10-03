@@ -4,7 +4,7 @@ cd vq-layer && pip install . && cd ..
 python setup.py install && \
 python -m resnet_base \
     --name "${MODEL_ID}" \
-    --learning_rate 1e-3 \
+    --learning_rate 1 \
     --num_epochs 100 \
     --physical_batch_size 32 \
     --virtual_batch_size_factor 8 \
