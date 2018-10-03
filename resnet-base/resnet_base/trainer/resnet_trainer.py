@@ -72,14 +72,13 @@ class ResNetTrainer(BaseTrainer):
         vals = self.sess.run(self.valid_logger.tensors, feed_dict={self.resnet.is_training: False})
         self.valid_logger.step_completed(vals)
 
-    @staticmethod
-    def __generic_epoch_with_params(batch_size: int, num_samples: int, batch_step):
+    def __generic_epoch_with_params(self, batch_size: int, num_samples: int, batch_step):
         """
         Runs one epoch with the given parameters. Calls the given step function for each batch.
         :param batch_size: the number of samples used at every step
         :param num_samples: the total size of the data set
         :param batch_step: a function that runs the batch
         """
-        num_batches = num_samples // batch_size
+        num_batches = num_samples // (batch_size * self.virtual_batch_size_factor)
         for i in range(num_batches):
             batch_step()
