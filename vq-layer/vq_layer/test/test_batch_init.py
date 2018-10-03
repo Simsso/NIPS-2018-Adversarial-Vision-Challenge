@@ -22,7 +22,7 @@ class TestEmbeddingSpaceBatchInit(TFTestCase):
 
     def feed(self, x_in: List, emb_target: List) -> None:
         x_val = np.array(x_in, dtype=np.float32)
-        endpoints = vector_quantization(self.x_reshaped, self.n, embedding_initializer='emb_space_batch_init',
+        endpoints = vector_quantization(self.x_reshaped, self.n, embedding_initializer='batch',
                                         return_endpoints=True)
         self.init_vars()
 

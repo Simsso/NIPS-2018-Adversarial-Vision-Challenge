@@ -23,7 +23,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param beta: Weighting of the beta-loss term (all vectors distance penalty)
     :param gamma: Weighting of the coulomb-loss term (embedding space spacing)
     :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]
-    :param embedding_initializer: Initializer for the embedding space variable or 'emb_space_batch_init'
+    :param embedding_initializer: Initializer for the embedding space variable or 'batch'
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param num_embeds_replaced: If greater than 0, this adds an op to the endpoints tuple which replaces the respective
            number of least used embedding vectors in the batch with the batch inputs most distant from the embedding
@@ -38,8 +38,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                 distance: Distance of inputs from the embedding space vectors
                 emb_spacing: Embedding spacing vector where each entry indicates the distance between embedding vectors
                 replace_embeds: Op that replaces the least used embedding vectors with the most distant input vectors
-                emb_space_batch_init: Embedding space batch init op (is set if embedding_initializer is
-                    'emb_space_batch_init')
+                emb_space_batch_init: Embedding space batch init op (is set if embedding_initializer is 'batch')
     """
     if n <= 0:
         raise ValueError("Parameter 'n' must be greater than 0.")
@@ -63,7 +62,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         raise ValueError("Parameter 'num_splits' must be a divisor of the third axis of 'x'. Got {} and {}."
                          .format(num_splits, in_shape[2]))
 
-    dynamic_emb_space_init = (embedding_initializer == 'emb_space_batch_init')
+    dynamic_emb_space_init = (embedding_initializer == 'batch')
     if dynamic_emb_space_init:
         embedding_initializer = tf.zeros_initializer
 
@@ -123,9 +122,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
         emb_space_batch_init = None
         if dynamic_emb_space_init:
-            emb_space_batch_init = tf.assign(emb_space, tf.slice(tf.reshape(x, [-1, vec_size]),
-                                                                 tf.zeros_like(emb_space.shape), emb_space.shape),
-                                             validate_shape=True)
+            replace_value = tf.slice(tf.reshape(x, [-1, vec_size]),
+                                     begin=tf.zeros_like(emb_space.shape), size=emb_space.shape)
+            emb_space_batch_init = tf.assign(emb_space, value=replace_value, validate_shape=True)
 
         # return selection in original size
         # skip this layer when doing back-prop
