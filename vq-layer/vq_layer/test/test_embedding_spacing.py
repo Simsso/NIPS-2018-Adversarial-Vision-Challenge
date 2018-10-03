@@ -29,6 +29,12 @@ class TestEmbeddingSpacing(TFTestCase):
         emb_spacing_val = self.sess.run(endpoints.emb_spacing, feed_dict={self.x: x_val})
         self.assert_numerically_equal(emb_spacing_val, emb_spacing_target)
 
+    def test_single_embedding_vector(self) -> None:
+        """
+        Spacing does not exist if there is only a single embedding vector.
+        """
+        self.feed(emb_space_val=[[1, -5]], emb_spacing_target=[])
+
     def test_two_embedding_vectors(self) -> None:
         """
         Spacing between two embedding vectors
@@ -40,3 +46,9 @@ class TestEmbeddingSpacing(TFTestCase):
         Spacing between multiple embeddings in the space
         """
         self.feed(emb_space_val=[[3, 3], [1, 2], [5, -1], [0, 0]], emb_spacing_target=[3, 6, 6, 7, 3, 6])
+
+    def test_identical_values(self) -> None:
+        """
+        Spacing between identical values must be 0.
+        """
+        self.feed(emb_space_val=[[5, 4.3], [5, 4.3], [5, 4.3]], emb_spacing_target=[0, 0, 0])
