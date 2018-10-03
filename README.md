@@ -24,6 +24,8 @@ its base class.
 3. If necessary, adjust [`submit.py`](./resnet-base/resnet_base/mains/submit.py) (e.g. change the placeholder
 tensor if needed). In most cases however, this step should not be necessary.
 4. Update [`run.sh`](./run.sh) and set the `CHECKPOINT_PATH` as the `global_checkpoint` argument
-5.1 Test it on a VM using `avc-test-model .`, or:
-5.2 Head over to [crowdai's GitLab](https://gitlab.crowdai.org) and create a new repository. 
-Add the new repository as a new remote of this repository, commit and push everything. Then, run `avc-submit .` to run the evaluation and submit the model.  
+5. Optional: make sure everything works using a VM (with `nvidia-docker` installed) using `avc-test-model .`. This will
+test the accuracy of your model.
+6. Head over to [crowdai's GitLab](https://gitlab.crowdai.org) and create a new repository. 
+Add the new repository as a new remote of this repository, commit and push everything.
+7. Run `avc-submit .` to run the evaluation and submit the model.  
