@@ -1,4 +1,5 @@
-from resnet_base.util.logger.accumulator import Accumulator, ScalarAccumulator, HistogramAccumulator
+from resnet_base.util.logger.accumulator import Accumulator, ScalarAccumulator, HistogramAccumulator, \
+    HistogramSumAccumulator
 from resnet_base.util.logger.logger import Logger
 import tensorflow as tf
 
@@ -18,20 +19,24 @@ class LoggerFactory:
         """
         self.__log_elements.append(('scalar', name, tensor, log_frequency))
 
-    def add_histogram(self, name: str, tensor: tf.Tensor, log_frequency: int = 1) -> None:
+    def add_histogram(self, name: str, tensor: tf.Tensor, is_sum_value: bool = False, log_frequency: int = 1) -> None:
         """
         Adds a histogram tensor to the factory.
         :param name: Display name of the tensor
         :param tensor: The tensor
+        :param is_sum_value: True if the value is a sum depending on the batch size
         :param log_frequency: Lowest number of values to aggregate until writing to TensorBoard
         """
-        self.__log_elements.append(('histogram', name, tensor, log_frequency))
+        log_type = 'histogram_sum' if is_sum_value else 'histogram'
+        self.__log_elements.append((log_type, name, tensor, log_frequency))
 
     def __create_accumulators(self, log_type: str, name: str, log_frequency: int) -> (Accumulator, Accumulator):
         if log_type == 'scalar':
             constructor = ScalarAccumulator
         elif log_type == 'histogram':
             constructor = HistogramAccumulator
+        elif log_type == 'histogram_sum':
+            constructor = HistogramSumAccumulator
         else:
             raise ValueError("Parameter 'log_type' is invalid. Got '{}'.".format(log_type))
         return constructor(name, log_frequency), constructor(name, self.__num_valid_steps)

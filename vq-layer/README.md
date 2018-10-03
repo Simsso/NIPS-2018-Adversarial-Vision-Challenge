@@ -15,6 +15,8 @@ It adds a couple of nodes to the TF computational graph which do the following /
 * Embedding spacing monitoring, in form of a vector that contains the distances between all vectors in the embedding space.
 * Variable measures for distance, supported are `tf.norm`'s `ord` values `np.inf`, `1`, and `2`.
 * Gradient skipping enables training of inputs, as if the layer was not present.
+* Dynamic replacement substitutes the least frequently used vectors in the embedding space with the inputs that were furthest away from any vector in the embedding space.
+* The embedding space batch initialization feature sets the embedding space to the input vectors of the current batch. That way the embeddings are guaranteed to have reasonable magnitudes and directions.
 
 
 ## Installation
@@ -28,5 +30,5 @@ pip install .
 and import the function in other projects, e.g. with the following statement:
 
 ```python
-from vq_layer import vector_quantization
+from vq_layer import vector_quantization as vq
 ```

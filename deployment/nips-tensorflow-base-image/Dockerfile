@@ -9,11 +9,6 @@ RUN mkdir ~/.data && \
     curl -O http://cs231n.stanford.edu/tiny-imagenet-200.zip && \
     unzip -qq tiny-imagenet-200.zip
 
-# load pretrained ALP-weights
-RUN cd ~/.data && \
-    curl -O http://download.tensorflow.org/models/adversarial_logit_pairing/tiny_imagenet_alp05_2018_06_26.ckpt.tar.gz && \
-    tar -xzf tiny_imagenet_alp05_2018_06_26.ckpt.tar.gz
-
 # get service account for gcs
 COPY cloudbuild-service-account.json /opt/app/cloudbuild-service-account.json
 ENV GOOGLE_APPLICATION_CREDENTIALS=/opt/app/cloudbuild-service-account.json
