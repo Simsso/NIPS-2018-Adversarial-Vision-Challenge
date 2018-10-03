@@ -4,10 +4,10 @@ cd vq-layer && pip install . && cd ..
 python setup.py install && \
 python -m resnet_base \
     --name "${MODEL_ID}" \
-    --learning_rate 1e-3 \
+    --learning_rate 4e-3 \
     --num_epochs 100 \
-    --batch_size 128 \
-    --virtual_batch_size_factor 4 \
+    --batch_size 32 \
+    --virtual_batch_size_factor 16 \
     --pretrained_checkpoint "${HOME}/.data/tiny_imagenet_alp05_2018_06_26.ckpt" \
     --data_dir "${HOME}/.data/tiny-imagenet-200" \
     --save_dir "gs://${BUCKET_NAME}/model_data/${MODEL_ID}/checkpoints" \
