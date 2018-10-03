@@ -11,7 +11,14 @@ class VQResNet(ResNet):
             vq_endpoints = vq(x, n=256, alpha=.1, beta=.1, gamma=0, num_splits=16, lookup_ord=2, num_embeds_replaced=1,
                               return_endpoints=True, embedding_initializer=tf.random_normal_initializer(0, stddev=1e-2,
                                                                                                         seed=15092017))
-            x = vq_endpoints.layer_out
+
+            def x_with_update():
+                if vq_endpoints.replace_embeds is None:
+                    return vq_endpoints.layer_out
+                with tf.control_dependencies([vq_endpoints.replace_embeds]):
+                    return vq_endpoints.layer_out
+
+            x = tf.cond(self.is_training, true_fn=x_with_update, false_fn=lambda: vq_endpoints.layer_out)
             access_count = vq_endpoints.access_count
             self.logger_factory.add_histogram('access_count', access_count, is_sum_value=True, log_frequency=50)
             self.logger_factory.add_scalar('unused_embeddings', tf.nn.zero_fraction(access_count), log_frequency=10)
