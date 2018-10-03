@@ -6,7 +6,7 @@ from resnet_base.util.logger.factory import LoggerFactory
 from resnet_base.util.logger.tf_logger_init import init as logger_init
 
 
-tf.flags.DEFINE_integer("batch_size", 32, "Number of samples per batch that is fed through the GPU at once.")
+tf.flags.DEFINE_integer("physical_batch_size", 32, "Number of samples per batch that is fed through the GPU at once.")
 tf.flags.DEFINE_integer("virtual_batch_size_factor", 8, "Number of batches per weight update.")
 FLAGS = tf.flags.FLAGS
 
@@ -21,7 +21,7 @@ def main(args):
     sess = tf.Session(config=config)
     with sess:
         # dataset
-        pipeline = TinyImageNetPipeline(batch_size=FLAGS.batch_size)
+        pipeline = TinyImageNetPipeline(physical_batch_size=FLAGS.physical_batch_size)
         imgs, labels = pipeline.get_iterator().get_next()
 
         # model
