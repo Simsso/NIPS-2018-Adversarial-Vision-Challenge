@@ -9,9 +9,7 @@ from resnet_base.util.logger.factory import LoggerFactory
 slim = tf.contrib.slim
 
 # define flags
-tf.flags.DEFINE_string("pretrained_checkpoint", os.path.expanduser('~/.models/tiny_imagenet_alp05_2018_06_26.ckpt'),
-                       "Checkpoint path of pre-trained weights.")
-tf.flags.DEFINE_string("custom_checkpoint", "", "Checkpoint path of custom-tuned weights.")
+tf.flags.DEFINE_string("pretrained_checkpoint", "", "Checkpoint file (!) of pre-trained weights (restore-only).")
 
 FLAGS = tf.flags.FLAGS
 
@@ -42,7 +40,6 @@ class ResNet(BaseModel):
         self.num_classes = 200
 
         self.pretrained_saver = None
-        self.custom_saver = None
         
         with tf.variable_scope('custom') as scope:
             self.custom_scope = scope
@@ -59,31 +56,19 @@ class ResNet(BaseModel):
 
     def init_saver(self) -> None:
         """
-        Creates three saver: (1) for all weights, (2) for pre-trained weights, (3) for weights of variables that were
-        added to the ResNet model (custom).
+        Creates two savers: (1) for all weights (restore-and-save), (2) for pre-trained weights (restore-only).
         """
         self.saver = BaseModel._create_saver('')
         self.pretrained_saver = BaseModel._create_saver('resnet_v2_50')
-        self.custom_saver = BaseModel._create_saver(self.custom_scope.name)
-
-    def save(self, sess: tf.Session) -> None:
-        """
-        Tries to save the current model state using the three savers (all, pre-trained, custom).
-        :param sess: Session with the weights to save
-        """
-        super().save(sess)
-        BaseModel._save_to_path(sess, self.pretrained_saver, self.global_step, FLAGS.pretrained_checkpoint)
-        BaseModel._save_to_path(sess, self.custom_saver, self.global_step, FLAGS.custom_checkpoint)
 
     def restore(self, sess: tf.Session) -> None:
         """
         Tries to restore the weights of the model. Continues if no data is present. Tries to restore all weights first,
-        then pre-trained weights only, then custom weights.
+        then pre-trained weights only.
         :param sess: Session to restore the weights to
         """
         super().restore(sess)
-        BaseModel._restore_checkpoint(self.pretrained_saver, sess, FLAGS.pretrained_checkpoint)
-        BaseModel._restore_checkpoint(self.custom_saver, sess, FLAGS.custom_checkpoint)
+        BaseModel._restore_checkpoint(self.pretrained_saver, sess, path=FLAGS.pretrained_checkpoint)
 
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         """
