@@ -8,9 +8,9 @@ class VQResNet(ResNet):
         x = ResNet._first_conv(x)  # 16x16x64
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
             x = tf.reshape(x, [-1, 256, 64])
-            vq_endpoints = vq(x, n=256, alpha=.1, beta=.1, gamma=0, num_splits=16, lookup_ord=2, num_embeds_replaced=1,
-                              return_endpoints=True, embedding_initializer=tf.random_normal_initializer(0, stddev=1e-2,
-                                                                                                        seed=15092017))
+            vq_endpoints = vq(x, n=256, alpha=1e-3, beta=1e-2, gamma=0, num_splits=16, lookup_ord=2,
+                              num_embeds_replaced=1, return_endpoints=True,
+                              embedding_initializer=tf.random_normal_initializer(0, stddev=1e-3, seed=15092017))
 
             def x_with_update():
                 if vq_endpoints.replace_embeds is None:
