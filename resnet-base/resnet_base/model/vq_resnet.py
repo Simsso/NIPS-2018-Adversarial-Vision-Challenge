@@ -8,9 +8,19 @@ class VQResNet(ResNet):
         x = ResNet._first_conv(x)  # 16x16x64
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
             x = tf.reshape(x, [-1, 256, 64])
-            vq_endpoints = vq(x, n=256, alpha=.1, beta=1e-2, gamma=0, num_splits=8, lookup_ord=2, num_embeds_replaced=1,
-                              return_endpoints=True, embedding_initializer=tf.random_normal_initializer(seed=15092017))
-            x = vq_endpoints.layer_out
+            vq_endpoints = vq(x, n=128, alpha=.1, beta=.1, gamma=.1, num_splits=16, lookup_ord=1, num_embeds_replaced=1,
+                              return_endpoints=True,
+                              embedding_initializer=tf.random_normal_initializer(0, stddev=1 / 32.,
+                                                                                 seed=15092017))
+
+            def x_with_update():
+                with tf.control_dependencies([vq_endpoints.replace_embeds]):
+                    return vq_endpoints.layer_out
+
+            def x_without_update():
+                return vq_endpoints.layer_out
+
+            x = tf.cond(self.is_training, x_with_update, x_without_update)
             access_count = vq_endpoints.access_count
             self.logger_factory.add_histogram('access_count', access_count, is_sum_value=True, log_frequency=50)
             self.logger_factory.add_scalar('unused_embeddings', tf.nn.zero_fraction(access_count), log_frequency=10)
