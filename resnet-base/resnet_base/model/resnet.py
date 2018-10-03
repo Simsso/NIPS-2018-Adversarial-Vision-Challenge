@@ -1,6 +1,6 @@
 import os
 from resnet_base.model.base_model import BaseModel
-from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data
+from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data, TinyImageNetPipeline
 import tensorflow as tf
 from typing import Dict, Optional
 
@@ -37,7 +37,7 @@ class ResNet(BaseModel):
         self.labels = labels
 
         self.is_training = tf.placeholder_with_default(False, (), 'is_training')
-        self.num_classes = 200
+        self.num_classes = TinyImageNetPipeline.num_classes
 
         self.pretrained_saver = None
         

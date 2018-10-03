@@ -9,7 +9,7 @@ import os
 
 from resnet_base.util.logger.factory import LoggerFactory
 
-tf.flags.DEFINE_string("save_directory", "", "Checkpoint directory of the complete graph's variables. Used both to \
+tf.flags.DEFINE_string("save_dir", "", "Checkpoint directory of the complete graph's variables. Used both to \
                                               restore (if available) and to save the model.")
 tf.flags.DEFINE_string("name", "model", "The name of the model (may contain hyperparameter information), used when \
                                         saving the model.")
@@ -58,10 +58,10 @@ class BaseModel:
         raise NotImplementedError
 
     def save(self, sess: tf.Session) -> None:
-        BaseModel._save_to_path(sess, self.saver, self.global_step, path=FLAGS.save_directory)
+        BaseModel._save_to_path(sess, self.saver, self.global_step, path=FLAGS.save_dir)
 
     def restore(self, sess: tf.Session) -> None:
-        BaseModel._restore_checkpoint(self.saver, sess, path=FLAGS.save_directory)
+        BaseModel._restore_checkpoint(self.saver, sess, path=FLAGS.save_dir)
 
     @staticmethod
     def _restore_checkpoint(saver: tf.train.Saver, sess: tf.Session, path: Optional[str] = None):
