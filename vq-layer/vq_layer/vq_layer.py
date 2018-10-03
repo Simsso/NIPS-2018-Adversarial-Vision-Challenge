@@ -87,12 +87,13 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
         if alpha != 0:
             # closest embedding update loss (alpha-loss)
-            nearest_loss = tf.reduce_mean(alpha * tf.norm(y - tf.stop_gradient(x), lookup_ord, axis=2), axis=[0, 1])
+            nearest_loss = tf.reduce_mean(alpha * tf.norm(y - tf.stop_gradient(x), lookup_ord, axis=2), axis=[0, 1],
+                                          name='alpha_loss')
             tf.add_to_collection(tf.GraphKeys.LOSSES, nearest_loss)
 
         if beta != 0:
             # all embeddings update loss (beta-loss)
-            all_loss = tf.reduce_mean(beta * tf.reduce_sum(dist, axis=2), axis=[0, 1])
+            all_loss = tf.reduce_mean(beta * tf.reduce_sum(dist, axis=2), axis=[0, 1], name='beta_loss')
             tf.add_to_collection(tf.GraphKeys.LOSSES, all_loss)
 
         emb_spacing = None
@@ -103,7 +104,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             pdist = tf.norm(pdiff, lookup_ord, axis=2)  # pair-wise distance scalars (n x n)
             emb_spacing = strict_upper_triangular_part(pdist)
             if gamma != 0:
-                coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0)
+                coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0, name='coulomb_loss')
                 tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
 
         replace_embeds = None
