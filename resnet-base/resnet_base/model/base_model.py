@@ -13,6 +13,7 @@ tf.flags.DEFINE_string("save_dir", "", "Checkpoint directory of the complete gra
                                               restore (if available) and to save the model.")
 tf.flags.DEFINE_string("name", "model", "The name of the model (may contain hyperparameter information), used when \
                                         saving the model.")
+
 FLAGS = tf.flags.FLAGS
 
 
@@ -28,7 +29,7 @@ class BaseModel:
         self.increment_current_epoch = None
         self.global_step = None
         self.increment_global_step = None
-
+        
         # init the global step
         self.init_global_step()
         # init the epoch counter

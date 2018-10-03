@@ -35,7 +35,7 @@ class ResNet(BaseModel):
         if labels is None:
             labels = tf.placeholder(tf.uint8, shape=[None], name='labels')
         self.labels = labels
-
+        
         self.is_training = tf.placeholder_with_default(False, (), 'is_training')
         self.num_classes = TinyImageNetPipeline.num_classes
 
