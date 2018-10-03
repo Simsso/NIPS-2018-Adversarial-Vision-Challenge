@@ -51,8 +51,8 @@ class TinyImageNetPipeline(BasePipeline):
                 tf.placeholder(tf.string, self.num_valid_samples)
             )
         }
-        self.filenames: Dict[tf.estimator.ModeKeys, List[str]] = {}
-        self.raw_labels: Dict[tf.estimator.ModeKeys, List[str]] = {}
+        self.filenames = {}
+        self.raw_labels = {}
 
         self.__init_filenames_labels()
 
@@ -81,7 +81,7 @@ class TinyImageNetPipeline(BasePipeline):
             raise ValueError("Supported modes are {}. Got '{}'.".format(self.__supported_modes, mode))
 
         data = tf.data.Dataset.from_tensor_slices(self.placeholder[mode])
-        data = data.shuffle(buffer_size=self.__get_num_samples(mode))
+        data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
         data = data.map(self.__img_loading)
         if mode == tf.estimator.ModeKeys.TRAIN:
             data = data.map(self.__img_augmentation)

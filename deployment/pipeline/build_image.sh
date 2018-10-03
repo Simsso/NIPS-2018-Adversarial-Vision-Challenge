@@ -1,9 +1,8 @@
-
 #!/bin/bash
 
 echo "Retrieving model version and model folder name .."
 
-MODEL_VERSION=$( echo $2 | grep -o '[0-9.]*$')
+MODEL_VERSION=$( echo $2 | grep -o '[0-9.a-zA-Z]*$')
 MODEL_FOLDER=${2%-$MODEL_VERSION}
 
 echo "Model Folder: $MODEL_FOLDER"
@@ -27,8 +26,10 @@ apt-get update
 echo "Install docker .."
 apt-get install -y docker-ce
 
+cp -r vq-layer $MODEL_FOLDER
+
 echo "Building Docker Image .."
-docker build -t gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION  --build-arg MODEL_ID_ARG=$MODEL_FOLDER-$MODEL_VERSION --build-arg BUCKET_NAME_ARG=$3 models/$MODEL_FOLDER
+docker build -t gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION  --build-arg MODEL_ID_ARG=$MODEL_FOLDER-$MODEL_VERSION --build-arg BUCKET_NAME_ARG=$3 $MODEL_FOLDER
 
 echo "Pushing Docker Image .."
 docker push gcr.io/$1/$MODEL_FOLDER:$MODEL_VERSION
