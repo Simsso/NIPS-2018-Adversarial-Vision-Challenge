@@ -81,7 +81,8 @@ class TinyImageNetPipeline(BasePipeline):
             raise ValueError("Supported modes are {}. Got '{}'.".format(self.__supported_modes, mode))
 
         data = tf.data.Dataset.from_tensor_slices(self.placeholder[mode])
-        data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
+        if mode == tf.estimator.ModeKeys.TRAIN:  # shuffle only training data
+            data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
         data = data.map(self.__img_loading)
         if mode == tf.estimator.ModeKeys.TRAIN:
             data = data.map(self.__img_augmentation)
