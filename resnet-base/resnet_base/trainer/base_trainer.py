@@ -37,7 +37,7 @@ class BaseTrainer:
         for _ in range(start_epoch, FLAGS.num_epochs + 1):
             self.train_epoch()
             self.val_epoch()  # run validation epoch to monitor training
-        self.model.save(self.sess)
+            self.model.save(self.sess)
 
     def train_epoch(self) -> None:
         """
