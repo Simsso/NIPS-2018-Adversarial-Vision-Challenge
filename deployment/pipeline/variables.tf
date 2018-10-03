@@ -19,5 +19,5 @@ variable "zone" {
 }
 
 variable "machine_type" {
-  default = "custom-4-25600"
+  default = "custom-4-6400"
 }
