@@ -35,14 +35,16 @@ func (s *trainingManagerServer) RegisterTraining(ctx context.Context, trainingJo
 
 func (s *trainingManagerServer) UpdateTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
 	fmt.Printf("Update %s\n", trainingJob.ModelId)
-
 	s.trainingJobs[trainingJob.ModelId] = trainingJob
-	return &TrainingProto.Response{Success: true}, nil
-}
 
-func (s *trainingManagerServer) FinishTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
-	s.trainingJobs[trainingJob.ModelId] = trainingJob
-	s.trainingJobsData[trainingJob.ModelId].taskQueue <- "SHUTDOWN"
+	status := s.trainingJobs[trainingJob.ModelId].Status
+
+	if status == TrainingProto.TrainingJob_CRASHED {
+		fmt.Print("Training crashed")
+	} else if status == TrainingProto.TrainingJob_FINISHED {
+		fmt.Print("Training finished")
+	}
+
 	return &TrainingProto.Response{Success: true}, nil
 }
 
