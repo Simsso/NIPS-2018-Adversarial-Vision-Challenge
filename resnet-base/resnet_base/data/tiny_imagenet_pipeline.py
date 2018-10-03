@@ -30,7 +30,7 @@ class TinyImageNetPipeline(BasePipeline):
     def __init__(self, data_dir: str = None, physical_batch_size: int = 256):
         """
         :param data_dir: Directory of the folder from http://cs231n.stanford.edu/tiny-imagenet-200.zip
-        :param physical_batch_size: Batch size used for training and validation.
+        :param physical_batch_size: Batch size which the pipeline is supposed to provide
         """
         super().__init__()
         if not data_dir:
