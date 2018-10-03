@@ -20,7 +20,7 @@ class ResNet(BaseModel):
     https://github.com/tensorflow/models/tree/master/research/adversarial_logit_pairing.
     ResNet paper: https://arxiv.org/abs/1512.03385
     """
-    def __init__(self, logger_factory: LoggerFactory, x: tf.Tensor = None, labels: tf.Tensor = None):
+    def __init__(self, logger_factory: LoggerFactory = None, x: tf.Tensor = None, labels: tf.Tensor = None):
         super().__init__(logger_factory)
 
         self.accuracy = None  # percentage of correctly classified samples
