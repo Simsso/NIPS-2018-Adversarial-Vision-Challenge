@@ -76,7 +76,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
         # map x to y, where y is the vector from emb_space that is closest to x
         # distance of x from all vectors in the embedding space
-        diff = tf.expand_dims(x, axis=2) - emb_space
+        diff = tf.expand_dims(tf.stop_gradient(x), axis=2) - emb_space
         dist = tf.norm(diff, lookup_ord, axis=3)  # distance between x and all vectors in emb
         emb_index = tf.argmin(dist, axis=2)
         y = tf.gather(emb_space, emb_index, axis=0)
@@ -87,7 +87,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
         if alpha != 0:
             # closest embedding update loss (alpha-loss)
-            nearest_loss = tf.reduce_mean(alpha * tf.norm(y - x, lookup_ord, axis=2), axis=[0, 1])
+            nearest_loss = tf.reduce_mean(alpha * tf.norm(y - tf.stop_gradient(x), lookup_ord, axis=2), axis=[0, 1])
             tf.add_to_collection(tf.GraphKeys.LOSSES, nearest_loss)
 
         if beta != 0:
