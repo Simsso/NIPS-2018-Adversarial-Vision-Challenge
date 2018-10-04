@@ -12,8 +12,8 @@ __valid_lookup_ord_values = [1, 2, np.inf]
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
                         lookup_ord: int = 2, embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
-                        tf.random_normal_initializer,
-                        num_splits: int = 1, num_embeds_replaced: int = 0, return_endpoints: bool = False)\
+                        tf.random_normal_initializer, num_splits: int = 1, num_embeds_replaced: int = 0,
+                        return_endpoints: bool = False, name: str = 'vq')\
         -> Union[tf.Tensor, VQEndpoints]:
     """
     Vector quantization layer.
@@ -30,6 +30,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
            vectors. If the batch size is smaller than this number, it will throw a ValueError.
            If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
+    :param name: Name to use for the variable scope
     :return: Only the layer output if return_endpoints is False
              VQEndpoints-tuple with the values:
                 layer_out: Layer output
@@ -69,7 +70,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     vec_size = in_shape[2] // num_splits
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
 
-    with tf.variable_scope('vq'):
+    with tf.variable_scope(name):
         # embedding space
         emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
                                     trainable=True)
