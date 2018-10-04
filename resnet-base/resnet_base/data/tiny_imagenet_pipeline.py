@@ -84,8 +84,6 @@ class TinyImageNetPipeline(BasePipeline):
         if mode == tf.estimator.ModeKeys.TRAIN:  # shuffle only training data
             data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
         data = data.map(self.__img_loading)
-        if mode == tf.estimator.ModeKeys.TRAIN:
-            data = data.map(self.__img_augmentation)
         data = data.map(self.__img_label_scaling)
         data = data.batch(self.batch_size)
         iterator = self.get_iterator()
