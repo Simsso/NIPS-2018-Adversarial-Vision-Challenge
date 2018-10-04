@@ -54,6 +54,7 @@ func main() {
 
 	client = TrainingProto.NewTrainingProtoClient(conn)
 
+	// TODO Register before Start of training!
 	// start TrainingJob
 	if err := StartTraining(); err != nil {
 		log.Fatal(err)
@@ -105,7 +106,12 @@ func waitForProcessToExit(cmd *exec.Cmd) {
 	}
 
 	trainingJob.StopTime = time.Now().Unix()
-	UpdateTrainingJob()
+	ReadOuput()
+
+	if response, err := client.FinishTraining(context.Background(), &trainingJob); err != nil || !response.Success {
+		logWithDateAndFormat("Couldn't finish %s at TrainingManager (%s)", modelId, serverAddr)
+		return
+	}
 	logWithDate("Waiting for shutdown from TrainingManager ..")
 
 }
@@ -116,6 +122,8 @@ func RegisterTrainingJob(startTime int64, modelId string) (error) {
 	trainingJob.ModelId = modelId
 	trainingJob.Status = TrainingProto.TrainingJob_RUNNING
 
+	ReadOuput()
+
 	if response, err := client.RegisterTraining(context.Background(), &trainingJob); err != nil || !response.Success {
 		logWithDateAndFormat("Couldn't register %s at TrainingManager (%s)", modelId, serverAddr)
 		return err
@@ -124,14 +132,19 @@ func RegisterTrainingJob(startTime int64, modelId string) (error) {
 	return nil
 }
 
-func UpdateTrainingJob() (error) {
-
+func ReadOuput(){
 	content, err := ioutil.ReadFile(logFile)
 	if err != nil {
-		log.Fatal(err)
+		trainingJob.Log = logWithDate("Couldn't find any logs")
+	} else {
+		logWithDate("Retrieved logfile ..")
+		trainingJob.Log = fmt.Sprintf("%s", content)
 	}
-	logWithDate("Retrieve logfile ..")
-	trainingJob.Log = fmt.Sprintf("%s", content)
+}
+
+func UpdateTrainingJob() (error) {
+
+	ReadOuput()
 
 	if response, err := client.UpdateTraining(context.Background(), &trainingJob); err != nil || !response.Success {
 		logWithDateAndFormat("Couldn't update %s at TrainingManager (%s)", modelId, serverAddr)
@@ -155,10 +168,8 @@ func EventListener(client *TrainingProto.TrainingProtoClient) {
 		recvEvent := event.Event.String()
 
 		if recvEvent == TrainingProto.Event_UPDATE.String() {
-			logWithDate("UPDATE-event received! Sending TrainingJob to TrainingManager!")
+			logWithDate("UPDATE-event received! Sending updates to TrainingManager!")
 			UpdateTrainingJob()
-		} else if recvEvent == TrainingProto.Event_SHUTDOWN.String() {
-			logWithDate("SHUTDOWN-event received!")
 		}
 
 		if err == io.EOF {

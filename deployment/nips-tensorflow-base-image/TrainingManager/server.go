@@ -13,6 +13,8 @@ type trainingManagerServer struct {
 
 type TrainingJobData struct {
 	taskQueue chan string
+	waitForTask chan string
+	telegramNotifications chan string
 }
 
 func (s *trainingManagerServer) Init() {
@@ -29,21 +31,28 @@ func (s *trainingManagerServer) RegisterTraining(ctx context.Context, trainingJo
 	fmt.Printf("Register %s\n", trainingJob.ModelId)
 
 	s.trainingJobs[trainingJob.ModelId] = trainingJob
-	s.trainingJobsData[trainingJob.ModelId] = &TrainingJobData{taskQueue: make(chan string)}
+	s.trainingJobsData[trainingJob.ModelId] = &TrainingJobData{taskQueue: make(chan string), waitForTask: make(chan string)}
+
 	return &TrainingProto.Response{Success: true}, nil
 }
 
 func (s *trainingManagerServer) UpdateTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
 	fmt.Printf("Update %s\n", trainingJob.ModelId)
+
 	s.trainingJobs[trainingJob.ModelId] = trainingJob
 
-	status := s.trainingJobs[trainingJob.ModelId].Status
+	// mark task as completed
+	s.trainingJobsData[trainingJob.ModelId].waitForTask <- "UPDATE_DONE"
 
-	if status == TrainingProto.TrainingJob_CRASHED {
-		fmt.Print("Training crashed")
-	} else if status == TrainingProto.TrainingJob_FINISHED {
-		fmt.Print("Training finished")
-	}
+	return &TrainingProto.Response{Success: true}, nil
+}
+
+func (s *trainingManagerServer) FinishTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob)  (*TrainingProto.Response, error) {
+	fmt.Printf("Finish of %s  Reason: %s", trainingJob.ModelId, trainingJob.Status.String())
+
+	// update before shutdown
+	s.trainingJobs[trainingJob.ModelId] = trainingJob
+	s.trainingJobsData[trainingJob.ModelId].taskQueue <- "SHUTDOWN"
 
 	return &TrainingProto.Response{Success: true}, nil
 }
@@ -54,10 +63,9 @@ func (s *trainingManagerServer) ReceiveEvent(rect *TrainingProto.TrainingJob, st
 		task := <-s.trainingJobsData[rect.ModelId].taskQueue
 
 		if task == "SHUTDOWN" {
-			if err := stream.Send(&TrainingProto.Event{Event: TrainingProto.Event_SHUTDOWN, Data: nil}); err != nil {
-				fmt.Printf("Connection closed to %s", rect.ModelId)
-				return err
-			}
+			// notify user
+			s.trainingJobsData[rect.ModelId].telegramNotifications <- "TRAINING_STOP"
+
 		} else if task == "UPDATE" {
 			if err := stream.Send(&TrainingProto.Event{Event: TrainingProto.Event_UPDATE, Data: nil}); err != nil {
 				fmt.Printf("Connection closed to %s", rect.ModelId)

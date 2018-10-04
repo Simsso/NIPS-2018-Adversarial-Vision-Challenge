@@ -20,7 +20,10 @@ service TrainingProto {
     //
     // A stream of Event is returned. 
     rpc ReceiveEvent (TrainingJob) returns (stream Event) {
-    } 
+    }
+    
+    rpc FinishTraining (TrainingJob) returns (Response) {
+    }
 }
 
 // Represents an event cause by the server.
