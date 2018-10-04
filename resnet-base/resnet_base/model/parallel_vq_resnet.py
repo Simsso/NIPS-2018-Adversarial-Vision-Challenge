@@ -16,7 +16,7 @@ class ParallelVQResNet(ResNet):
             parallel_xs = tf.split(x, 16, axis=2)
             parallel_vq_out = []
             for i, depthwise_x in enumerate(parallel_xs):
-                vq_endp = vq(depthwise_x, n=64, alpha=5e-3, beta=4e-6, gamma=0, lookup_ord=1, return_endpoints=True,
+                vq_endp = vq(depthwise_x, n=64, alpha=5e-2, beta=1e-4, gamma=0, lookup_ord=1, return_endpoints=True,
                              embedding_initializer=tf.random_uniform_initializer(minval=-.2, maxval=1.5, seed=15092017),
                              name='vq_{}'.format(i))
                 parallel_vq_out.append(vq_endp.layer_out)
@@ -24,6 +24,8 @@ class ParallelVQResNet(ResNet):
 
             x = tf.concat(parallel_vq_out, axis=2)
 
+        losses = tf.get_collection(tf.GraphKeys.LOSSES)
+        [log.add_scalar(loss.op.name, loss, log_frequency=10) for loss in losses]
         log.add_histogram('vq_out', x, log_frequency=5)
 
         x = tf.reshape(x, [-1, 16, 16, 64])
@@ -35,8 +37,6 @@ class ParallelVQResNet(ResNet):
         log.add_histogram('{}/embedding_space'.format(i), vq_endpoints.emb_space, log_frequency=5)
         log.add_histogram('{}/embedding_spacing'.format(i), vq_endpoints.emb_spacing, log_frequency=5)
         log.add_scalar('{}/unused_embeddings'.format(i), tf.nn.zero_fraction(vq_endpoints.access_count), log_frequency=10)
-        losses = tf.get_collection(tf.GraphKeys.LOSSES)
-        [log.add_scalar('{}/{}'.format(i, loss.name), loss, log_frequency=10) for loss in losses]
 
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         x = ResNet._first_conv(x)  # 16x16x64
