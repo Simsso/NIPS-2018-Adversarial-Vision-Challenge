@@ -1,0 +1,2 @@
+This is an interesting logfile!
+Let's send this one to the TrainingManager!

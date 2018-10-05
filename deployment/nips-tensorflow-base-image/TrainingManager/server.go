@@ -1,46 +1,81 @@
-package main
 
-import (
-	"bytes"
-	"context"
-	"encoding/binary"
-	"fmt"
-	"github.com/NIPS-2018-Adversarial-Vision-Challenge/deployment/nips-tensorflow-base-image/TrainingProto"
-)
 
-type trainingManagerServer struct {
-	trainingJobs map[string]*TrainingProto.TrainingJob
+	return nil
+}
+	trainingJobs                map[string]*TrainingProto.TrainingJob
+	trainingJobsData            map[string]*TrainingJobData
+	telegramNotificationChannel chan telegramNotification
+type TrainingJobData struct {
+	taskQueue   chan string
+	waitForTask chan string
 }
 
-func (s *trainingManagerServer) Init() {
-	if s.trainingJobs == nil {
-		s.trainingJobs = map[string]*TrainingProto.TrainingJob{}
+type telegramNotification struct {
+	trainingJob *TrainingProto.TrainingJob
+	event       string
+}
+
+
+	if s.trainingJobsData == nil {
+		s.trainingJobsData = map[string]*TrainingJobData{}
 	}
+
+	if s.telegramNotificationChannel == nil {
+		s.telegramNotificationChannel = make(chan telegramNotification)
+	}
+	s.trainingJobs[trainingJob.ModelId] = trainingJob
+	s.trainingJobsData[trainingJob.ModelId] = &TrainingJobData{taskQueue: make(chan string), waitForTask: make(chan string)}
+
+	s.trainingJobs[trainingJob.ModelId] = trainingJob
+
+	// mark task as completed
+	s.trainingJobsData[trainingJob.ModelId].waitForTask <- "TRAINING_UPDATE_DONE"
+
+func (s *trainingManagerServer) FinishTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
+	fmt.Printf("Finish of %s  Reason: %s", trainingJob.ModelId, trainingJob.Status.String())
+
+	// update before shutdown
+	s.trainingJobs[trainingJob.ModelId] = trainingJob
+
+	// notify user about shutdown
+	s.telegramNotificationChannel <- telegramNotification{trainingJob, "TRAINING_FINISHED"}
+
+	return &TrainingProto.Response{Success: true}, nil
 }
+func (s *trainingManagerServer) TrainingStart(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
+	fmt.Printf("Training Start of %s", trainingJob.ModelId)
 
-func (s *trainingManagerServer) RegisterTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
-	fmt.Printf("Register %s\n", trainingJob.TrainingId)
+	// update
+	s.trainingJobs[trainingJob.ModelId] = trainingJob
 
-	s.trainingJobs[trainingJob.TrainingId] = trainingJob
+	// notify user about shutdown
+	s.telegramNotificationChannel <- telegramNotification{trainingJob, "TRAINING_STARTED"}
+
 	return &TrainingProto.Response{Success: true}, nil
 }
 
-func (s *trainingManagerServer) UpdateTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
-	fmt.Printf("Update %s\n", trainingJob.TrainingId)
+func (s *trainingManagerServer) FinishInit(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
+	fmt.Printf("Init of %s has finished", trainingJob.ModelId)
 
-	s.trainingJobs[trainingJob.TrainingId] = trainingJob
+	// update
+	s.trainingJobs[trainingJob.ModelId] = trainingJob
+
+	// notify user about shutdown
+	s.telegramNotificationChannel <- telegramNotification{trainingJob, "TRAINING_NEW"}
+
 	return &TrainingProto.Response{Success: true}, nil
 }
 
-func (s *trainingManagerServer) ReceiveEvent(rect *TrainingProto.TrainingJob, stream TrainingProto.TrainingProto_ReceiveEventsServer) error {
+func (s *trainingManagerServer) ReceiveEvent(rect *TrainingProto.TrainingJob, stream TrainingProto.TrainingProto_ReceiveEventServer) error {
+	for {
+		task := <-s.trainingJobsData[rect.ModelId].taskQueue
 
-	buf := new(bytes.Buffer)
-	event := "EVENT"
-
-	for i := 0; i < 100; i++ {
-		binary.Write(buf, binary.LittleEndian, i)
-		stream.Send(&TrainingProto.Event{ event,  buf.Bytes()  })
-	}
+		if task == "UPDATE" {
+			if err := stream.Send(&TrainingProto.Event{Event: TrainingProto.Event_UPDATE, Data: nil}); err != nil {
+				fmt.Printf("Connection closed to %s", rect.ModelId)
+				return err
+			}
+		}
 
 	return nil
 }

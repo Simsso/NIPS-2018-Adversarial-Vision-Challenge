@@ -12,6 +12,6 @@ python -m resnet_base \
     --data_dir "${HOME}/.data/tiny-imagenet-200" \
     --save_dir "gs://${BUCKET_NAME}/model_data/${MODEL_ID}/checkpoints" \
     --train_log_dir "gs://${BUCKET_NAME}/model_data/${MODEL_ID}/train" \
-    --val_log_dir "gs://${BUCKET_NAME}/model_data/${MODEL_ID}/val" > log_output.txt 2>&1
+    --val_log_dir "gs://${BUCKET_NAME}/model_data/${MODEL_ID}/val" > output/log_output.txt 2>&1
 
 sleep infinity
