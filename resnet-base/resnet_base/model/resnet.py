@@ -116,7 +116,7 @@ class ResNet(BaseModel):
             'scale': True,
             'updates_collections': tf.GraphKeys.UPDATE_OPS,
             'fused': None,  # use if possible
-            'is_training': self.is_training,
+            'is_training': False,  # use self.is_training if batch normalization usage is desired
         }
 
         with slim.arg_scope([slim.conv2d], weights_regularizer=slim.l2_regularizer(weight_decay),
