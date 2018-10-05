@@ -12,7 +12,7 @@ class ResNetTrainer(BaseTrainer):
         self.virtual_batch_size_factor = virtual_batch_size_factor
         self.resnet = model
         self.pipeline = pipeline
-        # self.__build_train_op()
+        self.__build_train_op()
 
     def __build_train_op(self) -> None:
         """
@@ -52,12 +52,12 @@ class ResNetTrainer(BaseTrainer):
         Performs one training step (i.e. one virtual batch). One batch may consist of several physical batches making up
         one virtual batch. The number of real batches per virtual batch is specified by the virtual_batch_size_factor.
         """
-        # self.sess.run(self.zero_gradients_op)
+        self.sess.run(self.zero_gradients_op)
         for i in range(self.virtual_batch_size_factor):
-            vals = self.sess.run(self.train_logger.tensors,
-                                 feed_dict={self.resnet.is_training: True})
+            vals = self.sess.run(self.accumulate_gradients_op + self.train_logger.tensors,
+                                 feed_dict={self.resnet.is_training: True})[len(self.accumulate_gradients_op):]
             self.train_logger.step_completed(vals, increment=(i == 0))  # increment only once per virtual batch
-        # self.sess.run([self.apply_gradients_op, self.model.increment_global_step])  # update model weights
+        self.sess.run([self.apply_gradients_op, self.model.increment_global_step])  # update model weights
 
     def val_epoch(self) -> None:
         self.pipeline.switch_to(tf.estimator.ModeKeys.EVAL)

@@ -101,7 +101,10 @@ class ResNet(BaseModel):
         """
         Initializes the accuracy attribute. It is the percentage of correctly classified samples (value in [0,1]).
         """
-        correct = tf.cast(tf.equal(tf.argmax(self.softmax, axis=1), tf.cast(self.labels, tf.int64)), dtype=tf.float32)
+        chosen_labels = tf.argmax(self.softmax, axis=1)
+        correct_labels = tf.cast(self.labels, tf.int64)
+        correct_output = tf.equal(chosen_labels, correct_labels)
+        correct = tf.cast(correct_output, dtype=tf.float32)
         self.accuracy = tf.reduce_mean(correct, name='accuracy')
         self.logger_factory.add_scalar('accuracy', self.accuracy, log_frequency=25)
 
