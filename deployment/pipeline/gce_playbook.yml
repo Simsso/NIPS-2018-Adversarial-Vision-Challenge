@@ -3,9 +3,21 @@
       model_docker_image: "{{ model_docker_image }}"
   remote_user: nips-cloudbuilder
   tasks:
+    - name: Create output folder
+      shell: mkdir /home/nips-cloudbuilder/output
+    - name: Create docker exec bash
+      copy:
+        content: "docker exec -it $(docker ps --latest --quiet) bash"
+        dest: "/home/nips-cloudbuilder/docker_exec.sh"
+        mode: 0770
+    - name: Create watch nvidia-smi
+      copy:
+        content: "watch -n0.2 nvidia-smi"
+        dest: "/home/nips-cloudbuilder/watch_smi.sh"
+        mode: 0770 
     - name: Login into GCR Docker Registry
       shell: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://gcr.io
       become: yes
     - name: Pull and start training of model image
-      command: docker run -d -p 6006:6006 --rm --privileged --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 gcr.io/nips-2018-207619/{{ model_docker_image }}
+      command: docker run -d -p 6006:6006 -v /home/nips-cloudbuilder/output:/opt/app/output --privileged --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 gcr.io/nips-2018-207619/{{ model_docker_image }}
       become: yes

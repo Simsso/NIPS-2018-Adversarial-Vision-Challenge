@@ -12,6 +12,9 @@ WORKDIR /opt/app
 # copy python project
 COPY . /opt/app
 
+# create output folder for volume
+RUN mkdir output
+
 # mount bucket and start training
 RUN chmod +x ./start.sh
 
