@@ -37,6 +37,7 @@ func main() {
 }
 
 func telegramBot(trainingManagerServer *trainingManagerServer) {
+	bot, err := tgbotapi.NewBotAPI("668078593:AAEwzDMfQiT_Qbaqf5CDO24Mq2s_p6vU_IU")
 	if err != nil {
 		log.Panic(err)
 	}
@@ -50,13 +51,21 @@ func telegramBot(trainingManagerServer *trainingManagerServer) {
 
 	updates, err := bot.GetUpdatesChan(u)
 
+	var chatIDs []int64
+
+	go telegram_NotificationSender(&chatIDs, bot, trainingManagerServer)
+
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
 		receivedMessage := update.Message.Text
 
-		if receivedMessage == "/list" {
+		if receivedMessage == "/start" {
+			chatIDs = append(chatIDs, update.Message.Chat.ID)
+			respMessage := tgbotapi.NewMessage(update.Message.Chat.ID, "You were registered for receiving notifications!")
+			bot.Send(respMessage)
+		} else if receivedMessage == "/list" {
 			respMessage := tgbotapi.NewMessage(update.Message.Chat.ID, telegram_cmdList(trainingManagerServer))
 			bot.Send(respMessage)
 		} else if strings.HasPrefix(receivedMessage, "/shutdown") {
@@ -94,14 +103,16 @@ func telegram_cmdOutput(trainingManagerServer *trainingManagerServer, modelId st
 		message = fmt.Sprintf("Log Output from %s:\n", modelId)
 
 		// get recent output
-		trainingManagerServer.trainingJobsData[modelId].taskQueue <- "UPDATE"
-		<-trainingManagerServer.trainingJobsData[modelId].waitForTask
+		if trainingManagerServer.trainingJobs[modelId].Status == TrainingProto.TrainingJob_RUNNING {
+			trainingManagerServer.trainingJobsData[modelId].taskQueue <- "UPDATE"
+			<-trainingManagerServer.trainingJobsData[modelId].waitForTask
+		}
 
 		message += trainingManagerServer.trainingJobs[modelId].Log
 	}
-
 	return
 }
+
 func telegram_cmdList(trainingManagerServer *trainingManagerServer) (message string) {
 
 	message = "Name\t|\tStatus\t|\tStart Date\t|\tStop Date\t\n"
@@ -139,4 +150,38 @@ func telegram_cmdList(trainingManagerServer *trainingManagerServer) (message str
 	}
 
 	return
+}
+
+func telegram_NotificationSender(chatIDs *[]int64, bot *tgbotapi.BotAPI, trainingManagerServer *trainingManagerServer) {
+
+	for {
+		telegramNotification := <-trainingManagerServer.telegramNotificationChannel
+
+		if telegramNotification.event == "TRAINING_NEW" {
+			for _, chatID := range *chatIDs {
+				messageText := fmt.Sprintf("%s has been initialized!", telegramNotification.trainingJob.ModelId)
+				message := tgbotapi.NewMessage(chatID, messageText)
+				bot.Send(message)
+			}
+		} else if telegramNotification.event == "TRAINING_STARTED" {
+			for _, chatID := range *chatIDs {
+				messageText := fmt.Sprintf("%s has been started!", telegramNotification.trainingJob.ModelId)
+				message := tgbotapi.NewMessage(chatID, messageText)
+				bot.Send(message)
+			}
+		} else if telegramNotification.event == "TRAINING_FINISHED" {
+			for _, chatID := range *chatIDs {
+				var messageText string
+
+				if telegramNotification.trainingJob.Status == TrainingProto.TrainingJob_CRASHED {
+					messageText = fmt.Sprintf("%s has crashed! Please issue: /output %s for more information!", telegramNotification.trainingJob.ModelId, telegramNotification.trainingJob.ModelId)
+				} else {
+					messageText = fmt.Sprintf("%s has finished!", telegramNotification.trainingJob.ModelId)
+				}
+
+				message := tgbotapi.NewMessage(chatID, messageText)
+				bot.Send(message)
+			}
+		}
+	}
 }

@@ -7,14 +7,19 @@ import (
 )
 
 type trainingManagerServer struct {
-	trainingJobs     map[string]*TrainingProto.TrainingJob
-	trainingJobsData map[string]*TrainingJobData
+	trainingJobs                map[string]*TrainingProto.TrainingJob
+	trainingJobsData            map[string]*TrainingJobData
+	telegramNotificationChannel chan telegramNotification
 }
 
 type TrainingJobData struct {
-	taskQueue chan string
+	taskQueue   chan string
 	waitForTask chan string
-	telegramNotifications chan string
+}
+
+type telegramNotification struct {
+	trainingJob *TrainingProto.TrainingJob
+	event       string
 }
 
 func (s *trainingManagerServer) Init() {
@@ -24,6 +29,10 @@ func (s *trainingManagerServer) Init() {
 
 	if s.trainingJobsData == nil {
 		s.trainingJobsData = map[string]*TrainingJobData{}
+	}
+
+	if s.telegramNotificationChannel == nil {
+		s.telegramNotificationChannel = make(chan telegramNotification)
 	}
 }
 
@@ -42,17 +51,43 @@ func (s *trainingManagerServer) UpdateTraining(ctx context.Context, trainingJob 
 	s.trainingJobs[trainingJob.ModelId] = trainingJob
 
 	// mark task as completed
-	s.trainingJobsData[trainingJob.ModelId].waitForTask <- "UPDATE_DONE"
+	s.trainingJobsData[trainingJob.ModelId].waitForTask <- "TRAINING_UPDATE_DONE"
 
 	return &TrainingProto.Response{Success: true}, nil
 }
 
-func (s *trainingManagerServer) FinishTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob)  (*TrainingProto.Response, error) {
+func (s *trainingManagerServer) FinishTraining(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
 	fmt.Printf("Finish of %s  Reason: %s", trainingJob.ModelId, trainingJob.Status.String())
 
 	// update before shutdown
 	s.trainingJobs[trainingJob.ModelId] = trainingJob
-	s.trainingJobsData[trainingJob.ModelId].taskQueue <- "SHUTDOWN"
+
+	// notify user about shutdown
+	s.telegramNotificationChannel <- telegramNotification{trainingJob, "TRAINING_FINISHED"}
+
+	return &TrainingProto.Response{Success: true}, nil
+}
+
+func (s *trainingManagerServer) TrainingStart(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
+	fmt.Printf("Training Start of %s", trainingJob.ModelId)
+
+	// update
+	s.trainingJobs[trainingJob.ModelId] = trainingJob
+
+	// notify user about shutdown
+	s.telegramNotificationChannel <- telegramNotification{trainingJob, "TRAINING_STARTED"}
+
+	return &TrainingProto.Response{Success: true}, nil
+}
+
+func (s *trainingManagerServer) FinishInit(ctx context.Context, trainingJob *TrainingProto.TrainingJob) (*TrainingProto.Response, error) {
+	fmt.Printf("Init of %s has finished", trainingJob.ModelId)
+
+	// update
+	s.trainingJobs[trainingJob.ModelId] = trainingJob
+
+	// notify user about shutdown
+	s.telegramNotificationChannel <- telegramNotification{trainingJob, "TRAINING_NEW"}
 
 	return &TrainingProto.Response{Success: true}, nil
 }
@@ -62,11 +97,7 @@ func (s *trainingManagerServer) ReceiveEvent(rect *TrainingProto.TrainingJob, st
 	for {
 		task := <-s.trainingJobsData[rect.ModelId].taskQueue
 
-		if task == "SHUTDOWN" {
-			// notify user
-			s.trainingJobsData[rect.ModelId].telegramNotifications <- "TRAINING_STOP"
-
-		} else if task == "UPDATE" {
+		if task == "UPDATE" {
 			if err := stream.Send(&TrainingProto.Event{Event: TrainingProto.Event_UPDATE, Data: nil}); err != nil {
 				fmt.Printf("Connection closed to %s", rect.ModelId)
 				return err
