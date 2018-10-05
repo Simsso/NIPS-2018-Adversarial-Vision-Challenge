@@ -9,6 +9,7 @@ from resnet_base.data.base_pipeline import BasePipeline
 
 tf.flags.DEFINE_string('data_dir', path.expanduser('~/.data/tiny-imagenet-200'),
                        'Path of the Tiny ImageNet dataset folder')
+tf.flags.DEFINE_bool('enable_train_augmentation', False, 'Whether to enable image augmentation for training samples.')
 
 FLAGS = tf.flags.FLAGS
 
@@ -84,7 +85,7 @@ class TinyImageNetPipeline(BasePipeline):
         if mode == tf.estimator.ModeKeys.TRAIN:  # shuffle only training data
             data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
         data = data.map(self.__img_loading)
-        if mode == tf.estimator.ModeKeys.TRAIN:
+        if mode == tf.estimator.ModeKeys.TRAIN and FLAGS.enable_train_augmentation:
             data = data.map(self.__img_augmentation)
         data = data.map(self.__img_label_scaling)
         data = data.batch(self.batch_size)
