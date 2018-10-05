@@ -61,9 +61,11 @@ class ResNetTrainer(BaseTrainer):
 
     def val_epoch(self) -> None:
         self.pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
+        self.pipeline.switch_to(tf.estimator.ModeKeys.TRAIN)
         num_physical_batches = TinyImageNetPipeline.num_valid_samples // self.pipeline.batch_size
         for _ in range(num_physical_batches):
             self.val_step()
+        self.pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
 
     def val_step(self) -> None:
         """
