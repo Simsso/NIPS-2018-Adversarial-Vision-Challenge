@@ -34,10 +34,10 @@ class ParallelVQResNet(ResNet):
 
     def __add_logging(self, vq_endpoints: VQEndpoints, i: int) -> None:
         log = self.logger_factory
-        log.add_histogram('{}/access_count'.format(i), vq_endpoints.access_count, is_sum_value=True, log_frequency=50)
-        log.add_histogram('{}/embedding_space'.format(i), vq_endpoints.emb_space, log_frequency=5)
-        log.add_histogram('{}/embedding_spacing'.format(i), vq_endpoints.emb_spacing, log_frequency=5)
-        log.add_scalar('{}/used_embed'.format(i), 1-tf.nn.zero_fraction(vq_endpoints.access_count), log_frequency=10)
+        log.add_histogram('vq_parallel_{}/access_count'.format(i), vq_endpoints.access_count, is_sum_value=True, log_frequency=50)
+        log.add_histogram('vq_parallel_{}/embedding_space'.format(i), vq_endpoints.emb_space, log_frequency=50)
+        log.add_histogram('vq_parallel_{}/embedding_spacing'.format(i), vq_endpoints.emb_spacing, log_frequency=50)
+        log.add_scalar('vq_parallel_{}/used_embed'.format(i), 1-tf.nn.zero_fraction(vq_endpoints.access_count), log_frequency=10)
 
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         x = ResNet._first_conv(x)  # 16x16x64

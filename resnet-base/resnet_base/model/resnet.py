@@ -95,7 +95,7 @@ class ResNet(BaseModel):
         # cross_entropy_loss is a scalar
         # tf.add_to_collection(tf.GraphKeys.LOSSES, cross_entropy_loss)
         self.loss = tf.add_n(tf.get_collection(tf.GraphKeys.LOSSES))
-        self.logger_factory.add_scalar('loss', self.loss, log_frequency=25)
+        self.logger_factory.add_scalar('loss', self.loss, log_frequency=10)
         self.logger_factory.add_scalar('cross_entropy_loss', cross_entropy_loss, log_frequency=25)
 
     def _init_accuracy(self) -> None:
@@ -104,7 +104,7 @@ class ResNet(BaseModel):
         """
         correct = tf.cast(tf.equal(tf.argmax(self.softmax, axis=1), tf.cast(self.labels, tf.int64)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(correct, name='accuracy')
-        self.logger_factory.add_scalar('accuracy', self.accuracy, log_frequency=25)
+        self.logger_factory.add_scalar('accuracy', self.accuracy, log_frequency=10)
 
     def _resnet_arg_scope(self, weight_decay: float = 0.0001) -> Dict:
         """
