@@ -21,7 +21,6 @@ class ResNetTrainer(BaseTrainer):
         accumulated gradients to the network weights, i.e. weight update.
         zero_gradients_op is used to reset the gradient accumulator after every weight update.
         """
-
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
         # train only custom variables
         var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.resnet.custom_scope.name)
@@ -41,16 +40,17 @@ class ResNetTrainer(BaseTrainer):
             for i, g in enumerate(gradients)])
 
     def train_epoch(self) -> None:
-        num_samples = TinyImageNetPipeline.num_train_samples
-
         self.pipeline.switch_to(tf.estimator.ModeKeys.TRAIN)
-        ResNetTrainer.__generic_epoch_with_params(self.pipeline.batch_size, num_samples, batch_step=self.train_step)
+        num_samples = TinyImageNetPipeline.num_train_samples
+        num_virtual_batches = num_samples // (self.pipeline.batch_size * self.virtual_batch_size_factor)
+        for _ in range(num_virtual_batches):
+            self.train_step()
         self.sess.run(self.model.increment_current_epoch)
 
     def train_step(self):
         """
-        Performs one training step (i.e. one batch). One batch may consist of several batches making up one virtual
-        batch. The number of real batches per virtual batch is specified by the virtual_batch_size_factor.
+        Performs one training step (i.e. one virtual batch). One batch may consist of several physical batches making up
+        one virtual batch. The number of real batches per virtual batch is specified by the virtual_batch_size_factor.
         """
         self.sess.run(self.zero_gradients_op)
         for i in range(self.virtual_batch_size_factor):
@@ -60,26 +60,14 @@ class ResNetTrainer(BaseTrainer):
         self.sess.run([self.apply_gradients_op, self.model.increment_global_step])  # update model weights
 
     def val_epoch(self) -> None:
-        num_samples = TinyImageNetPipeline.num_valid_samples
-
         self.pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
-        ResNetTrainer.__generic_epoch_with_params(self.pipeline.batch_size, num_samples, batch_step=self.val_step)
+        num_physical_batches = TinyImageNetPipeline.num_valid_samples // self.pipeline.batch_size
+        for _ in range(num_physical_batches):
+            self.val_step()
 
     def val_step(self) -> None:
         """
-        Performs one validation step (i.e. one batch).
+        Performs one validation step (i.e. one physical batch).
         """
         vals = self.sess.run(self.valid_logger.tensors, feed_dict={self.resnet.is_training: False})
         self.valid_logger.step_completed(vals)
-
-    @staticmethod
-    def __generic_epoch_with_params(batch_size: int, num_samples: int, batch_step):
-        """
-        Runs one epoch with the given parameters. Calls the given step function for each batch.
-        :param batch_size: the number of samples used at every step
-        :param num_samples: the total size of the data set
-        :param batch_step: a function that runs the batch
-        """
-        num_batches = num_samples // batch_size
-        for i in range(num_batches):
-            batch_step()

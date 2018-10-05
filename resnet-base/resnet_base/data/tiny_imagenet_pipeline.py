@@ -27,19 +27,19 @@ class TinyImageNetPipeline(BasePipeline):
 
     __supported_modes = [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]
 
-    def __init__(self, data_dir: str = None, batch_size: int = 256):
+    def __init__(self, data_dir: str = None, physical_batch_size: int = 256):
         """
         :param data_dir: Directory of the folder from http://cs231n.stanford.edu/tiny-imagenet-200.zip
-        :param batch_size: Batch size used for training and validation.
+        :param physical_batch_size: Batch size which the pipeline is supposed to provide
         """
         super().__init__()
         if not data_dir:
             data_dir = FLAGS.data_dir
         self.data_dir = data_dir
 
-        if batch_size <= 0:
-            raise ValueError("Batch size must be greater than 0. Got '{}'.".format(batch_size))
-        self.batch_size = batch_size
+        if physical_batch_size <= 0:
+            raise ValueError("Batch size must be greater than 0. Got '{}'.".format(physical_batch_size))
+        self.batch_size = physical_batch_size
 
         self.placeholder = {
             tf.estimator.ModeKeys.TRAIN: (
@@ -81,7 +81,8 @@ class TinyImageNetPipeline(BasePipeline):
             raise ValueError("Supported modes are {}. Got '{}'.".format(self.__supported_modes, mode))
 
         data = tf.data.Dataset.from_tensor_slices(self.placeholder[mode])
-        data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
+        if mode == tf.estimator.ModeKeys.TRAIN:  # shuffle only training data
+            data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
         data = data.map(self.__img_loading)
         if mode == tf.estimator.ModeKeys.TRAIN:
             data = data.map(self.__img_augmentation)
