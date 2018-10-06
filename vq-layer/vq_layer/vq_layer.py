@@ -13,7 +13,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
                         lookup_ord: int = 2, embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
                         tf.random_normal_initializer, num_splits: int = 1, num_embeds_replaced: int = 0,
-                        return_endpoints: bool = False, name: str = 'vq')\
+                        is_training: Union[bool, tf.Tensor] = False, return_endpoints: bool = False, name: str = 'vq') \
         -> Union[tf.Tensor, VQEndpoints]:
     """
     Vector quantization layer.
@@ -26,9 +26,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param embedding_initializer: Initializer for the embedding space variable or 'batch'
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param num_embeds_replaced: If greater than 0, this adds an op to the endpoints tuple which replaces the respective
-           number of least used embedding vectors in the batch with the batch inputs most distant from the embedding
-           vectors. If the batch size is smaller than this number, it will throw a ValueError.
-           If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
+           number of least used embedding vectors since the last replacement with vectors distant from the embedding
+           vectors. If 'return_endpoints' is False, changing this to a number != 0 will not result in anything.
+    :param is_training: Whether or not to update replacement accumulators.
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
     :param name: Name to use for the variable scope
     :return: Only the layer output if return_endpoints is False
