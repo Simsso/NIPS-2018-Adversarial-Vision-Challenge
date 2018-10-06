@@ -108,19 +108,35 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                 coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0, name='coulomb_loss')
                 tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
 
-        replace_embeds = None
+        replace_embeds_and_reset = None
         if num_embeds_replaced > 0 and return_endpoints:
+            # accumulators for embedding space vector usage count, inputs, and input distances
+            accumulated_usage_count = tf.get_variable('accumulated_usage_count', shape=access_count.shape,
+                                                      dtype=tf.int64, initializer=tf.zeros_initializer, trainable=False)
+            distant_inputs = tf.get_variable('distant_inputs', shape=[num_embeds_replaced, vec_size], dtype=tf.float32,
+                                             initializer=tf.zeros_initializer, trainable=False)
+
+            # smallest distance between input i and any vector in the embedding space is stored at position i
+            input_distances = tf.get_variable('input_distances', shape=[num_embeds_replaced], dtype=tf.float32,
+                                              initializer=tf.zeros_initializer, trainable=False)
+
+            zero_accumulator = tf.assign(accumulated_usage_count, tf.zeros_like(accumulated_usage_count))
+            zero_distances = tf.assign(input_distances, tf.zeros_like(input_distances))
+
             # this returns the indices of the k largest values, so we negate the count to get the smallest values
-            _, least_used_indices = tf.nn.top_k(-access_count, k=num_embeds_replaced)
+            _, least_used_indices = tf.nn.top_k(-accumulated_usage_count, k=num_embeds_replaced)
 
             # now find the inputs in the batch that were furthest away from the embedding vectors
-            min_dist_to_embeds = tf.reshape(tf.reduce_min(dist, axis=2), shape=[-1])
-            _, furthest_away_indices = tf.nn.top_k(min_dist_to_embeds, k=num_embeds_replaced)
-            furthest_away_inputs = tf.gather(tf.reshape(x, shape=[-1, vec_size]), indices=furthest_away_indices)
+            # min_dist_to_embeds = tf.reshape(tf.reduce_min(dist, axis=2), shape=[-1])
+            # tf.reshape(x, shape=[-1, vec_size])
+            _, furthest_away_indices = tf.nn.top_k(input_distances, k=num_embeds_replaced)
+            furthest_away_inputs = tf.gather(distant_inputs, indices=furthest_away_indices)
 
             # create assign-op that replaces the least used embedding vectors with the furthest away inputs
-            replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices,
-                                               updates=furthest_away_inputs)
+            replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices, updates=furthest_away_inputs)
+
+            with tf.control_dependencies([replace_embeds]):
+                replace_embeds_and_reset = tf.group(zero_accumulator, zero_distances)
 
         emb_space_batch_init = None
         if dynamic_emb_space_init:
@@ -133,7 +149,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         layer_out = tf.reshape(tf.stop_gradient(y - x) + x, in_shape)
 
         if return_endpoints:
-            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, replace_embeds,
+            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, replace_embeds_and_reset,
                                emb_space_batch_init)
         return layer_out
 
