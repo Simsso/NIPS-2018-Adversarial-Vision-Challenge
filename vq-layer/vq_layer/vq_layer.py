@@ -168,7 +168,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
         # return selection in original size
         # skip this layer when doing back-prop
-        layer_out = tf.reshape(tf.stop_gradient(y - x) + x, in_shape)
+        layer_out = tf.reshape(tf.stop_gradient(y), in_shape)
 
         if return_endpoints:
             return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, emb_closest_spacing,
