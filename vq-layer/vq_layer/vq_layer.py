@@ -4,7 +4,7 @@ from typing import Tuple, Union
 from collections import namedtuple
 
 VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count', 'distance', 'emb_spacing',
-                                         'replace_embeds', 'emb_space_batch_init'])
+                                         'emb_closest_spacing', 'replace_embeds', 'emb_space_batch_init'])
 
 __valid_lookup_ord_values = [1, 2, np.inf]
 
@@ -38,6 +38,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                 access_count: Access counter with integral values indicating how often each embedding vector was used
                 distance: Distance of inputs from the embedding space vectors
                 emb_spacing: Embedding spacing vector where each entry indicates the distance between embedding vectors
+                emb_closest_spacing: Distance of embedding vectors to the closest other embedding vector
                 replace_embeds: Op that replaces the least used embedding vectors with the most distant input vectors
                 emb_space_batch_init: Embedding space batch init op (is set if embedding_initializer is 'batch')
     """
@@ -97,13 +98,16 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             all_loss = tf.reduce_mean(beta * tf.reduce_sum(dist, axis=2), axis=[0, 1], name='beta_loss')
             tf.add_to_collection(tf.GraphKeys.LOSSES, all_loss)
 
-        emb_spacing = None
+        emb_spacing, emb_closest_spacing = None, None
         if gamma != 0 or return_endpoints:
             # all embeddings distance from each other (coulomb-loss)
             # pair-wise diff vectors (n x n x vec_size)
             pdiff = tf.expand_dims(emb_space, axis=0) - tf.expand_dims(emb_space, axis=1)
             pdist = tf.norm(pdiff, lookup_ord, axis=2)  # pair-wise distance scalars (n x n)
             emb_spacing = strict_upper_triangular_part(pdist)
+            max_identity_matrix = tf.eye(n) * tf.reduce_max(pdist, axis=[0, 1])  # removes the diagonal zeros
+            assert max_identity_matrix.shape == pdist.shape
+            emb_closest_spacing = tf.reduce_min(pdist + max_identity_matrix, axis=1)
             if gamma != 0:
                 coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0, name='coulomb_loss')
                 tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
@@ -167,8 +171,8 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         layer_out = tf.reshape(tf.stop_gradient(y - x) + x, in_shape)
 
         if return_endpoints:
-            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, replace_embeds_and_reset,
-                               emb_space_batch_init)
+            return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, emb_closest_spacing,
+                               replace_embeds_and_reset, emb_space_batch_init)
         return layer_out
 
 
