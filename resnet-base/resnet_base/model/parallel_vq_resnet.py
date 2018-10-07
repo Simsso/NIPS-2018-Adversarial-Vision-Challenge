@@ -38,8 +38,10 @@ class ParallelVQResNet(ResNet):
         log = self.logger_factory
         log.add_histogram('vq_parallel_{}/access_count'.format(i), vq_endpoints.access_count, is_sum_value=True,
                           log_frequency=50)
-        log.add_histogram('vq_parallel_{}/embedding_space'.format(i), vq_endpoints.emb_space, log_frequency=50)
-        log.add_histogram('vq_parallel_{}/embedding_spacing'.format(i), vq_endpoints.emb_spacing, log_frequency=50)
+        log.add_histogram('vq_parallel_{}/embedding_space'.format(i), vq_endpoints.emb_space, log_frequency=16)
+        log.add_histogram('vq_parallel_{}/embedding_spacing'.format(i), vq_endpoints.emb_spacing, log_frequency=16)
+        log.add_histogram('vq_parallel_{}/embedding_closest_spacing'.format(i), vq_endpoints.emb_closest_spacing,
+                          log_frequency=16)
         log.add_scalar('vq_parallel_{}/used_embed'.format(i), 1 - tf.nn.zero_fraction(vq_endpoints.access_count),
                        log_frequency=10)
 
