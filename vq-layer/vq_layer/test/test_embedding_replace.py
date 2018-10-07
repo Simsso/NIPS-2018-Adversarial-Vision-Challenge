@@ -39,12 +39,18 @@ class TestEmbeddingReplace(TFTestCase):
         self.assert_numerically_equal(emb_space_val, expected_val)
 
     def test_single_batch_single_replacement_1(self) -> None:
+        """
+        Replacement of a single vector after feeding a single batch.
+        """
         self.init_vq(num_embeds_replaced=1)
         self.feed([[.1, .1], [1.1, 1.1], [10, 10]])
         self.perform_replacement()
         self.assert_emb_space([[10, 10], [1, 1], [2, 2]])
 
     def test_single_batch_single_replacement_2(self) -> None:
+        """
+        Replacement of a single vector after feeding a single batch.
+        """
         self.init_vq(num_embeds_replaced=1)
         self.feed([[100, 100], [1.1, 0.9], [0, 0], [0, 0], [.6, .6]])
         self.perform_replacement()
@@ -52,6 +58,7 @@ class TestEmbeddingReplace(TFTestCase):
 
     def test_multiple_batches_single_replacement(self) -> None:
         """
+        Replacement of a single vector after feeding multiple batches.
         Usage count:
         [[0, 0], [1, 1], [2, 2]]
              4       2       3
@@ -64,12 +71,19 @@ class TestEmbeddingReplace(TFTestCase):
         self.assert_emb_space([[0, 0], [20, 20], [2, 2]])
 
     def test_multiple_batches_multiple_replacements(self) -> None:
+        """
+        Replacement of multiple vectors after feeding multiple batches.
+        """
         self.init_vq(num_embeds_replaced=2)
         self.feed([[4, 4], [5, 5], [6, 6], [-10, -10]])
+        self.feed([[4, 4], [5, 5], [-11, -11], [6, 6]])
         self.perform_replacement()
-        self.assert_emb_space([[6, 6], [-10, -10], [2, 2]])
+        self.assert_emb_space([[-10, -10], [-11, -11], [2, 2]])
 
     def test_is_training_consideration_1(self) -> None:
+        """
+        Test that no replacement is done when feeding data through the VQ layer with is_training set to False.
+        """
         self.init_vq(num_embeds_replaced=1)
         self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [5, 5]], is_training_val=True)
         self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [10, 10]], is_training_val=False)
@@ -77,6 +91,9 @@ class TestEmbeddingReplace(TFTestCase):
         self.assert_emb_space([[0, 0], [1, 1], [5, 5]])
 
     def test_is_training_consideration_2(self) -> None:
+        """
+        Test that no replacement is done when feeding data through the VQ layer with is_training set to False.
+        """
         self.init_vq(num_embeds_replaced=1)
         self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [5, 5]], is_training_val=True)
         self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [10, 10]], is_training_val=False)
@@ -87,5 +104,8 @@ class TestEmbeddingReplace(TFTestCase):
         self.assert_emb_space([[0, 0], [1, 1], [6, 6]])
 
     def test_no_op_for_zero_replacements(self) -> None:
+        """
+        Test that the endpoint `replace_embeds` is `None` when setting `num_embeds_replaced=0`
+        """
         endpoints = vq(self.x_reshaped, len(self.emb_space_val), num_embeds_replaced=0, return_endpoints=True)
         self.assertIsNone(endpoints.replace_embeds)
