@@ -57,9 +57,9 @@ class ResNetTrainer(BaseTrainer):
             vals = self.sess.run([self.accumulate_gradients_op] + self.train_logger.tensors,
                                  feed_dict={self.resnet.is_training: True})[1:]
             self.train_logger.step_completed(vals, increment=(i == 0))  # increment only once per virtual batch
-        self.resnet.pre_gradient_application()
+        self.resnet.pre_gradient_application(self.sess)
         self.sess.run([self.apply_gradients_op, self.model.increment_global_step])  # update model weights
-        self.resnet.post_gradient_application()
+        self.resnet.post_gradient_application(self.sess)
 
     def val_epoch(self) -> None:
         self.pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
