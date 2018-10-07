@@ -100,7 +100,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
         emb_spacing, emb_closest_spacing = None, None
         if gamma != 0 or return_endpoints:
-            # all embeddings distance from each other (coulomb-loss)
+            # embeddings distance from closest other embedding (coulomb-loss)
             # pair-wise diff vectors (n x n x vec_size)
             pdiff = tf.expand_dims(emb_space, axis=0) - tf.expand_dims(emb_space, axis=1)
             pdist = tf.norm(pdiff, lookup_ord, axis=2)  # pair-wise distance scalars (n x n)
@@ -109,7 +109,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             assert max_identity_matrix.shape == pdist.shape
             emb_closest_spacing = tf.reduce_min(pdist + max_identity_matrix, axis=1)
             if gamma != 0:
-                coulomb_loss = tf.reduce_sum(-gamma * tf.reduce_mean(pdist, axis=1), axis=0, name='coulomb_loss')
+                coulomb_loss = tf.reduce_sum(-gamma * emb_closest_spacing, axis=0, name='coulomb_loss')
                 tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
 
         replace_embeds_and_reset = None
