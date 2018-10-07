@@ -70,6 +70,20 @@ class ResNet(BaseModel):
         super().restore(sess)
         BaseModel._restore_checkpoint(self.pretrained_saver, sess, path=FLAGS.pretrained_checkpoint)
 
+    def pre_gradient_application(self, sess: tf.Session) -> None:
+        """
+        Called by the trainer class once per step, right before applying the gradient.
+        :param sess: Session that will be used to update the gradients
+        """
+        pass
+
+    def post_gradient_application(self, sess: tf.Session) -> None:
+        """
+        Called by the trainer class once per step, right after applying the gradient.
+        :param sess: Session that has been used to update the gradients
+        """
+        pass
+
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         """
         Builds the ResNet model graph with the TF API. This function is intentionally kept simple and sequential to
