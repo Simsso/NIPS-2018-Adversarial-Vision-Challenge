@@ -22,9 +22,9 @@ class ResNetTrainer(BaseTrainer):
         zero_gradients_op is used to reset the gradient accumulator after every weight update.
         """
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
-        # train only custom variables
-        var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.resnet.custom_scope.name)
-        accum_vars = [tf.get_variable('{}/accum_vars'.format(var.op.name), var.shape, tf.float32, tf.zeros_initializer,
+        # train only custom variables that are trainable
+        var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.resnet.custom_scope.name)
+        accum_vars = [tf.get_variable('{}/grad_accum'.format(var.op.name), var.shape, tf.float32, tf.zeros_initializer,
                                       trainable=False) for var in var_list]
         self.zero_gradients_op = [var.assign(tf.zeros_like(var)) for var in accum_vars]
         gradients = optimizer.compute_gradients(loss=self.resnet.loss, var_list=var_list,
