@@ -17,9 +17,9 @@ class ParallelVQResNet(ResNet):
             parallel_xs = tf.split(x, 16, axis=2)
             parallel_vq_out = []
             for i, depthwise_x in enumerate(parallel_xs):
-                vq_endp = vq(depthwise_x, n=128, alpha=1e-1, beta=2e-4, gamma=1e-3, lookup_ord=2, return_endpoints=True,
+                vq_endp = vq(depthwise_x, n=128, alpha=1e-1, beta=0, gamma=5e-4, lookup_ord=1, return_endpoints=True,
                              embedding_initializer=tf.random_uniform_initializer(minval=-.2, maxval=1.5, seed=15092017),
-                             is_training=self.is_training, num_embeds_replaced=1, name='vq_{}'.format(i))
+                             is_training=self.is_training, num_embeds_replaced=2, name='vq_{}'.format(i))
                 parallel_vq_out.append(vq_endp.layer_out)
                 self.__add_logging(vq_endp, i)
                 self._post_gradient_ops.append(vq_endp.replace_embeds)
