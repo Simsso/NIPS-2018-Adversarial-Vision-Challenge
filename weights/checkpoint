@@ -1,0 +1,6 @@
+model_checkpoint_path: "checkpoints-1170"
+all_model_checkpoint_paths: "checkpoints-390"
+all_model_checkpoint_paths: "checkpoints-585"
+all_model_checkpoint_paths: "checkpoints-780"
+all_model_checkpoint_paths: "checkpoints-975"
+all_model_checkpoint_paths: "checkpoints-1170"
