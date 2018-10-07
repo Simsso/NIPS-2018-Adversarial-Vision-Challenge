@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
-# add this when the vq-layer library is needed
-# cd vq-layer && pip install . && cd ..
+# from https://stackoverflow.com/a/24112741
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+
+pip install vq-layer
 
 cd resnet-base
 python3 setup.py install
 
 echo "Starting model server..."
 python3 -m resnet_base \
-    --pretrained_checkpoint "${HOME}/.models/tiny_imagenet_alp05_2018_06_26.ckpt"
-    # when available, add --global_checkpoint "${HOME}/.models/resnet_base_global.ckpt"
+    --save_dir "$parent_path/weights/"
+
