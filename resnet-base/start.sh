@@ -6,8 +6,8 @@ python -m resnet_base \
     --name "${MODEL_ID}" \
     --learning_rate 1 \
     --num_epochs 100 \
-    --physical_batch_size 1 \
-    --virtual_batch_size_factor 1024 \
+    --physical_batch_size 4 \
+    --virtual_batch_size_factor 256 \
     --pretrained_checkpoint "${HOME}/.data/tiny_imagenet_alp05_2018_06_26.ckpt" \
     --data_dir "${HOME}/.data/tiny-imagenet-200" \
     --save_dir "gs://${BUCKET_NAME}/model_data/${MODEL_ID}/checkpoints" \
