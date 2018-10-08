@@ -47,9 +47,9 @@ class ParallelVQResNet(ResNet):
 
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         x = ResNet._first_conv(x)  # 16x16x64
-        x = self.__parallel_vqs(x, num_parallel=32, n=128, name='vq_post_conv1')
+        x = self.__parallel_vqs(x, num_parallel=32, n=256, name='vq_post_conv1')
         x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)  # 8x8x256
-        x = self.__parallel_vqs(x, num_parallel=64, n=256, name='vq_post_block1')
+        x = self.__parallel_vqs(x, num_parallel=64, n=512, name='vq_post_block1')
         x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
         x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)
         x = ResNet._v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
