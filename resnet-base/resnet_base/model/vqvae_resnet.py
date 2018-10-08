@@ -6,28 +6,24 @@ class VQVAEResNet(ResNet):
     def __ae_layer(self, activations: tf.Tensor) -> tf.Tensor:
         """
         Auto-encoder layer along the channel dimension of x
-        :param input: Tensor of size batchx16x16x64
+        :param activations: Tensor of size batchx16x16x64
         """
         x = activations
 
         # encoder
-        x = tf.layers.conv2d(x, filters=32, kernel_size=[1, 1])
-        x = tf.nn.relu(x)
-        x = tf.layers.conv2d(x, filters=16, kernel_size=[1, 1])
+        x = tf.layers.conv2d(x, filters=48, kernel_size=[1, 1])
         code = tf.nn.relu(x)
 
         # decoder
         x = code
-        x = tf.layers.conv2d(x, filters=32, kernel_size=[1, 1])
-        x = tf.nn.relu(x)
         x = tf.layers.conv2d(x, filters=64, kernel_size=[1, 1])
 
         output = x
         assert output.shape.as_list() == activations.shape.as_list()
         mse_reconstruction_loss = tf.reduce_mean(tf.square(output - activations))
-        tf.add_to_collection(tf.GraphKeys.LOSSES, 1e-2*mse_reconstruction_loss)
+        tf.add_to_collection(tf.GraphKeys.LOSSES, 1e-3*mse_reconstruction_loss)
 
-        self.logger_factory.add_scalar('ae/mse', mse_reconstruction_loss, 2)
+        self.logger_factory.add_scalar('ae/mse', mse_reconstruction_loss, 8)
         self.logger_factory.add_histogram('ae/input', activations, 16)
         self.logger_factory.add_histogram('ae/code', code, 16)
         self.logger_factory.add_histogram('ae/output', output, 16)
