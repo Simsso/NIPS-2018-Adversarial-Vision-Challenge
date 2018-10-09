@@ -1,5 +1,5 @@
 import tensorflow as tf
-from resnet_base.model.parallel_vq_resnet import ParallelVQResNet
+from resnet_base.model.vq_resnet import VQResNet
 from resnet_base.trainer.resnet_trainer import ResNetTrainer
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.util.logger.factory import LoggerFactory
@@ -26,7 +26,7 @@ def main(args):
 
         # model
         logger_factory = LoggerFactory(num_valid_steps=TinyImageNetPipeline.num_valid_samples // pipeline.batch_size)
-        model = ParallelVQResNet(logger_factory, imgs, labels)
+        model = VQResNet(logger_factory, imgs, labels)
 
         # training
         trainer = ResNetTrainer(model, pipeline, FLAGS.virtual_batch_size_factor)

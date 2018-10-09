@@ -2,7 +2,7 @@ import os
 from resnet_base.model.base_model import BaseModel
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data, TinyImageNetPipeline
 import tensorflow as tf
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from resnet_base.util.logger.factory import LoggerFactory
 
@@ -255,3 +255,15 @@ class ResNet(BaseModel):
         if stride == 1:
             return x
         return slim.max_pool2d(x, [1, 1], stride=stride, scope=scope)
+
+    def _log_moments_every_epoch(self, x: tf.Tensor, axes: List[int], name: str):
+        steps_per_epoch = FLAGS.physical_batch_size * FLAGS.virtual_batch_size_factor
+        mean, stddev = tf.nn.moments(x, axes)
+
+        if len(mean.shape) != len(axes):
+            # normalize over the other dimensions
+            mean = tf.reduce_mean(mean)
+            stddev = tf.reduce_mean(stddev)
+
+        self.logger_factory.add_scalar('mean_{}'.format(name), mean, log_frequency=steps_per_epoch)
+        self.logger_factory.add_scalar('stddev_{}'.format(name), stddev, log_frequency=steps_per_epoch)
