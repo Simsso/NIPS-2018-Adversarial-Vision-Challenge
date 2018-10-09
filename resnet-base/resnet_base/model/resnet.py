@@ -265,7 +265,8 @@ class ResNet(BaseModel):
         :param axes: Axes along which the mean and stddev are calculated
         :param name: Suffix for the log names.
         """
-        steps_per_epoch = FLAGS.physical_batch_size * FLAGS.virtual_batch_size_factor
+        effective_batch_size = FLAGS.physical_batch_size * FLAGS.virtual_batch_size_factor
+        steps_per_epoch = TinyImageNetPipeline.num_train_samples // effective_batch_size
         mean, stddev = tf.nn.moments(x, axes)
 
         if len(mean.shape) != len(axes):
