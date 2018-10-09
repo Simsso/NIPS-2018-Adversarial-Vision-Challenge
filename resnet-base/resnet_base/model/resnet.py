@@ -256,7 +256,15 @@ class ResNet(BaseModel):
             return x
         return slim.max_pool2d(x, [1, 1], stride=stride, scope=scope)
 
-    def _log_moments_every_epoch(self, x: tf.Tensor, axes: List[int], name: str):
+    def _log_moments_every_epoch(self, x: tf.Tensor, axes: List[int], name: str) -> None:
+        """
+        Adds logs of the input tensor x's mean and standard deviation which are aggregated and then normalized each
+        epoch. First, the 1st and 2nd moments are calculated over the given axes, then they are normalized over
+        the other dimensions, such that the result is a scalar. May be used to find out the ideal initializer params.
+        :param x: Input tensor
+        :param axes: Axes along which the mean and stddev are calculated
+        :param name: Suffix for the log names.
+        """
         steps_per_epoch = FLAGS.physical_batch_size * FLAGS.virtual_batch_size_factor
         mean, stddev = tf.nn.moments(x, axes)
 
