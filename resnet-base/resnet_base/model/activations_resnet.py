@@ -19,13 +19,13 @@ class ActivationsResNet(ResNet):
         norm = ResNet.batch_norm(block4)
         pool = self.global_avg_pooling(norm)
         self.activations = {
-            '1_input': img,
-            '2_first_conv': first_conv,
-            '3_block1': block1,
-            '4_block2': block2,
-            '5_block3': block3,
-            '6_block4': block4,
-            '7_norm': norm,
-            '8_pool': pool
+            'act1_input': img,
+            'act2_first_conv': first_conv,
+            'act3_block1': block1,
+            'act4_block2': block2,
+            'act5_block3': block3,
+            'act6_block4': block4,
+            'act7_norm': norm,
+            'act8_pool': pool
         }
         return pool

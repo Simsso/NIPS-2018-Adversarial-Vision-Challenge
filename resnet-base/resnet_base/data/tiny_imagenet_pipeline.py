@@ -28,10 +28,11 @@ class TinyImageNetPipeline(BasePipeline):
 
     __supported_modes = [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]
 
-    def __init__(self, data_dir: str = None, physical_batch_size: int = 256):
+    def __init__(self, data_dir: str = None, physical_batch_size: int = 256, shuffle: bool = True):
         """
         :param data_dir: Directory of the folder from http://cs231n.stanford.edu/tiny-imagenet-200.zip
         :param physical_batch_size: Batch size which the pipeline is supposed to provide
+        :param shuffle: Whether to shuffle the training data; validation is never shuffled.
         """
         super().__init__()
         if not data_dir:
@@ -54,6 +55,7 @@ class TinyImageNetPipeline(BasePipeline):
         }
         self.filenames = {}
         self.raw_labels = {}
+        self.shuffle = shuffle
 
         self.__init_filenames_labels()
 
@@ -82,7 +84,7 @@ class TinyImageNetPipeline(BasePipeline):
             raise ValueError("Supported modes are {}. Got '{}'.".format(self.__supported_modes, mode))
 
         data = tf.data.Dataset.from_tensor_slices(self.placeholder[mode])
-        if mode == tf.estimator.ModeKeys.TRAIN:  # shuffle only training data
+        if mode == tf.estimator.ModeKeys.TRAIN and self.shuffle:  # shuffle only training data
             data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
         data = data.map(self.__img_loading)
         if mode == tf.estimator.ModeKeys.TRAIN and FLAGS.enable_train_augmentation:
@@ -204,3 +206,13 @@ class TinyImageNetPipeline(BasePipeline):
                 self.placeholder[mode][1]: self.raw_labels[mode]
             }
         super(TinyImageNetPipeline, self).switch_to(mode, feed_dict)
+
+    def get_num_samples(self, mode: tf.estimator.ModeKeys) -> int:
+        """
+        :return: Number of samples in the given mode
+        """
+        if mode == tf.estimator.ModeKeys.TRAIN:
+            return self.num_train_samples
+        if mode == tf.estimator.ModeKeys.EVAL:
+            return self.num_valid_samples
+        raise ValueError("Could not find number of training samples for mode {}.".format(mode))
