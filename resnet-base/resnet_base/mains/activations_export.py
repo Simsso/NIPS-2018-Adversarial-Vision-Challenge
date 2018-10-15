@@ -48,7 +48,7 @@ def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: 
     pipeline.switch_to(mode)
     n = pipeline.get_num_samples(mode)
     export_tensors = model.activations.copy()
-    export_tensors['labels'] = model.labels
+    export_tensors['out_labels'] = model.labels
 
     export_vals = {}
     for key in export_tensors.keys():
@@ -57,7 +57,7 @@ def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: 
     for i in range(min(n, 1000)):
         sample_export_val = sess.run(export_tensors)
         for key in sample_export_val.keys():
-            export_vals[key].append(sample_export_val[key])
+            export_vals[key].append(sample_export_val[key][0])  # unpack batches and push into storage
         print("Progress: {}/{}".format(i, n))
     save_activations(FLAGS.activations_export_file, export_vals)
 
