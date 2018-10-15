@@ -19,7 +19,8 @@ class TFTestCase(TestCase):
     def tearDown(self) -> None:
         self.sess.close()
 
-    def assert_numerically_equal(self, output: Union[List, np.ndarray], desired: Union[List, np.ndarray]) -> None:
+    def assert_numerically_equal(self, output: Union[List, np.ndarray], desired: Union[List, np.ndarray],
+                                 rtol: float = 1.e-5, atol: float = 1.e-8) -> None:
         """
         Compares two arrays numerically (small differences are tolerated).
         """
@@ -27,4 +28,4 @@ class TFTestCase(TestCase):
             output = np.array(output, dtype=np.float32)
         if not type(desired) is np.ndarray:
             desired = np.array(desired, dtype=np.float32)
-        self.assertTrue(np.allclose(output, desired), self.msg_output_wrong)
+        self.assertTrue(np.allclose(output, desired, rtol, atol), self.msg_output_wrong)
