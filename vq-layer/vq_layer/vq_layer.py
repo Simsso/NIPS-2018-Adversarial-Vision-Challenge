@@ -199,7 +199,7 @@ def pca_reduce_dims(x: tf.Tensor, num_components: int) -> tf.Tensor:
     :return: The reduced-dimension tensor of the input, of shape [num_vecs, num_components]
     """
     # subtract mean to get zero-mean data
-    x -= tf.reduce_mean(x, keepdims=True)
+    x -= tf.reduce_mean(x, axis=0, keepdims=True)
 
     # calculate the SVD (singular value decomposition) to get the left singular values u
     # shapes: sigma: [min(num_vecs, dim)], u: [num_vecs, min(num_vecs, dim)]
