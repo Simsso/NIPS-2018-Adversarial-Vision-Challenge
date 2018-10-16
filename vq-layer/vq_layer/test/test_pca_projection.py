@@ -41,3 +41,15 @@ class TestPCAProjection(TFTestCase):
 
         self.assert_numerically_equal(layer_out, expected)
 
+    def test_projection2(self):
+        x_val = np.array([[1, -1, 1, -1, 1, -1]])
+        emb_space = np.array([[2, -2, 2, -2, 2, -2],
+                              [.02, .2, 2, 20, 200, 2000],
+                              [10, 20, 40, 80, 160, 320],
+                              [1, 1, 1, 1, 1, 1]])
+
+        expected = np.array([[2, -2, 2, -2, 2, -2]])
+        layer_out = self.feed(emb_space, x_val, num_components=3)
+
+        self.assert_numerically_equal(layer_out, expected)
+
