@@ -38,6 +38,8 @@ class BaseModel:
         # saver attribute
         self.saver = None
 
+        self.init_feed_dict = {}
+
     def post_build_init(self):
         self.init_saver()
 

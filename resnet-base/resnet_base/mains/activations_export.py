@@ -11,7 +11,7 @@ from resnet_base.util.logger.tf_logger_init import init as logger_init
 from typing import Dict
 
 
-tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/data.mat'),
+tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/data_shuf_10k.mat'),
                        'File to export the activations to.')
 FLAGS = tf.flags.FLAGS
 
@@ -26,7 +26,7 @@ def main(args):
     sess = tf.Session(config=config)
     with sess:
         # dataset
-        pipeline = TinyImageNetPipeline(physical_batch_size=1, shuffle=False)
+        pipeline = TinyImageNetPipeline(physical_batch_size=1, shuffle=True)
         imgs, labels = pipeline.get_iterator().get_next()
 
         # model
@@ -54,7 +54,7 @@ def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: 
     for key in export_tensors.keys():
         export_vals[key] = []
 
-    for i in range(min(n, 1000)):
+    for i in range(min(n, 5000)):
         sample_export_val = sess.run(export_tensors)
         for key in sample_export_val.keys():
             export_vals[key].append(sample_export_val[key][0])  # unpack batches and push into storage
