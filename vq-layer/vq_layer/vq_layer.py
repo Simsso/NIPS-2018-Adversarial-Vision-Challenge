@@ -90,9 +90,23 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
                                     trainable=True)
 
+        adjusted_x = x
+        adjusted_emb_space = emb_space
+
+        if dim_reduction is 'pca':
+            # batch-concatenated mode (calculate principal components based on batch and embedding space)
+            x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
+            concat_space = tf.concat([emb_space, x_concat_space], axis=0)
+            projection = pca_reduce_dims(concat_space, num_dim_reduction_components)
+
+            # re-extract embedding space and x => will calculate distance based on projection
+            adjusted_emb_space = projection[:n, :]
+            adjusted_x = projection[n:, :]
+            adjusted_x = tf.reshape(adjusted_x, [in_shape[0], x.shape[1], num_dim_reduction_components])
+
         # map x to y, where y is the vector from emb_space that is closest to x
-        # distance of x from all vectors in the embedding space
-        diff = tf.expand_dims(tf.stop_gradient(x), axis=2) - emb_space
+        # distance of (adjusted) x from all vectors in the (adjusted) embedding space
+        diff = tf.expand_dims(tf.stop_gradient(adjusted_x), axis=2) - adjusted_emb_space
         dist = tf.norm(diff, lookup_ord, axis=3)  # distance between x and all vectors in emb
         emb_index = tf.argmin(dist, axis=2)
         y = tf.gather(emb_space, emb_index, axis=0)
@@ -194,7 +208,7 @@ def pca_reduce_dims(x: tf.Tensor, num_components: int) -> tf.Tensor:
     """
     Reduces the dimensionality of given input vectors to the given number of components using principal component
     analysis (PCA).
-    :param x: Tensor of shape [num_vecs, dim], where this function reduces 'dim' to 'num_components'
+    :param x: Tensor of shape [num_vecs = n, dim], where this function reduces 'dim' to 'num_components'
     :param num_components: The number of components this function reduces the vectors in the input to
     :return: The reduced-dimension tensor of the input, of shape [num_vecs, num_components]
     """
@@ -202,7 +216,7 @@ def pca_reduce_dims(x: tf.Tensor, num_components: int) -> tf.Tensor:
     x -= tf.reduce_mean(x, axis=0, keepdims=True)
 
     # calculate the SVD (singular value decomposition) to get the left singular values u
-    # shapes: sigma: [min(num_vecs, dim)], u: [num_vecs, min(num_vecs, dim)]
+    # shapes: sigma: [min(num_vecs, dim)], u: [num_vecs, p := min(num_vecs, dim)]
     sigma, u, _ = tf.svd(x, full_matrices=False, compute_uv=True)
 
     # sigma and u are already sorted in descending order of magnitude of the singular values => take the top
