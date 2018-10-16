@@ -7,7 +7,7 @@ VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count
                                          'emb_closest_spacing', 'replace_embeds', 'emb_space_batch_init'])
 
 __valid_lookup_ord_values = [1, 2, np.inf]
-__valid_dim_reduction_values = ['pca']
+__valid_dim_reduction_values = ['pca-batch', 'pca-emb-space']
 
 
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
@@ -25,7 +25,8 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param beta: Weighting of the beta-loss term (all vectors distance penalty)
     :param gamma: Weighting of the coulomb-loss term (embedding space spacing)
     :param dim_reduction: If not None, will use the given technique to reduce the dimensionality of inputs and
-           embedding vectors before comparing them using the distance measure given by lookup_ord; one of ['pca']
+           embedding vectors before comparing them using the distance measure given by lookup_ord; one of
+           ['pca-batch', 'pca-emb-space']
     :param num_dim_reduction_components: When using dimensionality reduction, this specifies the number of components
            (dimensions) that each embedding vector (and corresponding input) is reduced to.
     :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]
@@ -93,16 +94,24 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         adjusted_x = x
         adjusted_emb_space = emb_space
 
-        if dim_reduction is 'pca':
+        if dim_reduction is 'pca-batch':
             # batch-concatenated mode (calculate principal components based on batch and embedding space)
             x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
             concat_space = tf.concat([emb_space, x_concat_space], axis=0)
-            projection = pca_reduce_dims(concat_space, num_dim_reduction_components)
+            projection, _ = pca_reduce_dims(concat_space, num_dim_reduction_components)
 
             # re-extract embedding space and x => will calculate distance based on projection
             adjusted_emb_space = projection[:n, :]
             adjusted_x = projection[n:, :]
             adjusted_x = tf.reshape(adjusted_x, [in_shape[0], x.shape[1], num_dim_reduction_components])
+        elif dim_reduction is 'pca-emb-space':
+            # embedding-space-only mode (calculate principal components only based on the embedding space)
+            adjusted_emb_space, principal_components = pca_reduce_dims(emb_space, num_dim_reduction_components)
+
+            # now use the principal components derived from the emb space to project the batch
+            x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
+            x_projection = tf.matmul(x_concat_space, principal_components)
+            adjusted_x = tf.reshape(x_projection, [in_shape[0], x.shape[1], num_dim_reduction_components])
 
         # map x to y, where y is the vector from emb_space that is closest to x
         # distance of (adjusted) x from all vectors in the (adjusted) embedding space
@@ -204,27 +213,28 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         return layer_out
 
 
-def pca_reduce_dims(x: tf.Tensor, num_components: int) -> tf.Tensor:
+def pca_reduce_dims(x: tf.Tensor, num_components: int) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Reduces the dimensionality of given input vectors to the given number of components using principal component
     analysis (PCA).
     :param x: Tensor of shape [num_vecs = n, dim], where this function reduces 'dim' to 'num_components'
     :param num_components: The number of components this function reduces the vectors in the input to
-    :return: The reduced-dimension tensor of the input, of shape [num_vecs, num_components]
+    :return: The reduced-dimension tensor of the input, of shape [num_vecs, num_components] and the principal components
+             (eigenvectors corresponding to the num_components largest eigenvalues) of shape [num_vecs, num_components]
     """
     # subtract mean to get zero-mean data
     x -= tf.reduce_mean(x, axis=0, keepdims=True)
 
-    # calculate the SVD (singular value decomposition) to get the left singular values u
-    # shapes: sigma: [min(num_vecs, dim)], u: [num_vecs, p := min(num_vecs, dim)]
-    sigma, u, _ = tf.svd(x, full_matrices=False, compute_uv=True)
+    # calculate the SVD (singular value decomposition) to get the left and right singular values u and v
+    # shapes (with p := min(num_vecs, dim)): u: [num_vecs, p]; sigma: [p]; v: [dim, p]
+    sigma, u, v = tf.svd(x, full_matrices=False, compute_uv=True)
 
-    # sigma and u are already sorted in descending order of magnitude of the singular values => take the top
+    # sigma, u and v are already sorted in descending order of magnitude of the singular values => take the top
     # num_components 'eigenvectors' and project the data using the top num_components values of sigma
-    principal_components = u[:, :num_components]
-    projection = tf.matmul(principal_components, tf.matrix_diag(sigma[:num_components]))
+    projection = tf.matmul(u[:, :num_components], tf.matrix_diag(sigma[:num_components]))
+    principal_components = v[:, :num_components]
 
-    return projection
+    return projection, principal_components
 
 
 def vec_lookup(x: np.ndarray, emb_space: np.ndarray, norm_ord) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:

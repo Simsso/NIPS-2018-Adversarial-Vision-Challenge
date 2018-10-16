@@ -16,9 +16,7 @@ class TestPCAReduceDims(TFTestCase):
 
     def feed(self, x_val: np.ndarray, num_components: int):
         x = tf.constant(x_val, dtype=tf.float32, shape=x_val.shape)
-        reduced_result = pca_reduce_dims(x, num_components)
-        # self.init_vars()
-
+        reduced_result, _ = pca_reduce_dims(x, num_components)
         result = self.sess.run(reduced_result)
 
         pca = PCA(num_components, svd_solver='full')
