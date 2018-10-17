@@ -4,7 +4,7 @@ import tensorflow as tf
 from resnet_base.model.resnet import ResNet
 from resnet_base.model.pca_resnet import PCAResNet
 
-VALIDATION_BATCH_SIZE = 10  # adjustment based on available RAM
+VALIDATION_BATCH_SIZE = 100  # adjustment based on available RAM
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
 
@@ -33,7 +33,7 @@ def run_validation(model: ResNet, pipeline: TinyImageNetPipeline):
 
 
 def main(args):
-    pipeline = TinyImageNetPipeline(physical_batch_size=VALIDATION_BATCH_SIZE)
+    pipeline = TinyImageNetPipeline(physical_batch_size=VALIDATION_BATCH_SIZE, shuffle=False)
     imgs, labels = pipeline.get_iterator().get_next()
     model = PCAResNet(x=imgs, labels=labels)
     run_validation(model, pipeline)
