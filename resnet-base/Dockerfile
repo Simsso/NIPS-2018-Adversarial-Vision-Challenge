@@ -1,4 +1,4 @@
-FROM gcr.io/nips-2018-207619/nips-tensorflow-base-image:latest
+FROM gcr.io/nips-2018-102018/nips-tensorflow-base-image:latest
 
 ARG MODEL_ID_ARG
 ARG BUCKET_NAME_ARG
