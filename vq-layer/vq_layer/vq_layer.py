@@ -86,6 +86,10 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     vec_size = in_shape[2] // num_splits
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
 
+    if not num_dim_reduction_components <= vec_size:
+        raise ValueError("Parameter 'num_dim_reduction_components' must be smaller than or equal to the embedding"
+                         "vector size. Got {} > {}".format(num_dim_reduction_components, vec_size))
+
     with tf.variable_scope(name):
         # embedding space
         emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
