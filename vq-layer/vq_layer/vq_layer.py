@@ -7,11 +7,13 @@ VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count
                                          'emb_closest_spacing', 'replace_embeds', 'emb_space_batch_init'])
 
 __valid_lookup_ord_values = [1, 2, np.inf]
+__valid_dim_reduction_values = ['pca-batch', 'pca-emb-space']
 
 
 def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0.1,
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
-                        lookup_ord: int = 2, embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
+                        lookup_ord: int = 2, dim_reduction: str = None, num_dim_reduction_components: int = -1,
+                        embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
                         tf.random_normal_initializer, num_splits: int = 1, num_embeds_replaced: int = 0,
                         is_training: Union[bool, tf.Tensor] = False, return_endpoints: bool = False, name: str = 'vq') \
         -> Union[tf.Tensor, VQEndpoints]:
@@ -22,6 +24,11 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param alpha: Weighting of the alpha-loss term (lookup vector distance penalty)
     :param beta: Weighting of the beta-loss term (all vectors distance penalty)
     :param gamma: Weighting of the coulomb-loss term (embedding space spacing)
+    :param dim_reduction: If not None, will use the given technique to reduce the dimensionality of inputs and
+           embedding vectors before comparing them using the distance measure given by lookup_ord; one of
+           ['pca-batch', 'pca-emb-space'].
+    :param num_dim_reduction_components: When using dimensionality reduction, this specifies the number of components
+           (dimensions) that each embedding vector (and corresponding input) is reduced to.
     :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]
     :param embedding_initializer: Initializer for the embedding space variable or 'batch'
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
@@ -57,6 +64,14 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         raise ValueError("Parameter 'lookup_ord' must be one of {}. Got '{}'."
                          .format(__valid_lookup_ord_values, lookup_ord))
 
+    if dim_reduction is not None and dim_reduction not in __valid_dim_reduction_values:
+        raise ValueError("Parameter 'dim_reduction' must be either None or one of {}. Got '{}'."
+                         .format(__valid_dim_reduction_values, dim_reduction))
+
+    if dim_reduction is not None and num_dim_reduction_components <= 0:
+        raise ValueError("Parameter 'num_dim_reduction_components' must be > 0 when 'dim_reduction' is not None." +
+                         "Got '{}'.".format(num_dim_reduction_components))
+
     if num_splits <= 0:
         raise ValueError("Parameter 'num_splits' must be greater than 0. Got '{}'.".format(num_splits))
 
@@ -71,14 +86,40 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     vec_size = in_shape[2] // num_splits
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
 
+    if not num_dim_reduction_components <= vec_size:
+        raise ValueError("Parameter 'num_dim_reduction_components' must be smaller than or equal to the embedding"
+                         "vector size. Got {} > {}".format(num_dim_reduction_components, vec_size))
+
     with tf.variable_scope(name):
         # embedding space
         emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
                                     trainable=True)
 
+        adjusted_x = x
+        adjusted_emb_space = emb_space
+
+        if dim_reduction is 'pca-batch':
+            # batch-concatenated mode (calculate principal components based on batch and embedding space)
+            x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
+            concat_space = tf.concat([emb_space, x_concat_space], axis=0)
+            projection, _ = pca_reduce_dims(concat_space, num_dim_reduction_components)
+
+            # re-extract embedding space and x => will calculate distance based on projection
+            adjusted_emb_space = projection[:n, :]
+            adjusted_x = projection[n:, :]
+            adjusted_x = tf.reshape(adjusted_x, [in_shape[0], x.shape[1], num_dim_reduction_components])
+        elif dim_reduction is 'pca-emb-space':
+            # embedding-space-only mode (calculate principal components only based on the embedding space)
+            adjusted_emb_space, principal_components = pca_reduce_dims(emb_space, num_dim_reduction_components)
+
+            # now use the principal components derived from the emb space to project the batch
+            x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
+            x_projection = tf.matmul(x_concat_space, principal_components)
+            adjusted_x = tf.reshape(x_projection, [in_shape[0], x.shape[1], num_dim_reduction_components])
+
         # map x to y, where y is the vector from emb_space that is closest to x
-        # distance of x from all vectors in the embedding space
-        diff = tf.expand_dims(tf.stop_gradient(x), axis=2) - emb_space
+        # distance of (adjusted) x from all vectors in the (adjusted) embedding space
+        diff = tf.expand_dims(tf.stop_gradient(adjusted_x), axis=2) - adjusted_emb_space
         dist = tf.norm(diff, lookup_ord, axis=3)  # distance between x and all vectors in emb
         emb_index = tf.argmin(dist, axis=2)
         y = tf.gather(emb_space, emb_index, axis=0)
@@ -174,6 +215,30 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, emb_closest_spacing,
                                replace_embeds_and_reset, emb_space_batch_init)
         return layer_out
+
+
+def pca_reduce_dims(x: tf.Tensor, num_components: int) -> Tuple[tf.Tensor, tf.Tensor]:
+    """
+    Reduces the dimensionality of given input vectors to the given number of components using principal component
+    analysis (PCA).
+    :param x: Tensor of shape [num_vecs = n, dim], where this function reduces 'dim' to 'num_components'
+    :param num_components: The number of components this function reduces the vectors in the input to
+    :return: The reduced-dimension tensor of the input, of shape [num_vecs, num_components] and the principal components
+             (eigenvectors corresponding to the num_components largest eigenvalues) of shape [num_vecs, num_components]
+    """
+    # subtract mean to get zero-mean data
+    x -= tf.reduce_mean(x, axis=0, keepdims=True)
+
+    # calculate the SVD (singular value decomposition) to get the left and right singular values u and v
+    # shapes (with p := min(num_vecs, dim)): u: [num_vecs, p]; sigma: [p]; v: [dim, p]
+    sigma, u, v = tf.svd(x, full_matrices=False, compute_uv=True)
+
+    # sigma, u and v are already sorted in descending order of magnitude of the singular values => take the top
+    # num_components 'eigenvectors' and project the data using the top num_components values of sigma
+    projection = tf.matmul(u[:, :num_components], tf.matrix_diag(sigma[:num_components]))
+    principal_components = v[:, :num_components]
+
+    return projection, principal_components
 
 
 def vec_lookup(x: np.ndarray, emb_space: np.ndarray, norm_ord) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
