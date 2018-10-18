@@ -10,6 +10,7 @@ class TFTestCase(TestCase):
     def setUp(self) -> None:
         tf.set_random_seed(15092017)
         tf.reset_default_graph()
+        np.random.seed(42)
         self.sess = tf.Session()
         self.sess.as_default()
 

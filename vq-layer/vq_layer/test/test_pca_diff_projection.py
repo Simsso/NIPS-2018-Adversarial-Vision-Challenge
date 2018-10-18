@@ -10,10 +10,6 @@ class TestPCADiffProjection(TFTestCase):
     Test the vq-layer embedding lookup with PCA dimensionality reduction enabled.
     """
 
-    def setUp(self) -> None:
-        super(TestPCADiffProjection, self).setUp()
-        np.random.seed(42)
-
     def feed(self, emb_space_val: Union[List, np.ndarray], x_val: Union[List, np.ndarray], num_components: int,
              dim_reduction_mode: str = 'pca-batch') -> np.ndarray:
         x_val = np.array(x_val, dtype=np.float32)
@@ -40,6 +36,7 @@ class TestPCADiffProjection(TFTestCase):
 
         emb_space = [[1, -1, 1], [1, 10, .1], [-2, 3, 20], [100, 200, 300]]
 
+        # expecting all 10 samples in the batch to be mapped to embedding vec [1, 10, .1]
         expected = np.array([1, 10, .1] * 10, dtype=np.float32)
         expected = np.reshape(expected, newshape=[10, 1, 3])
 
@@ -58,6 +55,7 @@ class TestPCADiffProjection(TFTestCase):
 
         emb_space = [[1, -1, 1], [1, 10, .1], [-2, 3, 20], [100, 200, 300]]
 
+        # expecting all 10 samples in the batch to be mapped to embedding vec [1, 10, .1]
         expected = np.array([1, 10, .1] * 10, dtype=np.float32)
         expected = np.reshape(expected, newshape=[10, 1, 3])
 
