@@ -26,7 +26,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     :param gamma: Weighting of the coulomb-loss term (embedding space spacing)
     :param dim_reduction: If not None, will use the given technique to reduce the dimensionality of inputs and
            embedding vectors before comparing them using the distance measure given by lookup_ord; one of
-           ['pca-batch', 'pca-emb-space']
+           ['pca-batch', 'pca-emb-space'].
     :param num_dim_reduction_components: When using dimensionality reduction, this specifies the number of components
            (dimensions) that each embedding vector (and corresponding input) is reduced to.
     :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]

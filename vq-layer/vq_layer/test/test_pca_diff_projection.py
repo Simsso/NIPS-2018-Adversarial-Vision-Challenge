@@ -5,13 +5,13 @@ from vq_layer.test.tf_test_case import TFTestCase
 from vq_layer.vq_layer import vector_quantization as vq
 
 
-class TestPCAProjection(TFTestCase):
+class TestPCADiffProjection(TFTestCase):
     """
-    Test the vq-layer projection with PCA dimensionality reduction enabled.
+    Test the vq-layer embedding lookup with PCA dimensionality reduction enabled.
     """
 
     def setUp(self) -> None:
-        super(TestPCAProjection, self).setUp()
+        super(TestPCADiffProjection, self).setUp()
         np.random.seed(42)
 
     def feed(self, emb_space_val: Union[List, np.ndarray], x_val: Union[List, np.ndarray], num_components: int,
@@ -29,6 +29,10 @@ class TestPCAProjection(TFTestCase):
         return y
 
     def test_batch_projection1(self):
+        """
+        Creates an input batch that is a noisy input of [x, 10x, .1x]. Then uses the PCA-batch mode to select
+        the corresponding embedding vector, which should be the one resembling this distribution ([1, 10, .1]).
+        """
         rand_x = np.random.uniform(low=0, high=10, size=10)
         rand_y = rand_x * 10 + np.random.normal(loc=0, scale=.5, size=10)
         rand_z = rand_x * .1 + np.random.normal(loc=0, scale=.5, size=10)
@@ -43,6 +47,10 @@ class TestPCAProjection(TFTestCase):
         self.assert_numerically_equal(layer_out_batch, expected)
 
     def test_emb_space_projection1(self):
+        """
+        Creates an input batch that is a noisy input of [x, 10x, .1x]. Then uses the PCA-embedding-only mode to select
+        the corresponding embedding vector, which should be the one resembling this distribution ([1, 10, .1]).
+        """
         rand_x = np.random.uniform(low=0, high=10, size=10)
         rand_y = rand_x * 10 + np.random.normal(loc=0, scale=.5, size=10)
         rand_z = rand_x * .1 + np.random.normal(loc=0, scale=.5, size=10)
@@ -57,6 +65,10 @@ class TestPCAProjection(TFTestCase):
         self.assert_numerically_equal(layer_out_emb, expected)
 
     def test_batch_projection2(self):
+        """
+        Tests the PCA-batch mode embedding lookup. Here, another lookup strategy would yield another chosen output
+        vector. TODO should be explicitly tested!
+        """
         x_val = np.array([[1, -1, 1, -1, 1, -1]])
         emb_space = np.array([[2, -2, 2, -2, 2, -2],
                               [.02, .2, 2, 20, 200, 2000],
@@ -68,6 +80,10 @@ class TestPCAProjection(TFTestCase):
         self.assert_numerically_equal(layer_out_batch, expected)
 
     def test_emb_space_projection2(self):
+        """
+        Tests the PCA-embedding-only mode embedding lookup. Here, another lookup strategy would yield another chosen
+        output vector. TODO should be explicitly tested!
+        """
         x_val = np.array([[1, -1, 1, -1, 1, -1]])
         emb_space = np.array([[2, -2, 2, -2, 2, -2],
                               [.02, .2, 2, 20, 200, 2000],
