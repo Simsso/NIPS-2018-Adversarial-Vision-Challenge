@@ -15,7 +15,7 @@ class TestPCADiffProjection(TFTestCase):
         np.random.seed(42)
 
     def feed(self, emb_space_val: Union[List, np.ndarray], x_val: Union[List, np.ndarray], num_components: int,
-             dim_reduction_mode: str = 'pca-batch') -> List:
+             dim_reduction_mode: str = 'pca-batch') -> np.ndarray:
         x_val = np.array(x_val, dtype=np.float32)
         self.x = tf.placeholder_with_default(x_val, shape=x_val.shape)
         self.x_reshaped = tf.expand_dims(self.x, axis=1)
