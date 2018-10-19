@@ -95,30 +95,18 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         one_hot_access = tf.one_hot(emb_index, depth=n)
         access_count = tf.reduce_sum(one_hot_access, axis=[0, 1], name='access_count')
 
+        # add losses
         if alpha != 0:
-            # closest embedding update loss (alpha-loss)
-            nearest_loss = tf.reduce_mean(alpha * tf.norm(y - tf.stop_gradient(x), lookup_ord, axis=2), axis=[0, 1],
-                                          name='alpha_loss')
-            tf.add_to_collection(tf.GraphKeys.LOSSES, nearest_loss)
+            __add_alpha_loss(x, y, lookup_ord, alpha)
 
         if beta != 0:
-            # all embeddings update loss (beta-loss)
-            all_loss = tf.reduce_mean(beta * tf.reduce_sum(dist, axis=2), axis=[0, 1], name='beta_loss')
-            tf.add_to_collection(tf.GraphKeys.LOSSES, all_loss)
+            __add_beta_loss(dist, beta)
 
         emb_spacing, emb_closest_spacing = None, None
         if gamma != 0 or return_endpoints:
-            # embeddings distance from closest other embedding (coulomb-loss)
-            # pair-wise diff vectors (n x n x vec_size)
-            pdiff = tf.expand_dims(emb_space, axis=0) - tf.expand_dims(emb_space, axis=1)
-            pdist = tf.norm(pdiff, lookup_ord, axis=2)  # pair-wise distance scalars (n x n)
-            emb_spacing = strict_upper_triangular_part(pdist)
-            max_identity_matrix = tf.eye(n) * tf.reduce_max(pdist, axis=[0, 1])  # removes the diagonal zeros
-            assert max_identity_matrix.shape == pdist.shape
-            emb_closest_spacing = tf.reduce_min(pdist + max_identity_matrix, axis=1)
+            emb_spacing, emb_closest_spacing = __calculate_emb_spacing(emb_space, n, lookup_ord)
             if gamma != 0:
-                coulomb_loss = tf.reduce_sum(-gamma * emb_closest_spacing, axis=0, name='coulomb_loss')
-                tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
+                __add_coulomb_loss(emb_closest_spacing, gamma)
 
         replace_embeds_and_reset = None
         if num_embeds_replaced > 0 and return_endpoints:
@@ -208,7 +196,7 @@ def __extract_vq_dimensions(x: tf.Tensor, num_splits: int) -> Tuple[List[int], i
 
 
 def __validate_vq_parameters(n: int, vec_size: int, lookup_ord: int, dim_reduction: str,
-                             num_dim_reduction_components: int, num_embeds_replaced: int):
+                             num_dim_reduction_components: int, num_embeds_replaced: int) -> None:
     """
     Validates the given vq-layer parameters. The parameter definition is analogous to the parameter definition indicated
     in the vector_quantization function.
@@ -234,6 +222,54 @@ def __validate_vq_parameters(n: int, vec_size: int, lookup_ord: int, dim_reducti
     if not num_dim_reduction_components <= vec_size:
         raise ValueError("Parameter 'num_dim_reduction_components' must be smaller than or equal to the embedding"
                          "vector size. Got {} > {}".format(num_dim_reduction_components, vec_size))
+
+
+def __add_alpha_loss(x: tf.Tensor, y: tf.Tensor, lookup_ord: int, alpha: Union[tf.Tensor, float]) -> None:
+    """
+    Adds an 'alpha'-loss (closest embedding update loss) term to the tf.GraphKeys.LOSSES collection.
+    Parameters are defined analogous to the vector_quantization function.
+    """
+    nearest_loss = tf.reduce_mean(alpha * tf.norm(y - tf.stop_gradient(x), lookup_ord, axis=2), axis=[0, 1],
+                                  name='alpha_loss')
+    tf.add_to_collection(tf.GraphKeys.LOSSES, nearest_loss)
+
+
+def __add_beta_loss(dist: tf.Tensor, beta: Union[tf.Tensor, float]) -> None:
+    """
+    Adds a 'beta'-loss (all embeddings update loss) term to the tf.GraphKeys.LOSSES collection.
+    :param dist: Tensor describing the distance between the input x and all vectors in the embedding space;
+                 of shape [batch, r, n]
+    """
+    all_loss = tf.reduce_mean(beta * tf.reduce_sum(dist, axis=2), axis=[0, 1], name='beta_loss')
+    tf.add_to_collection(tf.GraphKeys.LOSSES, all_loss)
+
+
+def __add_coulomb_loss(emb_closest_spacing: tf.Tensor, gamma: Union[tf.Tensor, float]) -> None:
+    """
+    Adds a 'gamma'-loss (all embeddings update loss) term to the tf.GraphKeys.LOSSES collection.
+    :param emb_closest_spacing: Tensor describing the smallest spacing of two embedding vectors.
+    """
+    coulomb_loss = tf.reduce_sum(-gamma * emb_closest_spacing, axis=0, name='coulomb_loss')
+    tf.add_to_collection(tf.GraphKeys.LOSSES, coulomb_loss)
+
+
+def __calculate_emb_spacing(emb_space: tf.Tensor, n: int, lookup_ord: int) -> Tuple:
+    """
+    Calculates the embeddings' distance from the closest other embedding vector. Parameters defined analogous to the
+    vector_quantization function.
+    :param emb_space: A tensor describing the embedding space, of shape [n, vec_size].
+    :return: A tuple of the emb_spacing and emb_closest_spacing tensors
+    """
+    # pair-wise diff vectors (n x n x vec_size)
+    pdiff = tf.expand_dims(emb_space, axis=0) - tf.expand_dims(emb_space, axis=1)
+    pdist = tf.norm(pdiff, lookup_ord, axis=2)  # pair-wise distance scalars (n x n)
+    emb_spacing = strict_upper_triangular_part(pdist)
+    max_identity_matrix = tf.eye(n) * tf.reduce_max(pdist, axis=[0, 1])  # removes the diagonal zeros
+
+    assert max_identity_matrix.shape == pdist.shape
+    emb_closest_spacing = tf.reduce_min(pdist + max_identity_matrix, axis=1)
+
+    return emb_spacing, emb_closest_spacing
 
 
 def pca_reduce_dims(x: tf.Tensor, num_components: int) -> Tuple[tf.Tensor, tf.Tensor]:
