@@ -1,3 +1,4 @@
+from typing import Dict
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 import numpy as np
 import tensorflow as tf
@@ -8,7 +9,11 @@ VALIDATION_BATCH_SIZE = 100  # adjustment based on available RAM
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
 
-def run_validation(model: ResNet, pipeline: TinyImageNetPipeline):
+def run_validation(model: ResNet, pipeline: TinyImageNetPipeline) -> Dict[float, float]:
+    """
+    Feeds all validation samples through the model and report classification accuracy and loss.
+    :return: Dictionary of mean accuracy and mean loss
+    """
     init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
 
     config = tf.ConfigProto()
@@ -23,13 +28,14 @@ def run_validation(model: ResNet, pipeline: TinyImageNetPipeline):
 
         tf.logging.info("Starting evaluation")
         vals = []
-        acc_mean_val, loss_mean_val = 0, 0
+        acc_mean_val, loss_mean_val = 0., 0.
         n = TinyImageNetPipeline.num_valid_samples // VALIDATION_BATCH_SIZE
         for i in range(n):
             vals.append(sess.run([model.accuracy, model.loss]))
             acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
             tf.logging.info("[{}/{}]Current accuracy: {}".format(i, n, acc_mean_val))
         tf.logging.info("Final validation data: accuracy {}, loss {}".format(acc_mean_val, loss_mean_val))
+    return acc_mean_val, loss_mean_val
 
 
 def main(args):
