@@ -17,6 +17,10 @@ FLAGS = tf.flags.FLAGS
 
 
 def main(args):
+    """
+    This script feeds Tiny ImageNet samples into a ResNet and exports a file containing a dictionary. Each entry in the
+    dictionary is a list of activations (or labels).
+    """
     tf.reset_default_graph()
     tf.set_random_seed(15092017)
     logger_init()

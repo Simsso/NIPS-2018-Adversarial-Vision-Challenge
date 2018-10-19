@@ -4,6 +4,12 @@ from resnet_base.model.resnet import ResNet
 
 
 class ActivationsResNet(ResNet):
+    """
+    The ActivationsResNet serves the purpose of exposing its activations in a dictionary called 'activations'. It can
+    be used, e.g. to export the values of activations for given samples. Besides the dictionary attribute, this class is
+    identical to the ResNet class.
+    """
+
     def _build_model(self, img: tf.Tensor) -> tf.Tensor:
         """
         Builds the ResNet model graph with the TF API. Adds all tensors in between blocks / layers to the activations
