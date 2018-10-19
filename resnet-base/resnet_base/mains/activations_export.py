@@ -16,7 +16,7 @@ tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activ
 FLAGS = tf.flags.FLAGS
 
 
-def main(args):
+def main(args) -> None:
     """
     This script feeds Tiny ImageNet samples into a ResNet and exports a file containing a dictionary. Each entry in the
     dictionary is a list of activations (or labels).
@@ -37,8 +37,7 @@ def main(args):
         logger_factory = LoggerFactory(num_valid_steps=1)
         model = ActivationsResNet(logger_factory, imgs, labels)
 
-        init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-        sess.run(init)
+        model.restore(sess)
 
         # use training data
         train = tf.estimator.ModeKeys.TRAIN
@@ -47,25 +46,34 @@ def main(args):
 
 
 def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: ActivationsResNet,
-                       mode: tf.estimator.ModeKeys) -> None:
+                       mode: tf.estimator.ModeKeys, only_correct_ones: bool = True) -> None:
+
+    n = min(pipeline.get_num_samples(mode), 1000)
+
     pipeline.switch_to(mode)
-    n = pipeline.get_num_samples(mode)
     export_tensors = model.activations.copy()
-    export_tensors['out_labels'] = model.labels
+    export_tensors['target_labels'] = model.labels
 
     export_vals = {}
     for key in export_tensors.keys():
         export_vals[key] = []
 
+    skipped_ctr = 0
     for i in range(n):
-        sample_export_val = sess.run(export_tensors)
+        sample_export_val, accuracy = sess.run([export_tensors, model.accuracy])
+        if accuracy < 1 and only_correct_ones:
+            skipped_ctr += 1
+            tf.logging.info("Skipping misclassified sample #{}".format(skipped_ctr))
+            continue
         for key in sample_export_val.keys():
             export_vals[key].append(sample_export_val[key][0])  # unpack batches and push into storage
-        print("Progress: {}/{}".format(i, n))
+        tf.logging.info("Progress: {}/{}".format(i, n))
+
     save_activations(FLAGS.activations_export_file, export_vals)
 
 
 def save_activations(export_path: str, val_dict: Dict[str, any]) -> None:
+    tf.logging.info("Exporting to {}".format(export_path))
     scipy.io.savemat(export_path, mdict=val_dict)
 
 
