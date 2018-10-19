@@ -55,3 +55,54 @@ class TestCosineProjection(TFTestCase):
 
         y = self.feed(emb_space, x_val)
         self.assert_numerically_equal(y, expected)
+
+    def test_noisy_onehot1(self):
+        """
+        Does the noisy onehot-test using a batch size of 2 and a vec size of 5.
+        """
+        self.__noisy_onehot_test(batch_size=2, vec_size=5)
+
+    def test_noisy_onehot2(self):
+        """
+        Does the noisy onehot-test using a batch size of 10 and a vec size of 100.
+        """
+        self.__noisy_onehot_test(batch_size=10, vec_size=100)
+
+    def test_noisy_onehot3(self):
+        """
+        Does the noisy onehot-test using a batch size of 100, a vec size of 1000 and a noise stddev of 3.
+        The fact that this still works in 1000 dimensions shows that the noise (at this standard deviation) does
+        not impact the projection, which might not be the case for other distance metrics.
+        """
+        self.__noisy_onehot_test(batch_size=100, vec_size=1000, noise_stddev=3)
+
+    def __noisy_onehot_test(self, batch_size: int, vec_size: int, noise_stddev: float = 1.0):
+        """
+        Tests a projection that works as follows:
+        - the input batch is the first 'batch_size' one-hot vectors of dimension 'vec_size'
+        - the embedding space is a noisy version of a diagonal matrix of dimension 'vec_size x vec_size' with random
+          ints on the diagonal, which are significantly larger than the noise
+        - the expected projection is the first 'batch_size' vectors of the embedding space, as these have the largest
+          cosine similarity with the input batch
+        :param batch_size: The number of onehot-vectors used as the input batch (must be <= vec_size)
+        :param vec_size: The dimensionality of the input vectors and embedding space vectors (must be >= batch_size)
+        """
+        assert batch_size <= vec_size
+
+        # corresponds to a batch of the first batch_size one-hot vectors of dimension dim
+        x_val = np.zeros([batch_size, vec_size])
+        x_val[:batch_size, :batch_size] = np.eye(batch_size)
+
+        noise = np.random.normal(loc=0, scale=noise_stddev, size=vec_size ** 2)  # vec_size**2 random noise values
+        noise = np.reshape(noise, newshape=[vec_size, vec_size])
+
+        emb_space = np.eye(vec_size)                                    # vec_size one-hot vectors
+        emb_space *= np.random.randint(low=5, high=200, size=vec_size)  # ... rows multiplied by random ints
+        emb_space += noise                                              # ... plus small noise
+
+        # as the noise is minor and because we use cosine similarity, the first batch_size embedding vectors should be
+        # chosen by the projection
+        expected = np.expand_dims(emb_space[:batch_size], axis=1)
+
+        y = self.feed(emb_space, x_val)
+        self.assert_numerically_equal(y, expected)
