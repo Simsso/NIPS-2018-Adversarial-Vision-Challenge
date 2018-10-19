@@ -6,7 +6,7 @@ from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.model.activations_resnet import ActivationsResNet
 from resnet_base.util.logger.factory import LoggerFactory
 from resnet_base.util.logger.tf_logger_init import init as logger_init
-from typing import Dict
+from typing import Dict, List
 
 
 tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/data_100k_act5_block3.mat'),
