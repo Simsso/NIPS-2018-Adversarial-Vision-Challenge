@@ -1,9 +1,7 @@
 from os import path
 
 import scipy.io
-
 import tensorflow as tf
-
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.model.activations_resnet import ActivationsResNet
 from resnet_base.util.logger.factory import LoggerFactory
@@ -19,7 +17,8 @@ FLAGS = tf.flags.FLAGS
 def main(args) -> None:
     """
     This script feeds Tiny ImageNet samples into a ResNet and exports a file containing a dictionary. Each entry in the
-    dictionary is a list of activations (or labels).
+    dictionary is a list of activations (or labels). The activations of a sample are only stored/exported, if the sample
+    was classified correctly.
     """
     tf.reset_default_graph()
     tf.set_random_seed(15092017)
@@ -37,18 +36,23 @@ def main(args) -> None:
         logger_factory = LoggerFactory(num_valid_steps=1)
         model = ActivationsResNet(logger_factory, imgs, labels)
 
+        # restore pre-trained weights
         model.restore(sess)
 
-        # use training data
-        train = tf.estimator.ModeKeys.TRAIN
-        pipeline.switch_to(train)
-        gather_activations(sess, pipeline, model, train)
+        export_vals = gather_activations(sess, pipeline, model, tf.estimator.ModeKeys.TRAIN)
+        save_activations(FLAGS.activations_export_file, export_vals)
 
 
 def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: ActivationsResNet,
-                       mode: tf.estimator.ModeKeys, only_correct_ones: bool = True) -> None:
+                       mode: tf.estimator.ModeKeys, only_correct_ones: bool = True) -> Dict[str, List]:
+    """
+    Feeds samples of the given mode through the given model and accumulates the activation values for correctly
+    classified samples.
+    :return: Dictionary mapping from activation name to list of occurred value. All lists in the dictionary have the
+             same length.
+    """
 
-    n = min(pipeline.get_num_samples(mode), 1000)
+    n = min(pipeline.get_num_samples(mode), 100000)
 
     pipeline.switch_to(mode)
     export_tensors = model.activations.copy()
@@ -68,8 +72,7 @@ def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: 
         for key in sample_export_val.keys():
             export_vals[key].append(sample_export_val[key][0])  # unpack batches and push into storage
         tf.logging.info("Progress: {}/{}".format(i, n))
-
-    save_activations(FLAGS.activations_export_file, export_vals)
+    return export_vals
 
 
 def save_activations(export_path: str, val_dict: Dict[str, any]) -> None:
