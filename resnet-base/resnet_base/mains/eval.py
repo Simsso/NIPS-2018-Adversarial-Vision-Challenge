@@ -29,11 +29,16 @@ def run_validation(model: ResNet, pipeline: TinyImageNetPipeline) -> Dict[float,
         tf.logging.info("Starting evaluation")
         vals = []
         acc_mean_val, loss_mean_val = 0., 0.
-        n = TinyImageNetPipeline.num_valid_samples // VALIDATION_BATCH_SIZE
+        num_valid_samples = TinyImageNetPipeline.num_valid_samples
+        n = num_valid_samples // VALIDATION_BATCH_SIZE
+        missed_samples = num_valid_samples % VALIDATION_BATCH_SIZE
+        if missed_samples > 0:
+            tf.logging.warning("Omitting {} samples because the batch size ({}) is not a divisor of the number of "
+                               "samples ({}).".format(missed_samples, num_valid_samples, VALIDATION_BATCH_SIZE))
         for i in range(n):
             vals.append(sess.run([model.accuracy, model.loss]))
             acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
-            tf.logging.info("[{}/{}]Current accuracy: {}".format(i, n, acc_mean_val))
+            tf.logging.info("[{}/{}] Current accuracy: {}".format(i, n, acc_mean_val))
         tf.logging.info("Final validation data: accuracy {}, loss {}".format(acc_mean_val, loss_mean_val))
     return acc_mean_val, loss_mean_val
 

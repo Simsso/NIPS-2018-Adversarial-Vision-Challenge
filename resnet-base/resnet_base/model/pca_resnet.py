@@ -1,11 +1,29 @@
 import numpy as np
+import os
 from resnet_base.model.resnet import ResNet
 import scipy.io
 import tensorflow as tf
 
+tf.flags.DEFINE_string("pca_mat_file", os.path.expanduser(os.path.join('.data', 'activations', 'pca.mat')),
+                       "Path to the file (*.mat) where the PCA matrices are being stored.")
+FLAGS = tf.flags.FLAGS
+
 
 class PCAResNet(ResNet):
-    def pca_layer(self, x: tf.Tensor, mat_val: np.ndarray, name: str = 'pca_layer') -> tf.Tensor:
+    """
+    Modification of the ResNet where activations of certain layers/blocks are being compressed with a PCA matrix and
+    subsequently scaled back the the size required by the next layer. The compression is typically lossy and does
+    therefore affect the model's accuracy and robustness.
+    """
+
+    def _pca_layer(self, x: tf.Tensor, mat_val: np.ndarray, name: str = 'pca_layer') -> tf.Tensor:
+        """
+        PCA layer: Multiplies the input with the given transformation matrix and subsequently the Moore-Penrose inverse.
+        :param x: Layer input
+        :param mat_val: Matrix to multiply with
+        :param name: Name of the layer
+        :return: Layer output; y = x * mat_val * (mat_val)^-1 (where '*' is matrix multiplication)
+        """
         with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
             mat_inv_val = np.linalg.pinv(mat_val)
 
@@ -30,13 +48,25 @@ class PCAResNet(ResNet):
         x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
         x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)  # 2x2x1024
         x = tf.reshape(x, [-1, 2*2*1024])
-        x = self.pca_layer(x, self.load_mat('/Users/timodenk/.data/activations/pca.mat'))
+        x = self._pca_layer(x, self._get_mat('pca_out'))
         x = tf.reshape(x, [-1, 2, 2, 1024])
         x = ResNet._v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
         x = ResNet.batch_norm(x)
         return self.global_avg_pooling(x)
 
-    @staticmethod
-    def load_mat(file: str) -> np.ndarray:
-        imported_dict = scipy.io.loadmat(file)
-        return imported_dict['pca_out']
+    def _load_mat(self) -> None:
+        """
+        Loads the .mat-file containing matrices and stores it as an attribute. The path is stored in 'FLAGS.pca_mat_file'.
+        """
+        file = FLAGS.pca_mat_file
+        self._imported_dict = scipy.io.loadmat(file)
+
+    def _get_mat(self, name: str = 'pca_out') -> np.ndarray:
+        """
+        Returns the matrix with the given name, loaded from the .mat-file
+        :param name: Name of the matrix
+        :return: The matrix itself
+        """
+        if self._imported_dict is None:
+            self._load_mat()
+        return self._imported_dict[name]
