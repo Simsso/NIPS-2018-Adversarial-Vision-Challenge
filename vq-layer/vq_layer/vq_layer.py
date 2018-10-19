@@ -65,7 +65,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         adjusted_x = x
         adjusted_emb_space = emb_space
 
-        if dim_reduction is 'pca-batch':
+        if dim_reduction == 'pca-batch':
             # batch-concatenated mode (calculate principal components based on batch and embedding space)
             x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
             concat_space = tf.concat([emb_space, x_concat_space], axis=0)
@@ -75,7 +75,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             adjusted_emb_space = projection[:n, :]
             adjusted_x = projection[n:, :]
             adjusted_x = tf.reshape(adjusted_x, [in_shape[0], x.shape[1], num_dim_reduction_components])
-        elif dim_reduction is 'pca-emb-space':
+        elif dim_reduction == 'pca-emb-space':
             # embedding-space-only mode (calculate principal components only based on the embedding space)
             adjusted_emb_space, principal_components = pca_reduce_dims(emb_space, num_dim_reduction_components)
 
