@@ -48,25 +48,25 @@ class PCAResNet(ResNet):
         x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
         x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)  # 2x2x1024
         x = tf.reshape(x, [-1, 2*2*1024])
-        x = self._pca_layer(x, self._get_mat('pca_out'))
+        x = self._pca_layer(x, self._get_matrix('pca_out'))
         x = tf.reshape(x, [-1, 2, 2, 1024])
         x = ResNet._v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
         x = ResNet.batch_norm(x)
         return self.global_avg_pooling(x)
 
-    def _load_mat(self) -> None:
+    def _load_matrices_file(self) -> None:
         """
         Loads the .mat-file containing matrices and stores it as an attribute. The path is stored in 'FLAGS.pca_mat_file'.
         """
         file = FLAGS.pca_mat_file
         self._imported_dict = scipy.io.loadmat(file)
 
-    def _get_mat(self, name: str = 'pca_out') -> np.ndarray:
+    def _get_matrix(self, name: str = 'pca_out') -> np.ndarray:
         """
         Returns the matrix with the given name, loaded from the .mat-file
         :param name: Name of the matrix
         :return: The matrix itself
         """
         if self._imported_dict is None:
-            self._load_mat()
+            self._load_matrices_file()
         return self._imported_dict[name]
