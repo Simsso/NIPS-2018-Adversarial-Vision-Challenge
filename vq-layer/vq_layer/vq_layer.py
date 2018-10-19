@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 from collections import namedtuple
 
 VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count', 'distance', 'emb_spacing',
@@ -49,47 +49,14 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                 replace_embeds: Op that replaces the least used embedding vectors with the most distant input vectors
                 emb_space_batch_init: Embedding space batch init op (is set if embedding_initializer is 'batch')
     """
-    if n <= 0:
-        raise ValueError("Parameter 'n' must be greater than 0.")
-
-    if num_embeds_replaced < 0:
-        raise ValueError("Parameter 'num_embeds_replaced' must be greater than or equal to 0.")
-
-    in_shape = x.get_shape().as_list()
-    if not len(in_shape) == 3:
-        raise ValueError("Parameter 'x' must be a tensor of shape [batch, a, q]. Got {}.".format(in_shape))
-    in_shape[0] = in_shape[0] if in_shape[0] is not None else -1  # allow for variable-sized batch dimension
-
-    if lookup_ord not in __valid_lookup_ord_values:
-        raise ValueError("Parameter 'lookup_ord' must be one of {}. Got '{}'."
-                         .format(__valid_lookup_ord_values, lookup_ord))
-
-    if dim_reduction is not None and dim_reduction not in __valid_dim_reduction_values:
-        raise ValueError("Parameter 'dim_reduction' must be either None or one of {}. Got '{}'."
-                         .format(__valid_dim_reduction_values, dim_reduction))
-
-    if dim_reduction is not None and num_dim_reduction_components <= 0:
-        raise ValueError("Parameter 'num_dim_reduction_components' must be > 0 when 'dim_reduction' is not None." +
-                         "Got '{}'.".format(num_dim_reduction_components))
-
-    if num_splits <= 0:
-        raise ValueError("Parameter 'num_splits' must be greater than 0. Got '{}'.".format(num_splits))
-
-    if not in_shape[2] % num_splits == 0:
-        raise ValueError("Parameter 'num_splits' must be a divisor of the third axis of 'x'. Got {} and {}."
-                         .format(num_splits, in_shape[2]))
-
     dynamic_emb_space_init = (embedding_initializer == 'batch')
     if dynamic_emb_space_init:
         embedding_initializer = tf.zeros_initializer
 
-    vec_size = in_shape[2] // num_splits
+    in_shape, vec_size = __extract_vq_dimensions(x, num_splits)
+    __validate_vq_parameters(n, vec_size, lookup_ord, dim_reduction, num_dim_reduction_components, num_embeds_replaced)
+
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
-
-    if not num_dim_reduction_components <= vec_size:
-        raise ValueError("Parameter 'num_dim_reduction_components' must be smaller than or equal to the embedding"
-                         "vector size. Got {} > {}".format(num_dim_reduction_components, vec_size))
-
     with tf.variable_scope(name):
         # embedding space
         emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
@@ -215,6 +182,58 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, emb_closest_spacing,
                                replace_embeds_and_reset, emb_space_batch_init)
         return layer_out
+
+
+def __extract_vq_dimensions(x: tf.Tensor, num_splits: int) -> Tuple[List[int], int]:
+    """
+    Extracts and validates the shape and resulting quantization vector size used in a vq-layer. The parameter definition
+    is analogous to the parameter definition indicated in the vector_quantization function.
+    :return: A tuple of the input shape (as list of ints) and the quantization vector size (as int)
+    """
+    in_shape = x.get_shape().as_list()
+    if not len(in_shape) == 3:
+        raise ValueError("Parameter 'x' must be a tensor of shape [batch, a, q]. Got {}.".format(in_shape))
+
+    in_shape[0] = in_shape[0] if in_shape[0] is not None else -1  # allow for variable-sized batch dimension
+
+    if num_splits <= 0:
+        raise ValueError("Parameter 'num_splits' must be greater than 0. Got '{}'.".format(num_splits))
+
+    if not in_shape[2] % num_splits == 0:
+        raise ValueError("Parameter 'num_splits' must be a divisor of the third axis of 'x'. Got {} and {}."
+                         .format(num_splits, in_shape[2]))
+
+    vec_size = in_shape[2] // num_splits
+    return in_shape, vec_size
+
+
+def __validate_vq_parameters(n: int, vec_size: int, lookup_ord: int, dim_reduction: str,
+                             num_dim_reduction_components: int, num_embeds_replaced: int):
+    """
+    Validates the given vq-layer parameters. The parameter definition is analogous to the parameter definition indicated
+    in the vector_quantization function.
+    """
+    if n <= 0:
+        raise ValueError("Parameter 'n' must be greater than 0.")
+
+    if num_embeds_replaced < 0:
+        raise ValueError("Parameter 'num_embeds_replaced' must be greater than or equal to 0.")
+
+    if lookup_ord not in __valid_lookup_ord_values:
+        raise ValueError("Parameter 'lookup_ord' must be one of {}. Got '{}'."
+                         .format(__valid_lookup_ord_values, lookup_ord))
+
+    if dim_reduction is not None and dim_reduction not in __valid_dim_reduction_values:
+        raise ValueError("Parameter 'dim_reduction' must be either None or one of {}. Got '{}'."
+                         .format(__valid_dim_reduction_values, dim_reduction))
+
+    if dim_reduction is not None and num_dim_reduction_components <= 0:
+        raise ValueError("Parameter 'num_dim_reduction_components' must be > 0 when 'dim_reduction' is not None." +
+                         "Got '{}'.".format(num_dim_reduction_components))
+
+    if not num_dim_reduction_components <= vec_size:
+        raise ValueError("Parameter 'num_dim_reduction_components' must be smaller than or equal to the embedding"
+                         "vector size. Got {} > {}".format(num_dim_reduction_components, vec_size))
 
 
 def pca_reduce_dims(x: tf.Tensor, num_components: int) -> Tuple[tf.Tensor, tf.Tensor]:
