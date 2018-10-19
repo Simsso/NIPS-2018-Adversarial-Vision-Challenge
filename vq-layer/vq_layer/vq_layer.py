@@ -5,6 +5,7 @@ from collections import namedtuple
 
 VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count', 'distance', 'emb_spacing',
                                          'emb_closest_spacing', 'replace_embeds', 'emb_space_batch_init'])
+CosineVQEndpoints = namedtuple('CosineVQEndpoints', ['layer_out', 'emb_space'])
 
 __valid_lookup_ord_values = [1, 2, np.inf]
 __valid_dim_reduction_values = ['pca-batch', 'pca-emb-space']
@@ -115,11 +116,29 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
 def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, num_dim_reduction_components: int = -1,
                                embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
-                               tf.random_normal_initializer, num_splits: int = 1,
-                               is_training: Union[bool, tf.Tensor] = False, return_endpoints: bool = False,
-                               name: str = 'vq') -> Union[tf.Tensor, VQEndpoints]:
+                               tf.random_normal_initializer, num_splits: int = 1, return_endpoints: bool = False,
+                               identity_mapping_threshold: float = -1,
+                               name: str = 'vq') -> Union[tf.Tensor, CosineVQEndpoints]:
     """
-    Vector quantization layer performing the lookup based on cosine similarity (dot product).
+    Vector quantization layer performing the lookup based on cosine similarity (dot product magnitude).
+    :param x: Tensor of shape [batch, r, q], where this function quantizes along dimension q
+    :param n: Size of the embedding space (number of contained vectors)
+    :param dim_reduction: If not None, will use the given technique to reduce the dimensionality of inputs and
+           embedding vectors before comparing them using the distance measure given by lookup_ord; one of
+           ['pca-batch', 'pca-emb-space'].
+    :param num_dim_reduction_components: When using dimensionality reduction, this specifies the number of components
+           (dimensions) that each embedding vector (and corresponding input) is reduced to.
+    :param embedding_initializer: Initializer for the embedding space variable or 'batch'
+    :param num_splits: Number of splits along the input dimension q (defaults to 1)
+    :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
+    :param identity_mapping_threshold: If >= 0, then maps inputs to their identity if the cosine similarity with the
+           closest embedding vector is smaller than this value (i.e. does not project inputs to embedding vectors if
+           the similarity to any of the embeddings is smaller than this value, instead just hand them through).
+    :param name: Name to use for the variable scope
+    :return: Only the layer output if return_endpoints is False
+             CosineVQEndpoints-tuple with the values:
+                layer_out: Layer output
+                emb_space: Embedding space
     """
     dynamic_emb_space_init = (embedding_initializer == 'batch')
     if dynamic_emb_space_init:
@@ -153,6 +172,8 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
 
         y = tf.gather(emb_space, emb_index, axis=0)         # shape [batch, m, vec_size]
 
+    if return_endpoints:
+        return CosineVQEndpoints(y, emb_space)
     return y
 
 
