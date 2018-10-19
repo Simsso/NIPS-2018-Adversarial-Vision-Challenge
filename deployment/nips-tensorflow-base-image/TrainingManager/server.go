@@ -102,6 +102,11 @@ func (s *trainingManagerServer) ReceiveEvent(rect *TrainingProto.TrainingJob, st
 				fmt.Printf("Connection closed to %s", rect.ModelId)
 				return err
 			}
+		} else if task == "NVIDIASMI" {
+			if err := stream.Send(&TrainingProto.Event{Event: TrainingProto.Event_NVIDIASMI, Data: nil}); err != nil {
+				fmt.Printf("Connection closed to %s", rect.ModelId)
+				return err
+			}
 		}
 	}
 

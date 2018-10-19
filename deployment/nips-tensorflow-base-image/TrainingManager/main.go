@@ -78,8 +78,15 @@ func telegramBot(trainingManagerServer *trainingManagerServer) {
 			modelId = strings.Trim(modelId, " ")
 			respMessage := tgbotapi.NewMessage(update.Message.Chat.ID, telegram_cmdOutput(trainingManagerServer, modelId))
 			bot.Send(respMessage)
+		} else if strings.HasPrefix(receivedMessage, "/nvidia-smi") {
+			modelId := strings.Replace(receivedMessage, "/nvidia-smi", "", 1)
+			modelId = strings.Trim(modelId, " ")
+			respMessage := tgbotapi.NewMessage(update.Message.Chat.ID, telegram_cmdNVIDIASMI(trainingManagerServer, modelId))
+			bot.Send(respMessage)
+		} else {
+			respMessage := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Command `%s` not available!", receivedMessage))
+			bot.Send(respMessage)
 		}
-
 	}
 }
 
@@ -90,6 +97,19 @@ func telegram_cmdShutdown(trainingManagerServer *trainingManagerServer, modelId 
 	} else {
 		message = fmt.Sprintf("Shutting down %s", modelId)
 		trainingManagerServer.trainingJobsData[modelId].taskQueue <- "SHUTDOWN"
+	}
+
+	return
+}
+
+func telegram_cmdNVIDIASMI(trainingManagerServer *trainingManagerServer, modelId string) (message string) {
+	if trainingManagerServer.trainingJobs[modelId] == nil {
+		message = fmt.Sprintf("Couldn't find training job %s !", modelId)
+	} else {
+		message = fmt.Sprintf("NVIDIA-SMI log of %s:\n", modelId)
+		trainingManagerServer.trainingJobsData[modelId].taskQueue <- "NVIDIASMI"
+		<-trainingManagerServer.trainingJobsData[modelId].waitForTask
+		message += trainingManagerServer.trainingJobs[modelId].NvidiasmiLog
 	}
 
 	return

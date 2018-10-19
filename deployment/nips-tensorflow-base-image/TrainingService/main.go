@@ -107,11 +107,14 @@ func EventListener(client *TrainingProto.TrainingProtoClient) {
 
 	for {
 		event, err := stream.Recv()
-		recvEvent := event.Event.String()
+		recvEvent := event.Event
 
-		if recvEvent == TrainingProto.Event_UPDATE.String() {
+		if recvEvent == TrainingProto.Event_UPDATE {
 			logWithDate("UPDATE-event received! Sending updates to TrainingManager!")
 			UpdateTrainingJob()
+		} else if recvEvent == TrainingProto.Event_NVIDIASMI {
+			logWithDate("NVIDIASMI-event received! Getting nvidia-smi output and sending it to TrainingManager!")
+			SendNVIDIASMI()
 		}
 
 		if err == io.EOF {
@@ -197,4 +200,9 @@ func ReadOuput() {
 		logWithDate("Retrieved logfile ..")
 		trainingJob.Log = fmt.Sprintf("%s", content)
 	}
+}
+
+func SendNVIDIASMI() (error){
+
+	return nil
 }

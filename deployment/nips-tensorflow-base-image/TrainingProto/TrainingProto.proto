@@ -8,9 +8,17 @@ service TrainingProto {
     rpc RegisterTraining (TrainingJob) returns (Response) {
     }
 
+    // Notifies the server, that the initializiation of the client has finished.
+    //
+    // A Response object with success 'true' is returned, if
+    // the server received the event. Otherwise 'false'.
     rpc FinishInit (TrainingJob) returns (Response){
     }
 
+    // Notifies the server, that the training has started.
+    //
+    // A Response object with success 'true' is returend, if
+    // the server received the event. Otherwise 'false'.
     rpc TrainingStart (TrainingJob) returns (Response){
 
     }
@@ -28,6 +36,10 @@ service TrainingProto {
     rpc ReceiveEvent (TrainingJob) returns (stream Event) {
     }
     
+    // Notifies the server,that the training process has crashed or successfully finished.
+    //
+    // A Response object with success 'true' is returned, if
+    // the server has received the event. Otherwise 'false'.
     rpc FinishTraining (TrainingJob) returns (Response) {
     }
 }
@@ -38,7 +50,7 @@ service TrainingProto {
 message Event {
     enum Event {
         UPDATE = 0;
-        SHUTDOWN = 1;
+        NVIDIASMI = 1;
     }
     Event event = 1;
     bytes data = 2;
@@ -47,7 +59,7 @@ message Event {
 // Represents a training with all information regarding the training.
 //
 // status - represents the current status, which can be running (RUNNING), sucessfully finished training
-// (FINISHED) and crashed training job (CRASHED)
+// (FINISHED), crashed training job (CRASHED), initialized client (INIT)
 // modelId - represents the unique id of the training process
 // startTime - start time of the job
 // stopTime - stop time of the job
@@ -65,6 +77,7 @@ message TrainingJob {
     int64 stopTime = 3;
     Status status = 4;
     string log = 5;
+    string nvidiasmiLog = 6;
 }
 
 // Represents a response.
