@@ -65,24 +65,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         adjusted_x = x
         adjusted_emb_space = emb_space
 
-        if dim_reduction == 'pca-batch':
-            # batch-concatenated mode (calculate principal components based on batch and embedding space)
-            x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
-            concat_space = tf.concat([emb_space, x_concat_space], axis=0)
-            projection, _ = pca_reduce_dims(concat_space, num_dim_reduction_components)
-
-            # re-extract embedding space and x => will calculate distance based on projection
-            adjusted_emb_space = projection[:n, :]
-            adjusted_x = projection[n:, :]
-            adjusted_x = tf.reshape(adjusted_x, [in_shape[0], x.shape[1], num_dim_reduction_components])
-        elif dim_reduction == 'pca-emb-space':
-            # embedding-space-only mode (calculate principal components only based on the embedding space)
-            adjusted_emb_space, principal_components = pca_reduce_dims(emb_space, num_dim_reduction_components)
-
-            # now use the principal components derived from the emb space to project the batch
-            x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
-            x_projection = tf.matmul(x_concat_space, principal_components)
-            adjusted_x = tf.reshape(x_projection, [in_shape[0], x.shape[1], num_dim_reduction_components])
+        if dim_reduction is not None:
+            adjusted_x, adjusted_emb_space = __transform_lookup_space(x, emb_space, dim_reduction, in_shape, n,
+                                                                      vec_size, num_dim_reduction_components)
 
         # map x to y, where y is the vector from emb_space that is closest to x
         # distance of (adjusted) x from all vectors in the (adjusted) embedding space
@@ -252,6 +237,39 @@ def pca_reduce_dims(x: tf.Tensor, num_components: int) -> Tuple[tf.Tensor, tf.Te
     principal_components = v[:, :num_components]
 
     return projection, principal_components
+
+
+def __transform_lookup_space(x: tf.Tensor, emb_space: tf.Tensor, mode: str, in_shape: List[int], n: int,
+                             vec_size: int, num_dim_reduction_components: int) -> Tuple[tf.Tensor, tf.Tensor]:
+    """
+    Transforms the lookup space (i.e. the input batch x and the embedding space) using the given mode
+    (one of ['pca-batch', 'pca-emb-space']). Parameters defined analogous to the vector_quantization function.
+    :return: A tuple of two tensors: the transformed x-space and the transformed embedding space.
+    """
+    adjusted_x, adjusted_emb_space = x, emb_space
+    if mode == 'pca-batch':
+        # batch-concatenated mode (calculate principal components based on batch and embedding space)
+        x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
+        concat_space = tf.concat([emb_space, x_concat_space], axis=0)
+        projection, _ = pca_reduce_dims(concat_space, num_dim_reduction_components)
+
+        # re-extract embedding space and x => will calculate distance based on projection
+        adjusted_emb_space = projection[:n, :]
+        adjusted_x = projection[n:, :]
+        adjusted_x = tf.reshape(adjusted_x, [in_shape[0], x.shape[1], num_dim_reduction_components])
+    elif mode == 'pca-emb-space':
+        # embedding-space-only mode (calculate principal components only based on the embedding space)
+        adjusted_emb_space, principal_components = pca_reduce_dims(emb_space, num_dim_reduction_components)
+
+        # now use the principal components derived from the emb space to project the batch
+        x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
+        x_projection = tf.matmul(x_concat_space, principal_components)
+        adjusted_x = tf.reshape(x_projection, [in_shape[0], x.shape[1], num_dim_reduction_components])
+    else:
+        raise ValueError("Invalid parameter 'mode': '{}'. Must be one of {}."
+                         .format(mode, __valid_dim_reduction_values))
+
+    return adjusted_x, adjusted_emb_space
 
 
 def __create_embedding_space_replacement_op(x: tf.Tensor, y: tf.Tensor, access_count: tf.Tensor, emb_space: tf.Tensor,
