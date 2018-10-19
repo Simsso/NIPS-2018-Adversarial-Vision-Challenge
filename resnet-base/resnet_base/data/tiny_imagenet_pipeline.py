@@ -32,7 +32,7 @@ class TinyImageNetPipeline(BasePipeline):
         """
         :param data_dir: Directory of the folder from http://cs231n.stanford.edu/tiny-imagenet-200.zip
         :param physical_batch_size: Batch size which the pipeline is supposed to provide
-        :param shuffle: Whether to shuffle the training data; validation is never shuffled.
+        :param shuffle: Whether or not to shuffle the data
         """
         super().__init__()
         if not data_dir:
@@ -84,8 +84,8 @@ class TinyImageNetPipeline(BasePipeline):
             raise ValueError("Supported modes are {}. Got '{}'.".format(self.__supported_modes, mode))
 
         data = tf.data.Dataset.from_tensor_slices(self.placeholder[mode])
-        if mode == tf.estimator.ModeKeys.TRAIN and self.shuffle:  # shuffle only training data
-            data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
+        if self.shuffle:
+            data = data.shuffle(buffer_size=self.get_num_samples(mode), seed=15092017)
         data = data.map(self.__img_loading)
         if mode == tf.estimator.ModeKeys.TRAIN and FLAGS.enable_train_augmentation:
             data = data.map(self.__img_augmentation)
@@ -185,13 +185,6 @@ class TinyImageNetPipeline(BasePipeline):
                     class_description[label_dict[synset]] = desc
         return label_dict, class_description
 
-    def __get_num_samples(self, mode: tf.estimator.ModeKeys) -> int:
-        """
-        :param mode: TRAIN (training) or EVAL (validation)
-        :return: Number of samples the dataset contains for the given pipeline mode.
-        """
-        return self.num_train_samples if mode == tf.estimator.ModeKeys.TRAIN else self.num_valid_samples
-
     def switch_to(self, mode: tf.estimator.ModeKeys, feed_dict: Optional[Dict] = None, sess: tf.Session = None) -> None:
         """
         Switches the input pipeline to the given mode in the given session.
@@ -209,6 +202,7 @@ class TinyImageNetPipeline(BasePipeline):
 
     def get_num_samples(self, mode: tf.estimator.ModeKeys) -> int:
         """
+        :param mode: TRAIN (training) or EVAL (validation)
         :return: Number of samples in the given mode
         """
         if mode == tf.estimator.ModeKeys.TRAIN:

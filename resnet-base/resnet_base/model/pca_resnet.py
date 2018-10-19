@@ -4,7 +4,7 @@ from resnet_base.model.resnet import ResNet
 import scipy.io
 import tensorflow as tf
 
-tf.flags.DEFINE_string("pca_mat_file", os.path.expanduser(os.path.join('.data', 'activations', 'pca.mat')),
+tf.flags.DEFINE_string("pca_mat_file", os.path.expanduser(os.path.join('~', '.data', 'activations', 'pca.mat')),
                        "Path to the file (*.mat) where the PCA matrices are being stored.")
 FLAGS = tf.flags.FLAGS
 
@@ -43,6 +43,7 @@ class PCAResNet(ResNet):
             return output
 
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
+        self._imported_dict = None
         x = ResNet._first_conv(x)  # 16x16x64
         x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
         x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
