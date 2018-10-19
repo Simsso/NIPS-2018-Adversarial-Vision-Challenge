@@ -61,10 +61,8 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
         # embedding space
         emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
                                     trainable=True)
-
         adjusted_x = x
         adjusted_emb_space = emb_space
-
         if dim_reduction is not None:
             adjusted_x, adjusted_emb_space = __transform_lookup_space(x, emb_space, dim_reduction, in_shape, n,
                                                                       vec_size, num_dim_reduction_components)
@@ -113,6 +111,49 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
             return VQEndpoints(layer_out, emb_space, access_count, dist, emb_spacing, emb_closest_spacing,
                                replace_embeds_and_reset, emb_space_batch_init)
         return layer_out
+
+
+def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, num_dim_reduction_components: int = -1,
+                               embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
+                               tf.random_normal_initializer, num_splits: int = 1,
+                               is_training: Union[bool, tf.Tensor] = False, return_endpoints: bool = False,
+                               name: str = 'vq') -> Union[tf.Tensor, VQEndpoints]:
+    """
+    Vector quantization layer performing the lookup based on cosine similarity (dot product).
+    """
+    dynamic_emb_space_init = (embedding_initializer == 'batch')
+    if dynamic_emb_space_init:
+        embedding_initializer = tf.zeros_initializer
+
+    in_shape, vec_size = __extract_vq_dimensions(x, num_splits)
+    __validate_vq_parameters(n, vec_size, lookup_ord=1, dim_reduction=dim_reduction,
+                             num_dim_reduction_components=num_dim_reduction_components, num_embeds_replaced=0)
+
+    x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
+    with tf.variable_scope(name):
+        # embedding space
+        emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
+                                    trainable=True)
+        adjusted_x = x
+        adjusted_emb_space = emb_space
+        if dim_reduction is not None:
+            adjusted_x, adjusted_emb_space = __transform_lookup_space(x, emb_space, dim_reduction, in_shape, n,
+                                                                      vec_size, num_dim_reduction_components)
+
+        # normalize the spaces to have unit norm
+        adjusted_x = tf.nn.l2_normalize(adjusted_x, axis=2)
+        adjusted_emb_space = tf.nn.l2_normalize(adjusted_emb_space, axis=1)
+
+        # note: adjusted_x has shape            [batch, m, adjusted_vec_size]
+        #       adjusted_emb_space has shape    [n, adjusted_vec_size]
+        # compute dot-product of x with embedding space over the vec_size dimension -> shape [n, m, batch]
+        dot_product = tf.tensordot(adjusted_emb_space, tf.transpose(adjusted_x, perm=[2, 1, 0]), axes=1)
+        emb_index = tf.argmax(dot_product, axis=0)          # shape [m, batch]
+        emb_index = tf.transpose(emb_index, perm=[1, 0])    # shape [batch, m]
+
+        y = tf.gather(emb_space, emb_index, axis=0)         # shape [batch, m, vec_size]
+
+    return y
 
 
 def __extract_vq_dimensions(x: tf.Tensor, num_splits: int) -> Tuple[List[int], int]:
