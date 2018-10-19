@@ -110,51 +110,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
         replace_embeds_and_reset = None
         if num_embeds_replaced > 0 and return_endpoints:
-            # accumulators for embedding space vector usage count, inputs, and input distances
-            accumulated_usage_count = tf.get_variable('accumulated_usage_count', shape=access_count.shape,
-                                                      dtype=tf.float32, initializer=tf.zeros_initializer,
-                                                      trainable=False)
-            distant_inputs = tf.get_variable('distant_inputs', shape=[num_embeds_replaced, vec_size], dtype=tf.float32,
-                                             initializer=tf.zeros_initializer, trainable=False)
-            # smallest distance between input i and any vector in the embedding space is stored at position i
-            input_distances = tf.get_variable('input_distances', shape=[num_embeds_replaced], dtype=tf.float32,
-                                              initializer=tf.zeros_initializer, trainable=False)
-
-            # replacement op
-            # this returns the indices of the k largest values, so we negate the count to get the smallest values
-            _, least_used_indices = tf.nn.top_k(-accumulated_usage_count, k=num_embeds_replaced)
-            # now find the inputs in the batch that were furthest away from the embedding vectors
-            _, furthest_away_indices = tf.nn.top_k(input_distances, k=num_embeds_replaced)
-            furthest_away_inputs = tf.gather(distant_inputs, indices=furthest_away_indices)
-            # create assign-op that replaces the least used embedding vectors with the furthest away inputs
-            replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices, updates=furthest_away_inputs)
-
-            with tf.control_dependencies([replace_embeds]):
-                # accumulator reset ops (zeroing)
-                zero_accumulator = tf.assign(accumulated_usage_count, tf.zeros_like(accumulated_usage_count))
-                zero_distances = tf.assign(input_distances, tf.zeros_like(input_distances))
-                replace_embeds_and_reset = tf.group(zero_accumulator, zero_distances)
-
-            def y_with_update():
-                # accumulator update ops (must be placed inside the function; otherwise tf.cond does not work)
-                assert accumulated_usage_count.shape == access_count.shape
-                add_access = tf.assign_add(accumulated_usage_count, access_count)
-                # accumulator and current batch concatenated
-                distant_inputs_concat = tf.concat([distant_inputs, tf.reshape(x, [-1, vec_size])], axis=0)
-                input_distances_concat = tf.concat(
-                    [input_distances, tf.reshape(tf.reduce_min(dist, axis=2), shape=[-1])],
-                    axis=0)
-                new_input_distances, distant_input_indices = tf.nn.top_k(input_distances_concat, k=num_embeds_replaced)
-                new_distant_inputs = tf.gather(distant_inputs_concat, indices=distant_input_indices)
-                assign_distant_inputs = tf.assign(distant_inputs, new_distant_inputs)
-                assign_input_distances = tf.assign(input_distances, new_input_distances)
-                update_accumulators_op = tf.group([add_access, assign_distant_inputs, assign_input_distances],
-                                                  name='update_replacement_accumulators')
-                with tf.control_dependencies([update_accumulators_op]):
-                    return tf.identity(y)
-
-            # execute update accumulator op on forward pass if is_training is true
-            y = tf.cond(is_training, true_fn=y_with_update, false_fn=lambda: y)
+            y, replace_embeds_and_reset = __create_embedding_space_replacement_op(x, y, access_count, emb_space, dist,
+                                                                                  num_embeds_replaced, vec_size,
+                                                                                  is_training)
 
         emb_space_batch_init = None
         if dynamic_emb_space_init:
@@ -294,6 +252,67 @@ def pca_reduce_dims(x: tf.Tensor, num_components: int) -> Tuple[tf.Tensor, tf.Te
     principal_components = v[:, :num_components]
 
     return projection, principal_components
+
+
+def __create_embedding_space_replacement_op(x: tf.Tensor, y: tf.Tensor, access_count: tf.Tensor, emb_space: tf.Tensor,
+                                            dist: tf.Tensor, num_embeds_replaced: int, vec_size: int,
+                                            is_training: Union[bool, tf.Tensor]) -> Tuple[tf.Tensor, tf.Tensor]:
+    """
+    Creates a TensorFlow op that replaces the given number of embedding vectors per batch. Also applies this
+    replacement op automatically after each batch, is is_training is True. Parameters defined analogous to the
+    vector_quantization function.
+    :param access_count: Tensor describing how often each of the embedding vectors has been used
+    :param dist: Tensor describing the distance between the embeddings and the input
+    :return: A tuple of two tensors: a transformed y that applies the replacement op after each training batch and
+             the replacement op itself.
+    """
+    # accumulators for embedding space vector usage count, inputs, and input distances
+    accumulated_usage_count = tf.get_variable('accumulated_usage_count', shape=access_count.shape,
+                                              dtype=tf.float32, initializer=tf.zeros_initializer,
+                                              trainable=False)
+    distant_inputs = tf.get_variable('distant_inputs', shape=[num_embeds_replaced, vec_size], dtype=tf.float32,
+                                     initializer=tf.zeros_initializer, trainable=False)
+    # smallest distance between input i and any vector in the embedding space is stored at position i
+    input_distances = tf.get_variable('input_distances', shape=[num_embeds_replaced], dtype=tf.float32,
+                                      initializer=tf.zeros_initializer, trainable=False)
+
+    # replacement op
+    # this returns the indices of the k largest values, so we negate the count to get the smallest values
+    _, least_used_indices = tf.nn.top_k(-accumulated_usage_count, k=num_embeds_replaced)
+    # now find the inputs in the batch that were furthest away from the embedding vectors
+    _, furthest_away_indices = tf.nn.top_k(input_distances, k=num_embeds_replaced)
+    furthest_away_inputs = tf.gather(distant_inputs, indices=furthest_away_indices)
+    # create assign-op that replaces the least used embedding vectors with the furthest away inputs
+    replace_embeds = tf.scatter_update(ref=emb_space, indices=least_used_indices, updates=furthest_away_inputs)
+
+    with tf.control_dependencies([replace_embeds]):
+        # accumulator reset ops (zeroing)
+        zero_accumulator = tf.assign(accumulated_usage_count, tf.zeros_like(accumulated_usage_count))
+        zero_distances = tf.assign(input_distances, tf.zeros_like(input_distances))
+        replace_embeds_and_reset = tf.group(zero_accumulator, zero_distances)
+
+    def y_with_update():
+        # accumulator update ops (must be placed inside the function; otherwise tf.cond does not work)
+        assert accumulated_usage_count.shape == access_count.shape
+        add_access = tf.assign_add(accumulated_usage_count, access_count)
+        # accumulator and current batch concatenated
+        distant_inputs_concat = tf.concat([distant_inputs, tf.reshape(x, [-1, vec_size])], axis=0)
+        input_distances_concat = tf.concat(
+            [input_distances, tf.reshape(tf.reduce_min(dist, axis=2), shape=[-1])],
+            axis=0)
+        new_input_distances, distant_input_indices = tf.nn.top_k(input_distances_concat, k=num_embeds_replaced)
+        new_distant_inputs = tf.gather(distant_inputs_concat, indices=distant_input_indices)
+        assign_distant_inputs = tf.assign(distant_inputs, new_distant_inputs)
+        assign_input_distances = tf.assign(input_distances, new_input_distances)
+        update_accumulators_op = tf.group([add_access, assign_distant_inputs, assign_input_distances],
+                                          name='update_replacement_accumulators')
+        with tf.control_dependencies([update_accumulators_op]):
+            return tf.identity(y)
+
+    # execute update accumulator op on forward pass if is_training is true
+    y = tf.cond(is_training, true_fn=y_with_update, false_fn=lambda: y)
+
+    return y, replace_embeds_and_reset
 
 
 def vec_lookup(x: np.ndarray, emb_space: np.ndarray, norm_ord) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
