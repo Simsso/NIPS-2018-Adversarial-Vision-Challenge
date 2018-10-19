@@ -17,12 +17,12 @@ class TestCosineProjection(TFTestCase):
         self.x_reshaped = tf.expand_dims(self.x, axis=1)
 
         emb_space_init = tf.constant_initializer(np.array(emb_space_val), dtype=tf.float32)
-        projection = cosine_vector_quantization(self.x_reshaped, n=len(emb_space_val),
-                                                embedding_initializer=emb_space_init)
+        endpoints = cosine_vector_quantization(self.x_reshaped, n=len(emb_space_val),
+                                               embedding_initializer=emb_space_init, return_endpoints=True)
 
         self.init_vars()
 
-        y = self.sess.run(projection)
+        y = self.sess.run(endpoints.layer_out)
         return y
 
     def test_projection1(self):

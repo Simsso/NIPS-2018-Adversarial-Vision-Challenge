@@ -117,7 +117,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, num_dim_reduction_components: int = -1,
                                embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
                                tf.random_normal_initializer, num_splits: int = 1, return_endpoints: bool = False,
-                               identity_mapping_threshold: float = -1,
+                               abs_identity_mapping_threshold: float = -1,
                                name: str = 'vq') -> Union[tf.Tensor, CosineVQEndpoints]:
     """
     Vector quantization layer performing the lookup based on cosine similarity (dot product magnitude).
@@ -131,9 +131,9 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
     :param embedding_initializer: Initializer for the embedding space variable or 'batch'
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
-    :param identity_mapping_threshold: If >= 0, then maps inputs to their identity if the cosine similarity with the
-           closest embedding vector is smaller than this value (i.e. does not project inputs to embedding vectors if
-           the similarity to any of the embeddings is smaller than this value, instead just hand them through).
+    :param abs_identity_mapping_threshold: If >= 0, then maps inputs to their identity if the cosine similarity with the
+           most similar embedding vector is smaller than this value (i.e. does not project inputs to embedding vectors
+           if the similarity to any of the embeddings is smaller than this value, instead just hand them through).
     :param name: Name to use for the variable scope
     :return: Only the layer output if return_endpoints is False
              CosineVQEndpoints-tuple with the values:
@@ -171,6 +171,19 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
         emb_index = tf.transpose(emb_index, perm=[1, 0])    # shape [batch, m]
 
         y = tf.gather(emb_space, emb_index, axis=0)         # shape [batch, m, vec_size]
+
+        # perform identity-mapping for input vectors where the most similar embedding vectors are still too dissimilar
+        if abs_identity_mapping_threshold >= 0:
+            max_similarities = tf.reduce_max(dot_product, axis=0)    # shape [m, batch]
+            max_similarities = tf.transpose(max_similarities)        # shape [batch, m]
+
+            # this mask is True for all inputs that should be mapped to their identity and False otherwise
+            identity_mask = tf.less(max_similarities, abs_identity_mapping_threshold)
+            # broadcast to equal the shape of x / y
+            identity_mask = tf.broadcast_to(tf.expand_dims(identity_mask, axis=2), shape=y.shape)
+
+            # update the projection y, using the identity or the projection y depending on the mask calculated above
+            y = tf.where(condition=identity_mask, x=x, y=y)
 
     if return_endpoints:
         return CosineVQEndpoints(y, emb_space)
