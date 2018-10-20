@@ -62,16 +62,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
     with tf.variable_scope(name):
-        # embedding space
-        get_variable_args = {
-            'name': 'emb_space',
-            'dtype': x.dtype,
-            'initializer': embedding_initializer,
-            'trainable': True
-        }
-        if not constant_init:
-            get_variable_args['shape'] = [n, vec_size]
-        emb_space = tf.get_variable(**get_variable_args)
+        emb_space = __create_embedding_space(x, constant_init, embedding_initializer, n, vec_size)
 
         adjusted_x = x
         adjusted_emb_space = emb_space
@@ -167,16 +158,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
 
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
     with tf.variable_scope(name):
-        # embedding space
-        get_variable_args = {
-            'name': 'emb_space',
-            'dtype': x.dtype,
-            'initializer': embedding_initializer,
-            'trainable': True
-        }
-        if not constant_init:
-            get_variable_args['shape'] = [n, vec_size]
-        emb_space = tf.get_variable(**get_variable_args)
+        emb_space = __create_embedding_space(x, constant_init, embedding_initializer, n, vec_size)
 
         adjusted_x = x
         adjusted_emb_space = emb_space
@@ -277,10 +259,29 @@ def __validate_vq_parameters(n: int, vec_size: int, lookup_ord: int, dim_reducti
                          "vector size. Got {} > {}".format(num_dim_reduction_components, vec_size))
 
 
+def __create_embedding_space(x: tf.Tensor, constant_init: bool, initializer: tf.keras.initializers.Initializer, n: int,
+                             vec_size: int) -> tf.Tensor:
+    """
+    Constructs an embedding space variable according to the given parameters (defined analogously to the
+    vector_quantization function).
+    :return: A tensor describing an embedding space variable
+    """
+    get_variable_args = {
+        'name': 'emb_space',
+        'dtype': x.dtype,
+        'initializer': initializer,
+        'trainable': True
+    }
+    if not constant_init:
+        get_variable_args['shape'] = [n, vec_size]
+
+    return tf.get_variable(**get_variable_args)
+
+
 def __add_alpha_loss(x: tf.Tensor, y: tf.Tensor, lookup_ord: int, alpha: Union[tf.Tensor, float]) -> None:
     """
     Adds an 'alpha'-loss (closest embedding update loss) term to the tf.GraphKeys.LOSSES collection.
-    Parameters are defined analogous to the vector_quantization function.
+    Parameters are defined analogously to the vector_quantization function.
     """
     nearest_loss = tf.reduce_mean(alpha * tf.norm(y - tf.stop_gradient(x), lookup_ord, axis=2), axis=[0, 1],
                                   name='alpha_loss')
@@ -308,7 +309,7 @@ def __add_coulomb_loss(emb_closest_spacing: tf.Tensor, gamma: Union[tf.Tensor, f
 
 def __calculate_emb_spacing(emb_space: tf.Tensor, n: int, lookup_ord: int) -> Tuple:
     """
-    Calculates the embeddings' distance from the closest other embedding vector. Parameters defined analogous to the
+    Calculates the embeddings' distance from the closest other embedding vector. Parameters defined analogously to the
     vector_quantization function.
     :param emb_space: A tensor describing the embedding space, of shape [n, vec_size].
     :return: A tuple of the emb_spacing and emb_closest_spacing tensors
@@ -353,7 +354,7 @@ def __transform_lookup_space(x: tf.Tensor, emb_space: tf.Tensor, mode: str, in_s
                              vec_size: int, num_dim_reduction_components: int) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Transforms the lookup space (i.e. the input batch x and the embedding space) using the given mode
-    (one of ['pca-batch', 'pca-emb-space']). Parameters defined analogous to the vector_quantization function.
+    (one of ['pca-batch', 'pca-emb-space']). Parameters are defined analogously to the vector_quantization function.
     :return: A tuple of two tensors: the transformed x-space and the transformed embedding space.
     """
     adjusted_x, adjusted_emb_space = x, emb_space
@@ -388,7 +389,7 @@ def __create_embedding_space_replacement_op(x: tf.Tensor, y: tf.Tensor, access_c
                                             is_training: Union[bool, tf.Tensor]) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Creates a TensorFlow op that replaces the given number of embedding vectors per batch. Also applies this
-    replacement op automatically after each batch, is is_training is True. Parameters defined analogous to the
+    replacement op automatically after each batch, is is_training is True. Parameters are defined analogously to the
     vector_quantization function.
     :param access_count: Tensor describing how often each of the embedding vectors has been used
     :param dist: Tensor describing the distance between the embeddings and the input
