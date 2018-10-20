@@ -1,5 +1,7 @@
 import numpy as np
 import tensorflow as tf
+import unittest
+
 from vq_layer.test.tf_test_case import TFTestCase
 from typing import Union, List
 from vq_layer.vq_layer import cosine_vector_quantization
@@ -55,6 +57,35 @@ class TestCosineProjection(TFTestCase):
 
         y = self.feed(emb_space, x_val)
         self.assert_numerically_equal(y, expected)
+
+    @unittest.skip("This takes a long time and a lot of RAM, so it should only be evaluated manually.")
+    def test_space_requirements(self):
+        """
+        Uses a large embedding space and input batch with the cosine vq-layer. Used to verify the space requirement.
+        Expected space usage:
+            O(N) where N = max(n * vec_size, batch_size * r * vec_size, batch_size * n * r)
+            which means here N = max(2**28, 2**24, 2**32) = 2**32. For float32's, this means around 16 GiB.
+
+        Evaluation:
+            Maximum usage during empirical evaluation was around 12 GiB (only in the beginning) with an average of
+            around 8.5 GiB, which is reasonable.
+        """
+        n = 2**18               # number of embedding vectors
+        vec_size = 2**10
+        r = 2**6                # depth (second dimension of x)
+        batch_size = 2**8
+
+        x_val = np.random.randn(batch_size, r, vec_size)
+        emb_space = np.random.randn(n, vec_size)
+
+        x = tf.placeholder(dtype=tf.float32, shape=x_val.shape)
+        emb_space_init = tf.constant_initializer(emb_space, dtype=tf.float32)
+        endpoints = cosine_vector_quantization(x, n, embedding_initializer=emb_space_init, num_splits=1,
+                                               return_endpoints=True)
+        self.init_vars()
+
+        # the result is not relevant, only the space requirement (needs to be tracked manually)
+        _ = self.sess.run(endpoints.layer_out, feed_dict={x: x_val})
 
     def test_noisy_onehot1(self):
         """
