@@ -158,8 +158,8 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
                                                  identity_mapping_threshold, name)
 
 
-def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, k: int, n: int, dim_reduction: str = None,
-                                   num_dim_reduction_components: int = -1,
+def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_classes: int, k: int, n: int,
+                                   dim_reduction: str = None, num_dim_reduction_components: int = -1,
                                    embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
                                    tf.random_normal_initializer, num_splits: int = 1,
                                    return_endpoints: bool = False, identity_mapping_threshold: float = -1,
@@ -169,7 +169,8 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, k: int, 
     of the k embedding vectors with largest cosine similarity.
     :param x: Tensor of shape [batch, r, q], where this function quantizes along dimension q
     :param emb_labels: The labels to which the embedding vectors correspond. This only makes sense if the embedding
-           space is initialized with a constant value. It must be a rank-1 tensor of shape [n].
+           space is pre-initialized. It must be a rank-1 tensor of shape [n].
+    :param num_classes: The number of classes (with respect to the emb_labels).
     :param k: The number of embedding vectors among which a label-majority vote is performed; must be <= n
     :param n: Size of the embedding space (number of contained vectors)
     :param dim_reduction: If not None, will use the given technique to reduce the dimensionality of inputs and
@@ -198,21 +199,31 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, k: int, 
 
     def perform_projection(emb_space: tf.Tensor, dot_product: tf.Tensor) -> tf.Tensor:
         # dot_product is of shape [n, m, batch], but top_k calculates the max values for each vector in the last dim
-        dot_product = tf.transpose(dot_product, perm=[2, 1, 0])  # now we have [batch, m, n] => find top_k over n
-        _, top_k_indices = tf.nn.top_k(dot_product, k=k)  # both of shape [batch, m, k]
+        dot_product = tf.transpose(dot_product, perm=[2, 1, 0])  # now we have [batch, m, n] => find top_k over n-dim
+        _, top_k_indices = tf.nn.top_k(dot_product, k=k)                # shape [batch, m, k]
 
         # now do a majority-vote based on the labels
         top_k_labels = tf.gather(emb_labels, indices=top_k_indices)
-        unique_labels, indices_into_top_k_indices, label_counts = tf.unique_with_counts(top_k_labels)
-        most_common_label_idx = tf.argmax(label_counts, axis=2)   # shape [batch, m]
+        top_k_labels = tf.one_hot(top_k_labels, depth=num_classes)      # [batch, m, k, num_classes]
 
-        emb_index = tf.gather(indices_into_top_k_indices, indices=most_common_label_idx)  # indexing into top_k_indices
-        emb_index = tf.gather(top_k_indices, indices=emb_index)  # indexing into emb_space
+        summed_top_k_labels = tf.reduce_sum(top_k_labels, axis=2)       # [batch, m, num_classes]
+        most_common_label = tf.argmax(summed_top_k_labels, axis=2, output_type=emb_labels.dtype)  # [batch, m]
 
-        return tf.gather(emb_space, emb_index)
+        # do explicit broadcasting here since m==1 might introduce ambiguities
+        quantization_shape = most_common_label.get_shape().as_list()    # [batch, m]
+        most_common_label = tf.broadcast_to(most_common_label, shape=[n] + quantization_shape)
+        broadcasted_emb_labels = tf.broadcast_to(emb_labels, shape=quantization_shape + [n])
+        broadcasted_emb_labels = tf.transpose(broadcasted_emb_labels, perm=[2, 0, 1])
+
+        # find out which embedding vectors are possible (i.e. have the most common label among the top-k)
+        possible_emb_indices = tf.equal(broadcasted_emb_labels, most_common_label)  # [n, batch, m]
+
+        # choose any of the possible embeddings (here, argmax uses the first 'True' => 1)
+        first_emb_index = tf.argmax(tf.cast(possible_emb_indices, dtype=tf.int8), axis=0)   # [batch, m]
+        return tf.gather(emb_space, first_emb_index)
 
     return __abstract_cosine_vector_quantization(x, perform_projection, n, dim_reduction, num_dim_reduction_components,
-                                                 embedding_initializer, constant_init=True, num_splits=num_splits,
+                                                 embedding_initializer, constant_init=False, num_splits=num_splits,
                                                  return_endpoints=return_endpoints,
                                                  identity_mapping_threshold=identity_mapping_threshold, name=name)
 
