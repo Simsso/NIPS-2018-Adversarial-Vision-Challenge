@@ -5,7 +5,7 @@ from collections import namedtuple
 
 VQEndpoints = namedtuple('VQEndpoints', ['layer_out', 'emb_space', 'access_count', 'distance', 'emb_spacing',
                                          'emb_closest_spacing', 'replace_embeds', 'emb_space_batch_init'])
-CosineVQEndpoints = namedtuple('CosineVQEndpoints', ['layer_out', 'emb_space'])
+CosineVQEndpoints = namedtuple('CosineVQEndpoints', ['layer_out', 'emb_space', 'percentage_identity_mapped'])
 
 __valid_lookup_ord_values = [1, 2, np.inf]
 __valid_dim_reduction_values = ['pca-batch', 'pca-emb-space']
@@ -137,8 +137,10 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
     :param name: Name to use for the variable scope
     :return: Only the layer output if return_endpoints is False
              CosineVQEndpoints-tuple with the values:
-                layer_out: Layer output
-                emb_space: Embedding space
+                layer_out: Layer output tensor
+                emb_space: Embedding space tensor
+                percentage_identity_mapped: A float scalar tensor describing the percentage of inputs identity-mapped,
+                                            will be None if abs_identity_mapping_threshold < 0
     """
     dynamic_emb_space_init = (embedding_initializer == 'batch')
     if dynamic_emb_space_init:
@@ -172,13 +174,19 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
 
         y = tf.gather(emb_space, emb_index, axis=0)         # shape [batch, m, vec_size]
 
-        # perform identity-mapping for input vectors where the most similar embedding vectors are still too dissimilar
+        # perform identity-mapping for input vectors where even the most similar embedding vectors are too dissimilar
+        percentage_identity_mapped = None
         if abs_identity_mapping_threshold >= 0:
             max_similarities = tf.reduce_max(dot_product, axis=0)    # shape [m, batch]
             max_similarities = tf.transpose(max_similarities)        # shape [batch, m]
 
             # this mask is True for all inputs that should be mapped to their identity and False otherwise
             identity_mask = tf.less(max_similarities, abs_identity_mapping_threshold)
+
+            # count how many inputs in the batch were identity-mapped
+            number_of_inputs_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32))
+            percentage_identity_mapped = number_of_inputs_mapped / tf.cast(tf.shape(x)[2], dtype=tf.float32)
+
             # broadcast to equal the shape of x / y
             identity_mask = tf.broadcast_to(tf.expand_dims(identity_mask, axis=2), shape=y.shape)
 
@@ -186,7 +194,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
             y = tf.where(condition=identity_mask, x=x, y=y)
 
     if return_endpoints:
-        return CosineVQEndpoints(y, emb_space)
+        return CosineVQEndpoints(y, emb_space, percentage_identity_mapped)
     return y
 
 
