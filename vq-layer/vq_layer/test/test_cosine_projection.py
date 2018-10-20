@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-import pytest
+import unittest
 
 from vq_layer.test.tf_test_case import TFTestCase
 from typing import Union, List
@@ -58,7 +58,7 @@ class TestCosineProjection(TFTestCase):
         y = self.feed(emb_space, x_val)
         self.assert_numerically_equal(y, expected)
 
-    @pytest.mark.skip("This takes a long time and a lot of RAM, so it should only be evaluated manually.")
+    @unittest.skip("This takes a long time and a lot of RAM, so it should only be evaluated manually.")
     def test_space_requirements(self):
         """
         Uses a large embedding space and input batch with the cosine vq-layer. Used to verify the space requirement.

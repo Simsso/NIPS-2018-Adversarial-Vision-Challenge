@@ -16,9 +16,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
                         beta: Union[float, tf.Tensor] = 1e-4, gamma: Union[float, tf.Tensor] = 1e-6,
                         lookup_ord: int = 2, dim_reduction: str = None, num_dim_reduction_components: int = -1,
                         embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
-                        tf.random_normal_initializer, num_splits: int = 1, num_embeds_replaced: int = 0,
-                        is_training: Union[bool, tf.Tensor] = False, return_endpoints: bool = False, name: str = 'vq') \
-        -> Union[tf.Tensor, VQEndpoints]:
+                        tf.random_normal_initializer, constant_init: bool = False, num_splits: int = 1,
+                        num_embeds_replaced: int = 0, is_training: Union[bool, tf.Tensor] = False,
+                        return_endpoints: bool = False, name: str = 'vq') -> Union[tf.Tensor, VQEndpoints]:
     """
     Vector quantization layer.
     :param x: Tensor of shape [batch, r, q], where this function quantizes along dimension q
@@ -33,6 +33,8 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
            (dimensions) that each embedding vector (and corresponding input) is reduced to.
     :param lookup_ord: Order of the distance function; one of [np.inf, 1, 2]
     :param embedding_initializer: Initializer for the embedding space variable or 'batch'
+    :param constant_init: Whether the initializer is constant (in this case, the shape will not be passed to
+                          'get_variable' explicitly.
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param num_embeds_replaced: If greater than 0, this adds an op to the endpoints tuple which replaces the respective
            number of least used embedding vectors since the last replacement with vectors distant from the embedding
@@ -61,8 +63,16 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
     with tf.variable_scope(name):
         # embedding space
-        emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
-                                    trainable=True)
+        get_variable_args = {
+            'name': 'emb_space',
+            'dtype': x.dtype,
+            'initializer': embedding_initializer,
+            'trainable': True
+        }
+        if not constant_init:
+            get_variable_args['shape'] = [n, vec_size]
+        emb_space = tf.get_variable(**get_variable_args)
+
         adjusted_x = x
         adjusted_emb_space = emb_space
         if dim_reduction is not None:
@@ -117,8 +127,8 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
 def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, num_dim_reduction_components: int = -1,
                                embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
-                               tf.random_normal_initializer, num_splits: int = 1, return_endpoints: bool = False,
-                               identity_mapping_threshold: float = -1,
+                               tf.random_normal_initializer, constant_init: bool = False, num_splits: int = 1,
+                               return_endpoints: bool = False, identity_mapping_threshold: float = -1,
                                name: str = 'vq') -> Union[tf.Tensor, CosineVQEndpoints]:
     """
     Vector quantization layer performing the lookup based on cosine similarity (dot product magnitude).
@@ -130,6 +140,8 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
     :param num_dim_reduction_components: When using dimensionality reduction, this specifies the number of components
            (dimensions) that each embedding vector (and corresponding input) is reduced to.
     :param embedding_initializer: Initializer for the embedding space variable or 'batch'
+    :param constant_init: Whether the initializer is constant (in this case, the shape will not be passed to
+                          'get_variable' explicitly.
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
     :param identity_mapping_threshold: If >= 0, then maps inputs to their identity if the cosine similarity with the
@@ -156,8 +168,16 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
     with tf.variable_scope(name):
         # embedding space
-        emb_space = tf.get_variable('emb_space', shape=[n, vec_size], dtype=x.dtype, initializer=embedding_initializer,
-                                    trainable=True)
+        get_variable_args = {
+            'name': 'emb_space',
+            'dtype': x.dtype,
+            'initializer': embedding_initializer,
+            'trainable': True
+        }
+        if not constant_init:
+            get_variable_args['shape'] = [n, vec_size]
+        emb_space = tf.get_variable(**get_variable_args)
+
         adjusted_x = x
         adjusted_emb_space = emb_space
         if dim_reduction is not None:
@@ -337,24 +357,25 @@ def __transform_lookup_space(x: tf.Tensor, emb_space: tf.Tensor, mode: str, in_s
     :return: A tuple of two tensors: the transformed x-space and the transformed embedding space.
     """
     adjusted_x, adjusted_emb_space = x, emb_space
+    x_shape = x.get_shape().as_list()
     if mode == 'pca-batch':
         # batch-concatenated mode (calculate principal components based on batch and embedding space)
-        x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
+        x_concat_space = tf.reshape(x, shape=[in_shape[0] * x_shape[1], vec_size])
         concat_space = tf.concat([emb_space, x_concat_space], axis=0)
         projection, _ = pca_reduce_dims(concat_space, num_dim_reduction_components)
 
         # re-extract embedding space and x => will calculate distance based on projection
         adjusted_emb_space = projection[:n, :]
         adjusted_x = projection[n:, :]
-        adjusted_x = tf.reshape(adjusted_x, [in_shape[0], x.shape[1], num_dim_reduction_components])
+        adjusted_x = tf.reshape(adjusted_x, [in_shape[0], x_shape[1], num_dim_reduction_components])
     elif mode == 'pca-emb-space':
         # embedding-space-only mode (calculate principal components only based on the embedding space)
         adjusted_emb_space, principal_components = pca_reduce_dims(emb_space, num_dim_reduction_components)
 
         # now use the principal components derived from the emb space to project the batch
-        x_concat_space = tf.reshape(x, shape=[in_shape[0] * x.shape[1], vec_size])
+        x_concat_space = tf.reshape(x, shape=[in_shape[0] * x_shape[1], vec_size])
         x_projection = tf.matmul(x_concat_space, principal_components)
-        adjusted_x = tf.reshape(x_projection, [in_shape[0], x.shape[1], num_dim_reduction_components])
+        adjusted_x = tf.reshape(x_projection, [in_shape[0], x_shape[1], num_dim_reduction_components])
     else:
         raise ValueError("Invalid parameter 'mode': '{}'. Must be one of {}."
                          .format(mode, __valid_dim_reduction_values))
