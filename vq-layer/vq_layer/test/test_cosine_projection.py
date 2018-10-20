@@ -64,12 +64,11 @@ class TestCosineProjection(TFTestCase):
         Uses a large embedding space and input batch with the cosine vq-layer. Used to verify the space requirement.
         Expected space usage:
             O(N) where N = max(n * vec_size, batch_size * r * vec_size, batch_size * n * r)
-            which means here N = max(2**28, 2**24, 2**32) = 2**32 = 4 GiB
+            which means here N = max(2**28, 2**24, 2**32) = 2**32. For float32's, this means around 16 GiB.
 
         Evaluation:
             Maximum usage during empirical evaluation was around 12 GiB (only in the beginning) with an average of
-            around 8.5 GiB, which is reasonable, since it does not differ from the expected value in any of the factors
-            n, vec_size, r or batch_size, but only in a constant factor of around 2-3.
+            around 8.5 GiB, which is reasonable.
         """
         n = 2**18               # number of embedding vectors
         vec_size = 2**10
