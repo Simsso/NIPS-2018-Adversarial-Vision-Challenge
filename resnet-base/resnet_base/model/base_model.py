@@ -38,6 +38,10 @@ class BaseModel:
         # saver attribute
         self.saver = None
 
+        # dictionary of tensor value mappings
+        # should be passed when initializing the model variables, i.e. sess.run(init, feed_dict=init_feed_dict)
+        self.init_feed_dict = {}
+
     def post_build_init(self):
         self.init_saver()
 
