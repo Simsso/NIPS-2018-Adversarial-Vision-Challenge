@@ -46,11 +46,11 @@ class PCAResNet(ResNet):
         self._imported_dict = None
         x = ResNet._first_conv(x)  # 16x16x64
         x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
-        x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
-        x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)  # 2x2x1024
-        x = tf.reshape(x, [-1, 2*2*1024])
+        x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)  # 4x4x512
+        x = tf.reshape(x, [-1, 4*4*512])
         x = self._pca_layer(x, self._get_matrix('pca_out'))
-        x = tf.reshape(x, [-1, 2, 2, 1024])
+        x = tf.reshape(x, [-1, 4, 4, 512])
+        x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)  # 2x2x1024
         x = ResNet._v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
         x = ResNet.batch_norm(x)
         return self.global_avg_pooling(x)

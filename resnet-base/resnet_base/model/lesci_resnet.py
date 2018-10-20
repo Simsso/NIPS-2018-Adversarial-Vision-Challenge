@@ -16,11 +16,12 @@ class LESCIResNet(ResNet):
 
     def _lesci_layer(self, x: tf.Tensor, shape: List[int], mat_name: str) -> tf.Tensor:
         assert len(shape) == 2
-        return cvq(x, shape[0], 'pca-emb-space', num_dim_reduction_components=2048,
+        with tf.variable_scope(self.custom_scope, auxiliary_name_scope=False):
+            return cvq(x, shape[0], 'pca-emb-space', num_dim_reduction_components=2048,
                    embedding_initializer=self._make_init(FLAGS.lesci_emb_space_file, shape=shape, mat_name=mat_name),
-                   num_splits=1, return_endpoints=False)
+                   constant_init=True, num_splits=1, return_endpoints=False)
 
-    def _make_init(self, mat_file_path: str, shape: List[int], mat_name: str = 'emb_space') -> tf.Initializer:
+    def _make_init(self, mat_file_path: str, shape: List[int], mat_name: str = 'emb_space'):
         """
         Creates an embedding space initializer. If the file cannot be found the method returns a placeholder. This case
         occurs when the weights will be loaded from a checkpoint instead.
@@ -35,12 +36,12 @@ class LESCIResNet(ResNet):
             emb_space_val = scipy.io.loadmat(mat_file_path)[mat_name]
             tf.logging.info("Loaded embedding space with shape {}".format(emb_space_val.shape))
             emb_space_val = np.reshape(emb_space_val, shape)
-            emb_space_placeholder = tf.placeholder(tf.float32, emb_space_val.shape, 'emb_space_placeholder')
+            emb_space_placeholder = tf.placeholder(tf.float32, emb_space_val.shape)
             self.init_feed_dict[emb_space_placeholder] = emb_space_val
             return emb_space_placeholder
         except FileNotFoundError:
             tf.logging.info("Could not load embedding space; model should be initialized from a checkpoint")
-            return tf.placeholder(tf.float32, shape, 'emb_space_placeholder')
+            return tf.placeholder(tf.float32, shape)
 
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         x = ResNet._first_conv(x)  # 16x16x64
