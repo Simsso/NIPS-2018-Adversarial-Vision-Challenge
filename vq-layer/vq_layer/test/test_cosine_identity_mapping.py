@@ -1,18 +1,18 @@
 import numpy as np
 import tensorflow as tf
 from vq_layer.test.tf_test_case import TFTestCase
-from typing import Union, List
+from typing import Union, List, Tuple
 from vq_layer.vq_layer import cosine_vector_quantization
 
 
 class TestCosineIdentityMapping(TFTestCase):
     """
     Test the projection feature of the cosine-similarity based vq-layer, with the identity mapping below a certain
-    threshold.
+    threshold. Also tests the corresponding identity-mapped percentage.
     """
 
     def feed(self, emb_space_val: Union[List, np.ndarray], x_val: Union[List, np.ndarray],
-             identity_threshold: float) -> np.ndarray:
+             identity_threshold: float) -> Tuple[np.ndarray, float]:
         x_val = np.array(x_val, dtype=np.float32)
         self.x = tf.placeholder_with_default(x_val, shape=x_val.shape)
         self.x_reshaped = tf.expand_dims(self.x, axis=1)
@@ -24,8 +24,8 @@ class TestCosineIdentityMapping(TFTestCase):
 
         self.init_vars()
 
-        y = self.sess.run(endpoints.layer_out)
-        return y
+        y, percentage_identity_mapped = self.sess.run([endpoints.layer_out, endpoints.percentage_identity_mapped])
+        return y, percentage_identity_mapped
 
     def test_identity_mapping_all_identity(self):
         """
@@ -37,8 +37,11 @@ class TestCosineIdentityMapping(TFTestCase):
 
         # as the identity threshold is np.inf, all input vectors should be identity-mapped
         expected = np.expand_dims(x_val, axis=1)
-        y = self.feed(emb_space, x_val, identity_threshold=np.inf)
+        y, percentage_identity_mapped = self.feed(emb_space, x_val, identity_threshold=np.inf)
         self.assert_numerically_equal(y, expected)
+
+        # the percentage should be one, as all inputs have been mapped to their identity
+        self.assert_scalar_numerically_equal(percentage_identity_mapped, 1.0)
 
     def test_identity_mapping_mixed(self):
         """
@@ -56,5 +59,8 @@ class TestCosineIdentityMapping(TFTestCase):
                              [[1,    -1,   1]],
                              [[1,     1,  -1]]], dtype=np.float32)
 
-        y = self.feed(emb_space, x_val, identity_threshold=.5)
+        y, percentage_identity_mapped = self.feed(emb_space, x_val, identity_threshold=.5)
         self.assert_numerically_equal(y, expected)
+
+        # the percentage should be 0.5, because 2 of 4 input vectors have been identity-mapped
+        self.assert_scalar_numerically_equal(percentage_identity_mapped, 0.5)

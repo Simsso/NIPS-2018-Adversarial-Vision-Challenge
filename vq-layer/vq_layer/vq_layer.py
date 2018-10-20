@@ -185,7 +185,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
 
             # count how many inputs in the batch were identity-mapped
             number_of_inputs_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32))
-            percentage_identity_mapped = number_of_inputs_mapped / tf.cast(tf.shape(x)[2], dtype=tf.float32)
+            percentage_identity_mapped = number_of_inputs_mapped / tf.cast(tf.shape(x)[0], dtype=tf.float32)
 
             # broadcast to equal the shape of x / y
             identity_mask = tf.broadcast_to(tf.expand_dims(identity_mask, axis=2), shape=y.shape)
