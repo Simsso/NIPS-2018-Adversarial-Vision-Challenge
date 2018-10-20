@@ -2,3 +2,4 @@ numpy
 tensorflow-gpu
 foolbox==1.1.0
 adversarial-vision-challenge
+PIL
