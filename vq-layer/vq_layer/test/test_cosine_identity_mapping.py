@@ -14,11 +14,14 @@ class TestCosineIdentityMapping(TFTestCase):
     def feed(self, emb_space_val: Union[List, np.ndarray], x_val: Union[List, np.ndarray],
              identity_threshold: float) -> Tuple[np.ndarray, float]:
         x_val = np.array(x_val, dtype=np.float32)
-        self.x = tf.placeholder_with_default(x_val, shape=x_val.shape)
-        self.x_reshaped = tf.expand_dims(self.x, axis=1)
+        x_val = np.expand_dims(x_val, axis=1)
+        return self.feed_wo_reshape(emb_space_val, x_val, identity_threshold)
 
+    def feed_wo_reshape(self, emb_space_val: Union[List, np.ndarray], x_val: Union[List, np.ndarray],
+                        identity_threshold: float) -> Tuple[np.ndarray, float]:
+        self.x = tf.placeholder_with_default(x_val, shape=x_val.shape)
         emb_space_init = tf.constant_initializer(np.array(emb_space_val), dtype=tf.float32)
-        endpoints = cosine_vector_quantization(self.x_reshaped, n=len(emb_space_val),
+        endpoints = cosine_vector_quantization(self.x, n=len(emb_space_val),
                                                embedding_initializer=emb_space_init,
                                                identity_mapping_threshold=identity_threshold, return_endpoints=True)
 
@@ -32,12 +35,13 @@ class TestCosineIdentityMapping(TFTestCase):
         Tests the identity mapping for a toy batch and random embedding space where the threshold is > 1, i.e.
         the complete batch should be mapped to its identity.
         """
-        x_val = np.array([[1, 1, 1, 1], [2, 3, 10, 0], [-1, 3, 0.4, 4.3]])
+        x_val = np.array([[[1, 1, 1, 1], [2, 3, 10, 0], [-1, 3, 0.4, 4.3]],
+                          [[1, 1, 2, 3], [2, 3, 10, 0], [-4, 3, 0.2, 4.3]]])
         emb_space = np.random.randn(10, 4)
 
         # as the identity threshold is 1.1 > 1, all input vectors should be identity-mapped
-        expected = np.expand_dims(x_val, axis=1)
-        y, percentage_identity_mapped = self.feed(emb_space, x_val, identity_threshold=1.1)
+        expected = x_val
+        y, percentage_identity_mapped = self.feed_wo_reshape(emb_space, x_val, identity_threshold=1.1)
         self.assert_numerically_equal(y, expected)
 
         # the percentage should be one, as all inputs have been mapped to their identity
@@ -48,16 +52,16 @@ class TestCosineIdentityMapping(TFTestCase):
         Tests the identity mapping for a toy batch and embedding space where the threshold should make some inputs be
         projected and others be identity-mapped instead.
         """
-        x_val = [[1,  1,  1],       # high similarity to embedding space ([.5, .5, .5])
-                 [-1, 1,  1],       # high similarity to embedding space ([-.9,  .8,  .8])
-                 [1, -1,  1],       # low similarity => should be identity-mapped
-                 [1,  1, -1]]       # low similarity => should be identity-mapped
-        emb_space = [[.5,   .5,  .5],
-                     [-.9,  .8,  .8]]
-        expected = np.array([[[.5,   .5,  .5]],
-                             [[-.9,  .8,  .8]],
-                             [[1,    -1,   1]],
-                             [[1,     1,  -1]]], dtype=np.float32)
+        x_val = [[1, 1, 1],  # high similarity to embedding space ([.5, .5, .5])
+                 [-1, 1, 1],  # high similarity to embedding space ([-.9,  .8,  .8])
+                 [1, -1, 1],  # low similarity => should be identity-mapped
+                 [1, 1, -1]]  # low similarity => should be identity-mapped
+        emb_space = [[.5, .5, .5],
+                     [-.9, .8, .8]]
+        expected = np.array([[[.5, .5, .5]],
+                             [[-.9, .8, .8]],
+                             [[1, -1, 1]],
+                             [[1, 1, -1]]], dtype=np.float32)
 
         y, percentage_identity_mapped = self.feed(emb_space, x_val, identity_threshold=.5)
         self.assert_numerically_equal(y, expected)
