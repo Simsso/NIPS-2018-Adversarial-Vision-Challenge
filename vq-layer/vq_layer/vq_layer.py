@@ -199,7 +199,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
             y = tf.where(condition=identity_mask, x=x, y=y)
 
     if return_endpoints:
-        if not similarity_values:   # might have already been calculated (if identity mapping is enabled)
+        if similarity_values is None:   # might have already been calculated (if identity mapping is enabled)
             similarity_values = tf.reshape(tf.reduce_max(dot_product, axis=0), shape=[-1])  # flatten to rank-1 tensor
         return CosineVQEndpoints(y, emb_space, percentage_identity_mapped, similarity_values)
     return y
