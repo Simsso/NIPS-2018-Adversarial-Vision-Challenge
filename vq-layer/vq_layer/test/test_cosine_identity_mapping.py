@@ -27,7 +27,7 @@ class TestCosineIdentityMapping(TFTestCase):
         y = self.sess.run(endpoints.layer_out)
         return y
 
-    def test_identity_mapping1(self):
+    def test_identity_mapping_all_identity(self):
         """
         Tests the identity mapping for a toy batch and random embedding space where the threshold is infinity, i.e.
         the complete batch should be mapped to its identity.
@@ -38,4 +38,23 @@ class TestCosineIdentityMapping(TFTestCase):
         # as the identity threshold is np.inf, all input vectors should be identity-mapped
         expected = np.expand_dims(x_val, axis=1)
         y = self.feed(emb_space, x_val, identity_threshold=np.inf)
+        self.assert_numerically_equal(y, expected)
+
+    def test_identity_mapping_mixed(self):
+        """
+        Tests the identity mapping for a toy batch and embedding space where the threshold should make some inputs be
+        projected and others be identity-mapped instead.
+        """
+        x_val = [[1,  1,  1],       # high similarity to embedding space ([.5, .5, .5])
+                 [-1, 1,  1],       # high similarity to embedding space ([-.9,  .8,  .8])
+                 [1, -1,  1],       # low similarity => should be identity-mapped
+                 [1,  1, -1]]       # low similarity => should be identity-mapped
+        emb_space = [[.5,   .5,  .5],
+                     [-.9,  .8,  .8]]
+        expected = np.array([[[.5,   .5,  .5]],
+                             [[-.9,  .8,  .8]],
+                             [[1,    -1,   1]],
+                             [[1,     1,  -1]]], dtype=np.float32)
+
+        y = self.feed(emb_space, x_val, identity_threshold=.5)
         self.assert_numerically_equal(y, expected)
