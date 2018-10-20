@@ -118,7 +118,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, num_dim_reduction_components: int = -1,
                                embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
                                tf.random_normal_initializer, num_splits: int = 1, return_endpoints: bool = False,
-                               abs_identity_mapping_threshold: float = -1,
+                               identity_mapping_threshold: float = -1,
                                name: str = 'vq') -> Union[tf.Tensor, CosineVQEndpoints]:
     """
     Vector quantization layer performing the lookup based on cosine similarity (dot product magnitude).
@@ -132,7 +132,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
     :param embedding_initializer: Initializer for the embedding space variable or 'batch'
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
-    :param abs_identity_mapping_threshold: If >= 0, then maps inputs to their identity if the cosine similarity with the
+    :param identity_mapping_threshold: If >= 0, then maps inputs to their identity if the cosine similarity with the
            most similar embedding vector is smaller than this value (i.e. does not project inputs to embedding vectors
            if the similarity to any of the embeddings is smaller than this value, instead just hand them through).
     :param name: Name to use for the variable scope
@@ -141,7 +141,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
                 layer_out: Layer output tensor
                 emb_space: Embedding space tensor
                 percentage_identity_mapped: A float scalar tensor describing the percentage of inputs identity-mapped,
-                                            will be None if abs_identity_mapping_threshold < 0
+                                            will be None if identity_mapping_threshold < 0
                 similarity_values: A rank-1 tensor containing all cosine similarity values for a given batch (used to
                                    calculate a similarity-histogram)
     """
@@ -179,12 +179,14 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
 
         # perform identity-mapping for input vectors where even the most similar embedding vectors are too dissimilar
         percentage_identity_mapped = None
-        if abs_identity_mapping_threshold >= 0:
+        similarity_values = None
+        if identity_mapping_threshold >= 0:
             max_similarities = tf.reduce_max(dot_product, axis=0)    # shape [m, batch]
             max_similarities = tf.transpose(max_similarities)        # shape [batch, m]
+            similarity_values = tf.reshape(max_similarities, shape=[-1])
 
             # this mask is True for all inputs that should be mapped to their identity and False otherwise
-            identity_mask = tf.less(max_similarities, abs_identity_mapping_threshold)
+            identity_mask = tf.less(max_similarities, identity_mapping_threshold)
 
             # count how many inputs in the batch were identity-mapped
             number_of_inputs_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32))
@@ -197,7 +199,8 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
             y = tf.where(condition=identity_mask, x=x, y=y)
 
     if return_endpoints:
-        similarity_values = tf.reshape(tf.reduce_max(dot_product, axis=0), shape=[-1])  # flatten to rank-1 tensor
+        if not similarity_values:   # might have already been calculated (if identity mapping is enabled)
+            similarity_values = tf.reshape(tf.reduce_max(dot_product, axis=0), shape=[-1])  # flatten to rank-1 tensor
         return CosineVQEndpoints(y, emb_space, percentage_identity_mapped, similarity_values)
     return y
 

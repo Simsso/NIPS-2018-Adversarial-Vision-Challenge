@@ -20,7 +20,7 @@ class TestCosineIdentityMapping(TFTestCase):
         emb_space_init = tf.constant_initializer(np.array(emb_space_val), dtype=tf.float32)
         endpoints = cosine_vector_quantization(self.x_reshaped, n=len(emb_space_val),
                                                embedding_initializer=emb_space_init,
-                                               abs_identity_mapping_threshold=identity_threshold, return_endpoints=True)
+                                               identity_mapping_threshold=identity_threshold, return_endpoints=True)
 
         self.init_vars()
 
@@ -29,15 +29,15 @@ class TestCosineIdentityMapping(TFTestCase):
 
     def test_identity_mapping_all_identity(self):
         """
-        Tests the identity mapping for a toy batch and random embedding space where the threshold is infinity, i.e.
+        Tests the identity mapping for a toy batch and random embedding space where the threshold is > 1, i.e.
         the complete batch should be mapped to its identity.
         """
         x_val = np.array([[1, 1, 1, 1], [2, 3, 10, 0], [-1, 3, 0.4, 4.3]])
         emb_space = np.random.randn(10, 4)
 
-        # as the identity threshold is np.inf, all input vectors should be identity-mapped
+        # as the identity threshold is 1.1 > 1, all input vectors should be identity-mapped
         expected = np.expand_dims(x_val, axis=1)
-        y, percentage_identity_mapped = self.feed(emb_space, x_val, identity_threshold=np.inf)
+        y, percentage_identity_mapped = self.feed(emb_space, x_val, identity_threshold=1.1)
         self.assert_numerically_equal(y, expected)
 
         # the percentage should be one, as all inputs have been mapped to their identity
