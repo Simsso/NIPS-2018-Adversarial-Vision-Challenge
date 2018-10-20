@@ -141,7 +141,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
            (dimensions) that each embedding vector (and corresponding input) is reduced to.
     :param embedding_initializer: Initializer for the embedding space variable or 'batch'
     :param constant_init: Whether the initializer is constant (in this case, the shape will not be passed to
-                          'get_variable' explicitly.
+                          'get_variable' explicitly).
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
     :param identity_mapping_threshold: If >= 0, then maps inputs to their identity if the cosine similarity with the
