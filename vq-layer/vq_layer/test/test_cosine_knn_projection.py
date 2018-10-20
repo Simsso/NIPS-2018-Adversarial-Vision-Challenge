@@ -1,7 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import unittest
-
 from vq_layer.test.tf_test_case import TFTestCase
 from typing import Union, List
 from vq_layer.vq_layer import cosine_knn_vector_quantization as cos_knn_vq
