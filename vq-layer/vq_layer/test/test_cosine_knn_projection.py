@@ -16,7 +16,7 @@ class TestCosineKNNProjection(TFTestCase):
              num_classes: int, x_val: Union[List, np.ndarray]) -> np.ndarray:
         x_val = np.array(x_val, dtype=np.float32)
         self.x = tf.placeholder_with_default(x_val, shape=x_val.shape)
-        self.x_reshaped = tf.expand_dims(self.x, axis=1)
+        self.x_reshaped = tf.expand_dims(self.x, axis=1) if len(x_val.shape) == 2 else self.x
 
         n = len(emb_labels)
         emb_labels = np.array(emb_labels, dtype=np.int32)
@@ -56,5 +56,30 @@ class TestCosineKNNProjection(TFTestCase):
         expected = [[[1, 2.2, 3, 4]], [[0, 1,   0, .5]]]
 
         y = self.feed(emb_space_val=emb_space, emb_labels=emb_labels, k=k, num_classes=num_classes, x_val=x_val)
-        print(y)
+        self.assert_numerically_equal(y, expected)
+
+    def test_projection2(self):
+        """
+        Tests a projection on toy values.
+        Uses the same values as the test_projection1 test case, but here, the batch size is 1 and instead the second
+        dimension of x is 2.
+        """
+        x_val = [[[1, 2, 3, 4],
+                 [0, 1, 0, 0]]]  # 3-D!
+
+        # otherwise exactly the same as the values in test_projection1
+        emb_space = [[2, 4,   6, 8],    # closest to first input (dot product of 1)
+                     [1, 2.2, 3, 4],    # second-closest to first input
+                     [1, 3,   3, 4],    # third-closest to first input
+                     [0, 1,   0, .5],   # third-closest to second input
+                     [0, 1,   0, .1],   # second-closest to second input
+                     [0, 2,   0, 0]]    # closest to second input
+
+        emb_labels = [0, 1, 1, 2, 2, 3]
+        num_classes = 4
+        k = 3
+
+        expected = [[[1, 2.2, 3, 4], [0, 1, 0, .5]]]    # notice shape [1, 1, 2] instead of [1, 2, 1]
+
+        y = self.feed(emb_space_val=emb_space, emb_labels=emb_labels, k=k, num_classes=num_classes, x_val=x_val)
         self.assert_numerically_equal(y, expected)
