@@ -83,7 +83,7 @@ class TestCosineKNNProjection(TFTestCase):
         y = self.feed(emb_space_val=emb_space, emb_labels=emb_labels, k=k, num_classes=num_classes, x_val=x_val)
         self.assert_numerically_equal(y, expected)
 
-    def test_projection_with_threshold(self):
+    def test_projection_with_threshold1(self):
         """
         Tests the same projection as the test_projection1 function, but in this case uses the majority_threshold
         argument.
@@ -99,6 +99,7 @@ class TestCosineKNNProjection(TFTestCase):
                      [0, 2, 0, 0]]  # closest to second input
 
         emb_labels = [0, 1, 1, 2, 2, 2]  # second input has unambiguous vote for class 2
+        majority_threshold = .7
         num_classes = 4
         k = 3
 
@@ -108,5 +109,32 @@ class TestCosineKNNProjection(TFTestCase):
         expected = [[[1, 2, 3, 4]], [[0, 1, 0, .5]]]
 
         y = self.feed(emb_space_val=emb_space, emb_labels=emb_labels, k=k, num_classes=num_classes, x_val=x_val,
-                      majority_threshold=0.7)
+                      majority_threshold=majority_threshold)
+        self.assert_numerically_equal(y, expected)
+
+    def test_projection_with_threshold2(self):
+        """
+        Tests another toy projection using the majority_threshold.
+        """
+        x_val = [[[0, 1, 0], [1, 2, 3]]]
+
+        emb_space = [[1, 2.2, 3],   # the first three are closest to the second input
+                     [1.2, 2, 3],
+                     [1.1, 2, 3.1],
+
+                     [1, 5, 0.5],   # the second three are closest to the first input
+                     [0.1, .7, .1],
+                     [2, 10, 2]]
+
+        # for the first input, the fraction of the majority-class is 2/3 => should be projected to [1, 5, 0.5]
+        # for the second input, the fraction of the majority-class is only 1/3 => should be identity-mapped
+        emb_labels = [0, 1, 2, 3, 3, 1]
+        majority_threshold = .5
+        num_classes = 4
+        k = 3
+
+        expected = [[[1, 5, 0.5], [1, 2, 3]]]
+
+        y = self.feed(emb_space_val=emb_space, emb_labels=emb_labels, k=k, num_classes=num_classes, x_val=x_val,
+                      majority_threshold=majority_threshold)
         self.assert_numerically_equal(y, expected)

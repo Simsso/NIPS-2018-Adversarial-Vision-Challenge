@@ -162,3 +162,4 @@ class TestCosineProjection(TFTestCase):
 
         y = self.feed(emb_space, x_val)
         self.assert_numerically_equal(y, expected)
+
