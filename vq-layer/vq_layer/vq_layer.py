@@ -146,7 +146,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
                 percentage_identity_mapped: A float scalar tensor describing the percentage of inputs identity-mapped,
                                             will be None if identity_mapping_threshold < 0
                 similarity_values: A rank-1 tensor containing all maximum cosine similarity values for a given batch
-                                   (used to calculate a similarity-histogram); of shape [batch * m].
+                                   (used to calculate a similarity-histogram); of shape [batch * r].
     """
     def perform_projection(emb_space: tf.Tensor, dot_product: tf.Tensor) -> tf.Tensor:
         # dot_product is of shape [n, m, batch]
@@ -275,16 +275,17 @@ def __abstract_cosine_vector_quantization(x: tf.Tensor, perform_projection, n: i
         percentage_identity_mapped = None
         similarity_values = None
         if identity_mapping_threshold >= 0:
-            max_similarities = tf.reduce_max(dot_product, axis=0)  # shape [m, batch]
-            max_similarities = tf.transpose(max_similarities)  # shape [batch, m]
-            similarity_values = tf.reshape(max_similarities, shape=[-1])
+            max_similarities = tf.reduce_max(dot_product, axis=0)           # shape [m, batch]
+            max_similarities = tf.transpose(max_similarities)               # shape [batch, m]
+            similarity_values = tf.reshape(max_similarities, shape=[-1])    # shape [batch * m]
 
             # this mask is True for all inputs that should be mapped to their identity and False otherwise
             identity_mask = tf.less(max_similarities, identity_mapping_threshold)
 
             # count how many inputs in the batch were identity-mapped
             number_of_inputs_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32))
-            percentage_identity_mapped = number_of_inputs_mapped / tf.cast(tf.shape(x)[0], dtype=tf.float32)
+            number_of_inputs = similarity_values.get_shape().as_list()[0]   # == batch * m
+            percentage_identity_mapped = number_of_inputs_mapped / number_of_inputs
 
             # broadcast to equal the shape of x / y
             identity_mask = tf.broadcast_to(tf.expand_dims(identity_mask, axis=2), shape=y.shape)
