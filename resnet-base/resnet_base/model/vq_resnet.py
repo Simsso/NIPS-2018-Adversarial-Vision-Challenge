@@ -12,8 +12,6 @@ class VQResNet(ResNet):
             log.add_histogram('vq_in_activations', x, log_frequency=5)
 
             x = tf.reshape(x, [-1, 256, 64])
-            self._log_moments_every_epoch(x, axes=[2], name='vq_in')
-
             vq_endpoints = vq(x, n=1024, alpha=5e-3, beta=4e-6, gamma=0, num_splits=16, lookup_ord=1,
                               num_embeds_replaced=0, return_endpoints=True,
                               embedding_initializer=tf.random_normal_initializer(mean=.5, stddev=.5, seed=15092017))
