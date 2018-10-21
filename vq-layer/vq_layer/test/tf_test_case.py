@@ -30,3 +30,9 @@ class TFTestCase(TestCase):
         if not type(desired) is np.ndarray:
             desired = np.array(desired, dtype=np.float32)
         self.assertTrue(np.allclose(output, desired, rtol, atol), self.msg_output_wrong)
+
+    def assert_scalar_numerically_equal(self, output: float, desired: float):
+        """
+        Compares two scalars numerically.
+        """
+        self.assert_numerically_equal([output], [desired])
