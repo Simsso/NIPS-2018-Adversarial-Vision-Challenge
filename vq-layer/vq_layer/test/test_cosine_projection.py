@@ -57,6 +57,33 @@ class TestCosineProjection(TFTestCase):
         y = self.feed(emb_space, x_val)
         self.assert_numerically_equal(y, expected)
 
+    def test_projection_arbitrary_batch(self):
+        """
+        Tests a simple projection on toy values with a placeholder that has an unknown batch size and r = 2.
+        Values like in the test_projection test case.
+        """
+        x_val = [[[1, 2, 3, 4],  # should be mapped to [2, 4, 6, 8]
+                 [0, 1, 0, 0]],  # should be mapped to [5, 100, 5, 5]
+
+                 [[1, 2, 3, 4],  # should be mapped to [2, 4, 6, 8]
+                  [0, 1, 0, 0]]]  # should be mapped to [5, 100, 5, 5]
+        emb_space = [[2, 4, 6, 8],
+                     [1, 1, 1, 1],
+                     [4, 3, 2, 1],
+                     [10, 10, 10, 10],
+                     [5, 100, 5, 5]]
+        expected = np.array([[[2, 4, 6, 8], [5, 100, 5, 5]], [[2, 4, 6, 8], [5, 100, 5, 5]]])
+
+        x = tf.placeholder(tf.float32, shape=[None, 2, 4])
+        emb_space_init = tf.constant_initializer(np.array(emb_space), dtype=tf.float32)
+        endpoints = cosine_vector_quantization(x, n=5, embedding_initializer=emb_space_init, return_endpoints=True)
+
+        self.init_vars()
+        y = self.sess.run(endpoints.layer_out, feed_dict={x: x_val})
+
+        self.assert_numerically_equal(y, expected)
+
+
     @unittest.skip("This takes a long time and a lot of RAM, so it should only be evaluated manually.")
     def test_space_requirements(self):
         """
