@@ -145,8 +145,8 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
                 emb_space: Embedding space tensor
                 percentage_identity_mapped: A float scalar tensor describing the percentage of inputs identity-mapped,
                                             will be None if identity_mapping_threshold < 0
-                similarity_values: A rank-1 tensor containing all cosine similarity values for a given batch (used to
-                                   calculate a similarity-histogram)
+                similarity_values: A rank-1 tensor containing all maximum cosine similarity values for a given batch
+                                   (used to calculate a similarity-histogram); of shape [batch * m].
     """
     def perform_projection(emb_space: tf.Tensor, dot_product: tf.Tensor) -> tf.Tensor:
         # dot_product is of shape [n, m, batch]
