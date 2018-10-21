@@ -11,7 +11,7 @@ class TestCosineKNNProjection(TFTestCase):
     """
 
     def feed(self, emb_space_val: Union[List, np.ndarray], emb_labels: Union[List, np.ndarray], k: int,
-             num_classes: int, x_val: Union[List, np.ndarray]) -> np.ndarray:
+             num_classes: int, x_val: Union[List, np.ndarray], majority_threshold: float = -1) -> np.ndarray:
         x_val = np.array(x_val, dtype=np.float32)
         self.x = tf.placeholder_with_default(x_val, shape=x_val.shape)
         self.x_reshaped = tf.expand_dims(self.x, axis=1) if len(x_val.shape) == 2 else self.x
@@ -22,7 +22,8 @@ class TestCosineKNNProjection(TFTestCase):
 
         emb_space_init = tf.constant_initializer(np.array(emb_space_val), dtype=tf.float32)
         endpoints = cos_knn_vq(self.x_reshaped, self.emb_labels, num_classes=num_classes,
-                               k=k, n=n, embedding_initializer=emb_space_init, return_endpoints=True)
+                               k=k, n=n, embedding_initializer=emb_space_init, majority_threshold=majority_threshold,
+                               return_endpoints=True)
 
         self.init_vars()
 
@@ -80,4 +81,32 @@ class TestCosineKNNProjection(TFTestCase):
         expected = [[[1, 2.2, 3, 4], [0, 1, 0, .5]]]    # notice shape [1, 1, 2] instead of [1, 2, 1]
 
         y = self.feed(emb_space_val=emb_space, emb_labels=emb_labels, k=k, num_classes=num_classes, x_val=x_val)
+        self.assert_numerically_equal(y, expected)
+
+    def test_projection_with_threshold(self):
+        """
+        Tests the same projection as the test_projection1 function, but in this case uses the majority_threshold
+        argument.
+        """
+        x_val = [[1, 2, 3, 4],
+                 [0, 1, 0, 0]]
+
+        emb_space = [[2, 4, 6, 8],  # closest to first input (dot product of 1)
+                     [1, 2.2, 3, 4],  # second-closest to first input
+                     [1, 3, 3, 4],  # third-closest to first input
+                     [0, 1, 0, .5],  # third-closest to second input
+                     [0, 1, 0, .1],  # second-closest to second input
+                     [0, 2, 0, 0]]  # closest to second input
+
+        emb_labels = [0, 1, 1, 2, 2, 2]  # second input has unambiguous vote for class 2
+        num_classes = 4
+        k = 3
+
+        # When majority_threshold < 0, then as in test_projection1: expected = [[[1, 2.2, 3, 4]], [[0, 1, 0, .5]]]
+        # but now when the threshold is 0.7, the majority of labels, which is 2/3 and 1 in the inputs respectively
+        # only the second input should be projected, but the first should be identity-mapped. Therefore:
+        expected = [[[1, 2, 3, 4]], [[0, 1, 0, .5]]]
+
+        y = self.feed(emb_space_val=emb_space, emb_labels=emb_labels, k=k, num_classes=num_classes, x_val=x_val,
+                      majority_threshold=0.7)
         self.assert_numerically_equal(y, expected)

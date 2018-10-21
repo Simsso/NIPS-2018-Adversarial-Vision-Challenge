@@ -1,10 +1,12 @@
 import numpy as np
 import tensorflow as tf
+import unittest
 from vq_layer.test.tf_test_case import TFTestCase
 from typing import Union, List, Tuple
 from vq_layer.vq_layer import cosine_vector_quantization
 
 
+@unittest.skip("This feature is no longer available. It has been replaced with a label-based majority threshold.")
 class TestCosineIdentityMapping(TFTestCase):
     """
     Test the projection feature of the cosine-similarity based vq-layer, with the identity mapping below a certain

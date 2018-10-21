@@ -83,7 +83,6 @@ class TestCosineProjection(TFTestCase):
 
         self.assert_numerically_equal(y, expected)
 
-
     @unittest.skip("This takes a long time and a lot of RAM, so it should only be evaluated manually.")
     def test_space_requirements(self):
         """
