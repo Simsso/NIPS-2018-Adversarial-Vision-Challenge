@@ -160,7 +160,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
 def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_classes: int, k: int, n: int,
                                    dim_reduction: str = None, num_dim_reduction_components: int = -1,
                                    embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
-                                   tf.random_normal_initializer, num_splits: int = 1,
+                                   tf.random_normal_initializer, constant_init: bool = False, num_splits: int = 1,
                                    return_endpoints: bool = False, majority_threshold: float = -1,
                                    name: str = 'vq') -> Union[tf.Tensor, CosineVQEndpoints]:
     """
@@ -240,8 +240,8 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_clas
         return y, percentage_identity_mapped, identity_mapping_mask, most_common_label
 
     return __abstract_cosine_vector_quantization(x, perform_projection, n, dim_reduction, num_dim_reduction_components,
-                                                 embedding_initializer, constant_init=False, num_splits=num_splits,
-                                                 return_endpoints=return_endpoints, name=name)
+                                                 embedding_initializer, constant_init=constant_init,
+                                                 num_splits=num_splits, return_endpoints=return_endpoints, name=name)
 
 
 def __abstract_cosine_vector_quantization(x: tf.Tensor, perform_projection, n: int, dim_reduction: str = None,
