@@ -9,7 +9,7 @@ can be used e.g. for compression, is then written to a file at export_path.
 
 act = act5_block3; % CNN activation tensor (n, m, o, p)
 export_path = '/Users/timodenk/.data/activations/pca.mat' % PCA output file
-dim_out = 3968 % number of PCA output vectors to use, must be <= m*o*p
+dim_out = 64 % number of PCA output vectors to use, must be <= m*o*p
 
 act_shape = size(act)
 

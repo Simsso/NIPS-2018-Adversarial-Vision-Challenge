@@ -6,7 +6,7 @@ act_shape = size(act)
 vec_size = act_shape(2)*act_shape(3)*act_shape(4)
 num_samples = act_shape(1)
 
-act = reshape(act, num_samples, vec_size);
+act = reshape(act, num_samples, vec_size)*pca_out;
 
 % normalize vectors
 act = normr(act);
@@ -22,3 +22,6 @@ same_class_act = act(labels==sample_label,:);
 cos_sim_same_class = same_class_act*sample_vec;
 h2 = histogram(cos_sim_same_class);
 h2.BinWidth = 0.01
+
+export_path = '/Users/timodenk/.data/activations/lesci.mat' % LESCI
+save(export_path, 'act', 'labels')
