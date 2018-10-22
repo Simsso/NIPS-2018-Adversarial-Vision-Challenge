@@ -1,11 +1,11 @@
-from resnet_base.model.vq_resnet import VQResNet
+from resnet_base.model.resnet import ResNet
 import tensorflow as tf
 
 from foolbox.models import TensorFlowModel
 from resnet_base.util.logger.factory import LoggerFactory
 
 
-class SubmittableResNet(VQResNet):
+class SubmittableResNet(ResNet):
     """
     This is a simple wrapper around the ResNet model which offers a function that converts the model to a
     foolbox model which can easily be submitted to the challenge website.
