@@ -1,4 +1,7 @@
 from typing import Dict
+
+from tensorflow.python.framework.errors_impl import InvalidArgumentError
+
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 import numpy as np
 import tensorflow as tf
@@ -22,7 +25,10 @@ def run_validation(model: ResNet, pipeline: TinyImageNetPipeline) -> Dict[float,
     sess = tf.Session(config=config)
 
     with sess.as_default():
-        sess.run(init, feed_dict=model.init_feed_dict)
+        try:
+            sess.run(init, feed_dict=model.init_feed_dict)
+        except InvalidArgumentError:
+            tf.logging.info("Could not execute the init op, trying to restore all variable.")
         model.restore(sess)
 
         pipeline.switch_to(tf.estimator.ModeKeys.EVAL)
