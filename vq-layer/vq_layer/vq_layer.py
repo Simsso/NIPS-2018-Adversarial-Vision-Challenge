@@ -62,16 +62,7 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
     with tf.variable_scope(name):
-        # embedding space
-        get_variable_args = {
-            'name': 'emb_space',
-            'dtype': x.dtype,
-            'initializer': embedding_initializer,
-            'trainable': True
-        }
-        if not constant_init:
-            get_variable_args['shape'] = [n, vec_size]
-        emb_space = tf.get_variable(**get_variable_args)
+        emb_space = __create_embedding_space(x, constant_init, embedding_initializer, n, vec_size)
 
         adjusted_x = x
         adjusted_emb_space = emb_space
@@ -128,10 +119,9 @@ def vector_quantization(x: tf.Tensor, n: int, alpha: Union[float, tf.Tensor] = 0
 def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, num_dim_reduction_components: int = -1,
                                embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
                                tf.random_normal_initializer, constant_init: bool = False, num_splits: int = 1,
-                               return_endpoints: bool = False, identity_mapping_threshold: float = -1,
-                               name: str = 'vq') -> Union[tf.Tensor, CosineVQEndpoints]:
+                               return_endpoints: bool = False, name: str = 'vq') -> Union[tf.Tensor, CosineVQEndpoints]:
     """
-    Vector quantization layer performing the lookup based on cosine similarity (dot product magnitude).
+    Vector quantization layer performing the lookup based on the largest cosine similarity (argmax of dot product).
     :param x: Tensor of shape [batch, r, q], where this function quantizes along dimension q
     :param n: Size of the embedding space (number of contained vectors)
     :param dim_reduction: If not None, will use the given technique to reduce the dimensionality of inputs and
@@ -141,12 +131,56 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
            (dimensions) that each embedding vector (and corresponding input) is reduced to.
     :param embedding_initializer: Initializer for the embedding space variable or 'batch'
     :param constant_init: Whether the initializer is constant (in this case, the shape will not be passed to
-                          'get_variable' explicitly.
+                          'get_variable' explicitly).
     :param num_splits: Number of splits along the input dimension q (defaults to 1)
     :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
-    :param identity_mapping_threshold: If >= 0, then maps inputs to their identity if the cosine similarity with the
-           most similar embedding vector is smaller than this value (i.e. does not project inputs to embedding vectors
-           if the similarity to any of the embeddings is smaller than this value, instead just hand them through).
+    :param name: Name to use for the variable scope
+    :return: Only the layer output if return_endpoints is False
+             CosineVQEndpoints-tuple with the values:
+                layer_out: Layer output tensor
+                emb_space: Embedding space tensor
+                percentage_identity_mapped: A float scalar tensor describing the percentage of inputs identity-mapped,
+                                            will be None if identity_mapping_threshold < 0
+                similarity_values: A rank-1 tensor containing all maximum cosine similarity values for a given batch
+                                   (used to calculate a similarity-histogram); of shape [batch * r].
+    """
+    def perform_projection(emb_space: tf.Tensor, dot_product: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        # dot_product is of shape [n, m, batch]
+        emb_index = tf.transpose(tf.argmax(dot_product, axis=0), perm=[1, 0])  # shape [batch, m]
+
+        # the percentage of inputs identity-mapped is a constant 0 here
+        return tf.gather(emb_space, emb_index, axis=0), tf.constant(0, dtype=x.dtype)
+
+    return __abstract_cosine_vector_quantization(x, perform_projection, n, dim_reduction, num_dim_reduction_components,
+                                                 embedding_initializer, constant_init, num_splits, return_endpoints,
+                                                 name)
+
+
+def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_classes: int, k: int, n: int,
+                                   dim_reduction: str = None, num_dim_reduction_components: int = -1,
+                                   embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
+                                   tf.random_normal_initializer, num_splits: int = 1,
+                                   return_endpoints: bool = False, majority_threshold: float = -1,
+                                   name: str = 'vq') -> Union[tf.Tensor, CosineVQEndpoints]:
+    """
+    Vector quantization layer performing the lookup based on an emb_label majority vote (k-nearest-neighbors)
+    of the k embedding vectors with largest cosine similarity.
+    :param x: Tensor of shape [batch, r, q], where this function quantizes along dimension q
+    :param emb_labels: The labels to which the embedding vectors correspond. This only makes sense if the embedding
+           space is pre-initialized. It must be a rank-1 tensor of shape [n].
+    :param num_classes: The number of classes (with respect to the emb_labels).
+    :param k: The number of embedding vectors among which a label-majority vote is performed; must be <= n
+    :param n: Size of the embedding space (number of contained vectors)
+    :param dim_reduction: If not None, will use the given technique to reduce the dimensionality of inputs and
+           embedding vectors before comparing them using the distance measure given by lookup_ord; one of
+           ['pca-batch', 'pca-emb-space'].
+    :param num_dim_reduction_components: When using dimensionality reduction, this specifies the number of components
+           (dimensions) that each embedding vector (and corresponding input) is reduced to.
+    :param embedding_initializer: Initializer for the embedding space variable or 'batch'
+    :param num_splits: Number of splits along the input dimension q (defaults to 1)
+    :param return_endpoints: Whether or not to return a plurality of endpoints (defaults to False)
+    :param majority_threshold: If >= 0, maps inputs to their identity if the fraction of the most common class under the
+           k most similar embedding vectors is less than this value.
     :param name: Name to use for the variable scope
     :return: Only the layer output if return_endpoints is False
              CosineVQEndpoints-tuple with the values:
@@ -156,6 +190,72 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
                                             will be None if identity_mapping_threshold < 0
                 similarity_values: A rank-1 tensor containing all cosine similarity values for a given batch (used to
                                    calculate a similarity-histogram)
+    """
+    if k > n:
+        raise ValueError("Parameter 'k' must be smaller than n. Got {} > {}.".format(k, n))
+
+    def perform_projection(emb_space: tf.Tensor, dot_product: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        # dot_product is of shape [n, m, batch], but top_k calculates the max values for each vector in the last dim
+        dot_product = tf.transpose(dot_product, perm=[2, 1, 0])  # now we have [batch, m, n] => find top_k over n-dim
+        _, top_k_indices = tf.nn.top_k(dot_product, k=k)                # shape [batch, m, k]
+
+        # now do a majority-vote based on the labels
+        top_k_labels = tf.gather(emb_labels, indices=top_k_indices)
+        top_k_labels = tf.one_hot(top_k_labels, depth=num_classes)      # [batch, m, k, num_classes]
+
+        summed_top_k_labels = tf.reduce_sum(top_k_labels, axis=2)       # [batch, m, num_classes]
+        most_common_label = tf.argmax(summed_top_k_labels, axis=2, output_type=emb_labels.dtype)  # [batch, m]
+
+        # do explicit broadcasting here since m==1 might introduce ambiguities
+        quantization_shape = most_common_label.get_shape().as_list()    # [batch, m]
+        most_common_label = tf.broadcast_to(most_common_label, shape=[n] + quantization_shape)
+        broadcasted_emb_labels = tf.broadcast_to(emb_labels, shape=quantization_shape + [n])
+        broadcasted_emb_labels = tf.transpose(broadcasted_emb_labels, perm=[2, 0, 1])
+
+        # find out which embedding vectors are possible (i.e. have the most common label among the top-k)
+        possible_emb_indices = tf.equal(broadcasted_emb_labels, most_common_label)  # [n, batch, m]
+
+        # choose any of the possible embeddings (here, argmax uses the first 'True' => 1)
+        first_emb_index = tf.argmax(tf.cast(possible_emb_indices, dtype=tf.int8), axis=0)   # [batch, m]
+        y = tf.gather(emb_space, first_emb_index)
+
+        # perform identity-mapping for inputs whose top-class constitutes fraction that is below the majority_threshold
+        percentage_identity_mapped = tf.constant(0, x.dtype)
+        if majority_threshold >= 0:
+            fraction_of_top_class = tf.reduce_max(summed_top_k_labels, axis=2) / k          # [batch, m]
+            identity_mapping_mask = tf.less(fraction_of_top_class, majority_threshold)
+
+            # broadcast to equal the shape of x / y
+            identity_mapping_mask = tf.broadcast_to(tf.expand_dims(identity_mapping_mask, axis=2), shape=y.shape)
+            y = tf.where(identity_mapping_mask, x=x, y=y)
+
+            # count how many inputs in the batch were identity-mapped
+            number_of_inputs_mapped = tf.reduce_sum(tf.cast(identity_mapping_mask, dtype=tf.float32))
+            number_of_inputs = quantization_shape[0] * quantization_shape[1]
+            percentage_identity_mapped = number_of_inputs_mapped / number_of_inputs
+
+        return y, percentage_identity_mapped
+
+    return __abstract_cosine_vector_quantization(x, perform_projection, n, dim_reduction, num_dim_reduction_components,
+                                                 embedding_initializer, constant_init=False, num_splits=num_splits,
+                                                 return_endpoints=return_endpoints, name=name)
+
+
+def __abstract_cosine_vector_quantization(x: tf.Tensor, perform_projection, n: int, dim_reduction: str = None,
+                                          num_dim_reduction_components: int = -1,
+                                          embedding_initializer: Union[str, tf.keras.initializers.Initializer] =
+                                          tf.random_normal_initializer, constant_init: bool = False,
+                                          num_splits: int = 1, return_endpoints: bool = False,
+                                          name: str = 'vq') -> \
+        Union[tf.Tensor, CosineVQEndpoints]:
+    """
+    Vector quantization layer performing the lookup based on cosine similarity (dot product magnitude).
+    The embedding indices are chosen according to the choose_emb_index function. Parameters are defined analogously
+    to the cosine_vector_quantization function.
+    :param perform_projection: A function that chooses the indices of the embeddings to be used and applies the
+           projection. It's signature must be:
+           (emb_space: tf.Tensor, dot_product: tf.Tensor) -> y: tf.Tensor, percentage_identity_mapped: tf.Tensor
+                where y is of shape [batch, m, vec_size] and percentage_identity_mapped is a scalar tensor
     """
     dynamic_emb_space_init = (embedding_initializer == 'batch')
     if dynamic_emb_space_init:
@@ -167,16 +267,7 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
 
     x = tf.reshape(x, [in_shape[0], in_shape[1] * num_splits, vec_size])
     with tf.variable_scope(name):
-        # embedding space
-        get_variable_args = {
-            'name': 'emb_space',
-            'dtype': x.dtype,
-            'initializer': embedding_initializer,
-            'trainable': True
-        }
-        if not constant_init:
-            get_variable_args['shape'] = [n, vec_size]
-        emb_space = tf.get_variable(**get_variable_args)
+        emb_space = __create_embedding_space(x, constant_init, embedding_initializer, n, vec_size)
 
         adjusted_x = x
         adjusted_emb_space = emb_space
@@ -192,35 +283,10 @@ def cosine_vector_quantization(x: tf.Tensor, n: int, dim_reduction: str = None, 
         #       adjusted_emb_space has shape    [n, adjusted_vec_size]
         # compute dot-product of x with embedding space over the vec_size dimension -> shape [n, m, batch]
         dot_product = tf.tensordot(adjusted_emb_space, tf.transpose(adjusted_x, perm=[2, 1, 0]), axes=1)
-        emb_index = tf.argmax(dot_product, axis=0)          # shape [m, batch]
-        emb_index = tf.transpose(emb_index, perm=[1, 0])    # shape [batch, m]
-
-        y = tf.gather(emb_space, emb_index, axis=0)         # shape [batch, m, vec_size]
-
-        # perform identity-mapping for input vectors where even the most similar embedding vectors are too dissimilar
-        percentage_identity_mapped = None
-        similarity_values = None
-        if identity_mapping_threshold >= 0:
-            max_similarities = tf.reduce_max(dot_product, axis=0)    # shape [m, batch]
-            max_similarities = tf.transpose(max_similarities)        # shape [batch, m]
-            similarity_values = tf.reshape(max_similarities, shape=[-1])
-
-            # this mask is True for all inputs that should be mapped to their identity and False otherwise
-            identity_mask = tf.less(max_similarities, identity_mapping_threshold)
-
-            # count how many inputs in the batch were identity-mapped
-            number_of_inputs_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32))
-            percentage_identity_mapped = number_of_inputs_mapped / tf.cast(tf.shape(x)[0], dtype=tf.float32)
-
-            # broadcast to equal the shape of x / y
-            identity_mask = tf.broadcast_to(tf.expand_dims(identity_mask, axis=2), shape=y.shape)
-
-            # update the projection y, using the identity or the projection y depending on the mask calculated above
-            y = tf.where(condition=identity_mask, x=x, y=y)
+        y, percentage_identity_mapped = perform_projection(emb_space, dot_product)  # shape [batch, m, vec_size]
 
     if return_endpoints:
-        if similarity_values is None:   # might have already been calculated (if identity mapping is enabled)
-            similarity_values = tf.reshape(tf.reduce_max(dot_product, axis=0), shape=[-1])  # flatten to rank-1 tensor
+        similarity_values = tf.reshape(tf.reduce_max(dot_product, axis=0), shape=[-1])  # flatten to rank-1 tensor
         return CosineVQEndpoints(y, emb_space, percentage_identity_mapped, similarity_values)
     return y
 
@@ -277,10 +343,29 @@ def __validate_vq_parameters(n: int, vec_size: int, lookup_ord: int, dim_reducti
                          "vector size. Got {} > {}".format(num_dim_reduction_components, vec_size))
 
 
+def __create_embedding_space(x: tf.Tensor, constant_init: bool, initializer: tf.keras.initializers.Initializer, n: int,
+                             vec_size: int) -> tf.Tensor:
+    """
+    Constructs an embedding space variable according to the given parameters (defined analogously to the
+    vector_quantization function).
+    :return: A tensor describing an embedding space variable
+    """
+    get_variable_args = {
+        'name': 'emb_space',
+        'dtype': x.dtype,
+        'initializer': initializer,
+        'trainable': True
+    }
+    if not constant_init:
+        get_variable_args['shape'] = [n, vec_size]
+
+    return tf.get_variable(**get_variable_args)
+
+
 def __add_alpha_loss(x: tf.Tensor, y: tf.Tensor, lookup_ord: int, alpha: Union[tf.Tensor, float]) -> None:
     """
     Adds an 'alpha'-loss (closest embedding update loss) term to the tf.GraphKeys.LOSSES collection.
-    Parameters are defined analogous to the vector_quantization function.
+    Parameters are defined analogously to the vector_quantization function.
     """
     nearest_loss = tf.reduce_mean(alpha * tf.norm(y - tf.stop_gradient(x), lookup_ord, axis=2), axis=[0, 1],
                                   name='alpha_loss')
@@ -308,7 +393,7 @@ def __add_coulomb_loss(emb_closest_spacing: tf.Tensor, gamma: Union[tf.Tensor, f
 
 def __calculate_emb_spacing(emb_space: tf.Tensor, n: int, lookup_ord: int) -> Tuple:
     """
-    Calculates the embeddings' distance from the closest other embedding vector. Parameters defined analogous to the
+    Calculates the embeddings' distance from the closest other embedding vector. Parameters defined analogously to the
     vector_quantization function.
     :param emb_space: A tensor describing the embedding space, of shape [n, vec_size].
     :return: A tuple of the emb_spacing and emb_closest_spacing tensors
@@ -353,7 +438,7 @@ def __transform_lookup_space(x: tf.Tensor, emb_space: tf.Tensor, mode: str, in_s
                              vec_size: int, num_dim_reduction_components: int) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Transforms the lookup space (i.e. the input batch x and the embedding space) using the given mode
-    (one of ['pca-batch', 'pca-emb-space']). Parameters defined analogous to the vector_quantization function.
+    (one of ['pca-batch', 'pca-emb-space']). Parameters are defined analogously to the vector_quantization function.
     :return: A tuple of two tensors: the transformed x-space and the transformed embedding space.
     """
     adjusted_x, adjusted_emb_space = x, emb_space
@@ -388,7 +473,7 @@ def __create_embedding_space_replacement_op(x: tf.Tensor, y: tf.Tensor, access_c
                                             is_training: Union[bool, tf.Tensor]) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Creates a TensorFlow op that replaces the given number of embedding vectors per batch. Also applies this
-    replacement op automatically after each batch, is is_training is True. Parameters defined analogous to the
+    replacement op automatically after each batch, is is_training is True. Parameters are defined analogously to the
     vector_quantization function.
     :param access_count: Tensor describing how often each of the embedding vectors has been used
     :param dist: Tensor describing the distance between the embeddings and the input

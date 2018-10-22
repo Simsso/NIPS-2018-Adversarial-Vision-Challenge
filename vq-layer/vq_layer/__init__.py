@@ -1,3 +1,5 @@
 from vq_layer.vq_layer import vector_quantization
 from vq_layer.vq_layer import cosine_vector_quantization
+from vq_layer.vq_layer import cosine_knn_vector_quantization
 from vq_layer.vq_layer import VQEndpoints
+from vq_layer.vq_layer import CosineVQEndpoints
