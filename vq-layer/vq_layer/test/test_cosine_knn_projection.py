@@ -138,3 +138,24 @@ class TestCosineKNNProjection(TFTestCase):
         y = self.feed(emb_space_val=emb_space, emb_labels=emb_labels, k=k, num_classes=num_classes, x_val=x_val,
                       majority_threshold=majority_threshold)
         self.assert_numerically_equal(y, expected)
+
+    def test_dynamic_batch_size(self):
+        """
+        Tests with variable batch size that is unknown at graph construction time.
+        """
+        x_val = np.array([[[0, 1, 0]], [[1, 2, 3]], [[1, 2, 3]]], dtype=np.float32)
+        emb_space_val = np.array([[1, 2.2, 3], [1.2, 2, 3], [1.1, 2, 3.1], [1, 5, 0.5], [0.1, .7, .1], [2, 10, 2]])
+        emb_labels_val = np.array([0, 1, 2, 3, 3, 1], dtype=np.int32)
+        self.x = tf.placeholder(tf.float32, shape=[None, 1, 3])
+        self.emb_labels = tf.placeholder_with_default(emb_labels_val, shape=emb_labels_val.shape)
+
+        emb_space_init = tf.constant_initializer(emb_space_val, dtype=tf.float32)
+        endpoints = cos_knn_vq(self.x, self.emb_labels, num_classes=4, k=3, n=len(emb_labels_val), return_endpoints=True,
+                               embedding_initializer=emb_space_init, majority_threshold=.5)
+
+        self.init_vars()
+
+        y = self.sess.run(endpoints.layer_out, feed_dict={self.x: x_val})
+
+        expected = [[[1, 5, 0.5]], [[1, 2, 3]], [[1, 2, 3]]]
+        self.assert_numerically_equal(y, expected)

@@ -210,7 +210,7 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_clas
 
         # do explicit broadcasting here since m==1 might introduce ambiguities
         quantization_shape = most_common_label.get_shape().as_list()    # [batch, m]
-        quantization_shape[0] = 1 if quantization_shape[0] is None else quantization_shape[0]
+        quantization_shape[0] = -1 if quantization_shape[0] is None else quantization_shape[0]
         most_common_label_bc = tf.broadcast_to(most_common_label, shape=[n] + quantization_shape)
         broadcasted_emb_labels = tf.broadcast_to(emb_labels, shape=quantization_shape + [n])
         broadcasted_emb_labels = tf.transpose(broadcasted_emb_labels, perm=[2, 0, 1])
