@@ -211,6 +211,7 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_clas
         # do explicit broadcasting here since m==1 might introduce ambiguities
         quantization_shape = most_common_label.get_shape().as_list()    # [batch, m]
         quantization_shape[0] = -1 if quantization_shape[0] is None else quantization_shape[0]
+
         most_common_label_bc = tf.broadcast_to(most_common_label, shape=[n] + quantization_shape)
         broadcasted_emb_labels = tf.broadcast_to(emb_labels, shape=quantization_shape + [n])
         broadcasted_emb_labels = tf.transpose(broadcasted_emb_labels, perm=[2, 0, 1])
@@ -230,7 +231,9 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_clas
             identity_mapping_mask = tf.less(fraction_of_top_class, majority_threshold)
 
             # broadcast to equal the shape of x / y
-            identity_mapping_mask_bc = tf.broadcast_to(tf.expand_dims(identity_mapping_mask, axis=2), shape=y.shape)
+            vec_size = y.get_shape().as_list()[-1]
+            identity_mapping_mask_bc = tf.tile(tf.expand_dims(identity_mapping_mask, axis=2),
+                                               multiples=[1, 1, vec_size])
             y = tf.where(identity_mapping_mask_bc, x=x, y=y)
 
             # count how many inputs in the batch were identity-mapped
