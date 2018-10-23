@@ -1,2 +1,3 @@
 numpy
 tensorflow-gpu
+google-api-python-client
