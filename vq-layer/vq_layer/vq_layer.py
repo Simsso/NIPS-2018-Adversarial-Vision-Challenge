@@ -212,9 +212,9 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_clas
         quantization_shape = most_common_label.get_shape().as_list()    # [batch, m]
         quantization_shape[0] = -1 if quantization_shape[0] is None else quantization_shape[0]
 
-        most_common_label_bc = tf.broadcast_to(most_common_label, shape=[n] + quantization_shape)
-        broadcasted_emb_labels = tf.broadcast_to(emb_labels, shape=quantization_shape + [n])
-        broadcasted_emb_labels = tf.transpose(broadcasted_emb_labels, perm=[2, 0, 1])
+        most_common_label_bc = tf.expand_dims(most_common_label, axis=0)            # [1, batch, m]
+        broadcasted_emb_labels = tf.expand_dims(emb_labels, axis=1)
+        broadcasted_emb_labels = tf.expand_dims(broadcasted_emb_labels, axis=2)     # [n, 1, 1]
 
         # find out which embedding vectors are possible (i.e. have the most common label among the top-k)
         possible_emb_indices = tf.equal(broadcasted_emb_labels, most_common_label_bc)  # [n, batch, m]
