@@ -208,10 +208,6 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_clas
         summed_top_k_labels = tf.reduce_sum(top_k_labels, axis=2)       # [batch, m, num_classes]
         most_common_label = tf.argmax(summed_top_k_labels, axis=2, output_type=emb_labels.dtype)  # [batch, m]
 
-        # do explicit broadcasting here since m==1 might introduce ambiguities
-        quantization_shape = most_common_label.get_shape().as_list()    # [batch, m]
-        quantization_shape[0] = -1 if quantization_shape[0] is None else quantization_shape[0]
-
         most_common_label_bc = tf.expand_dims(most_common_label, axis=0)            # [1, batch, m]
         broadcasted_emb_labels = tf.expand_dims(emb_labels, axis=1)
         broadcasted_emb_labels = tf.expand_dims(broadcasted_emb_labels, axis=2)     # [n, 1, 1]
@@ -236,10 +232,8 @@ def cosine_knn_vector_quantization(x: tf.Tensor, emb_labels: tf.Tensor, num_clas
                                                multiples=[1, 1, vec_size])
             y = tf.where(identity_mapping_mask_bc, x=x, y=y)
 
-            # count how many inputs in the batch were identity-mapped
-            number_of_inputs_mapped = tf.reduce_sum(tf.cast(identity_mapping_mask_bc, dtype=tf.float32))
-            number_of_inputs = quantization_shape[0] * quantization_shape[1]
-            percentage_identity_mapped = number_of_inputs_mapped / number_of_inputs
+            # count how many inputs in the batch were identity-mapped vs. not
+            percentage_identity_mapped = tf.reduce_mean(tf.cast(identity_mapping_mask_bc, dtype=tf.float32))
 
         return y, percentage_identity_mapped, identity_mapping_mask, most_common_label
 
