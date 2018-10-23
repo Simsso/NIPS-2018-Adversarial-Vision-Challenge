@@ -9,8 +9,8 @@ from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 
 tf.flags.DEFINE_string("lesci_emb_space_file", os.path.expanduser(os.path.join('~', '.data', 'activations',
                                                                                'data_lesci_emb_space_small.mat')),
-                       "Path to the file (*.mat) where embedding space values ('act') and labels ('labels') are being "
-                       "stored.")
+                       "Path to the file (*.mat) where embedding space values ('act_compressed') and labels ('labels') "
+                       "are being stored.")
 tf.flags.DEFINE_string("pca_compression_file", os.path.expanduser(os.path.join('~', '.data', 'activations',
                                                                                'pca.mat')),
                        "Path to the file (*.mat) where the PCA compression matrix ('pca_out') is stored.")
@@ -36,9 +36,9 @@ class LESCIResNet(ResNet):
             label_variable = tf.get_variable('lesci_labels', dtype=tf.int32,
                                              initializer=self._make_init(FLAGS.lesci_emb_space_file, [num_samples],
                                                                          tf.int32, mat_name='labels'), trainable=False)
-            embedding_initializer = self._make_init(FLAGS.lesci_emb_space_file, shape, tf.float32, mat_name='act')
-            vq = cos_knn_vq(x, emb_labels=label_variable, num_classes=TinyImageNetPipeline.num_classes, k=100,
-                            n=num_samples, embedding_initializer=embedding_initializer, constant_init=True,
+            embedding_init = self._make_init(FLAGS.lesci_emb_space_file, shape, tf.float32, mat_name='act_compressed')
+            vq = cos_knn_vq(x, emb_labels=label_variable, num_classes=TinyImageNetPipeline.num_classes, k=1,
+                            n=num_samples, embedding_initializer=embedding_init, constant_init=True,
                             num_splits=1, return_endpoints=True, majority_threshold=.5, name='cos_knn_vq')
             identity_mask = vq.identity_mapping_mask
             label = vq.most_common_label

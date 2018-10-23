@@ -22,6 +22,3 @@ same_class_act = act(labels==sample_label,:);
 cos_sim_same_class = same_class_act*sample_vec;
 h2 = histogram(cos_sim_same_class);
 h2.BinWidth = 0.01
-
-export_path = '/Users/timodenk/.data/activations/lesci.mat' % LESCI
-save(export_path, 'act', 'labels')
