@@ -5,6 +5,14 @@ from vq_layer import VQEndpoints
 
 
 class ParallelVQResNet(ResNet):
+    """
+    The "Parallel VQ-ResNet" uses several VQ-layers in parallel: The output of a conv layer (here referred to as
+    activation) has a certain number of channels. The n VQ layers are applied to different channels, e.g. the first one
+    to channel 1-4, the second to 5-8, etc.
+    The embedding spaces can therefore focus on learning representations that are specific to a smaller number of
+    channels.
+    """
+
     def __parallel_vqs(self, x: tf.Tensor) -> tf.Tensor:
         self._post_gradient_ops = []
 

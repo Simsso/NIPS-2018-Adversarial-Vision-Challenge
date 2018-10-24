@@ -13,7 +13,10 @@ class TestCosineKNNProjection(TFTestCase):
     def feed(self, emb_space_val: Union[List, np.ndarray], emb_labels: Union[List, np.ndarray], k: int,
              num_classes: int, x_val: Union[List, np.ndarray], majority_threshold: float = -1) -> np.ndarray:
         x_val = np.array(x_val, dtype=np.float32)
-        self.x = tf.placeholder_with_default(x_val, shape=x_val.shape)
+
+        x_shape = x_val.shape
+        placeholder_shape = [None, 1, x_shape[1]] if len(x_shape) == 2 else [None, x_shape[1], x_shape[2]]
+        self.x = tf.placeholder(tf.float32, shape=placeholder_shape) #tf.placeholder_with_default(x_val, shape=x_val.shape)
         self.x_reshaped = tf.expand_dims(self.x, axis=1) if len(x_val.shape) == 2 else self.x
 
         n = len(emb_labels)
