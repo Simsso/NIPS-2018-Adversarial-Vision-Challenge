@@ -1,5 +1,4 @@
 from typing import List
-
 import numpy as np
 import tensorflow as tf
 from vq_layer.test.tf_test_case import TFTestCase

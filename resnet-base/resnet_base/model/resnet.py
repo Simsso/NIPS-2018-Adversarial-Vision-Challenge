@@ -2,7 +2,7 @@ import os
 from resnet_base.model.base_model import BaseModel
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data, TinyImageNetPipeline
 import tensorflow as tf
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from resnet_base.util.logger.factory import LoggerFactory
 
@@ -70,6 +70,20 @@ class ResNet(BaseModel):
         super().restore(sess)
         BaseModel._restore_checkpoint(self.pretrained_saver, sess, path=FLAGS.pretrained_checkpoint)
 
+    def pre_gradient_application(self, sess: tf.Session) -> None:
+        """
+        Called by the trainer class once per step, right before applying the gradient.
+        :param sess: Session that will be used to update the gradients
+        """
+        pass
+
+    def post_gradient_application(self, sess: tf.Session) -> None:
+        """
+        Called by the trainer class once per step, right after applying the gradient.
+        :param sess: Session that has been used to update the gradients
+        """
+        pass
+
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         """
         Builds the ResNet model graph with the TF API. This function is intentionally kept simple and sequential to
@@ -95,7 +109,8 @@ class ResNet(BaseModel):
         # cross_entropy_loss is a scalar
         tf.add_to_collection(tf.GraphKeys.LOSSES, cross_entropy_loss)
         self.loss = tf.add_n(tf.get_collection(tf.GraphKeys.LOSSES))
-        self.logger_factory.add_scalar('loss', self.loss, log_frequency=25)
+        self.logger_factory.add_scalar('loss', self.loss, log_frequency=10)
+        self.logger_factory.add_scalar('cross_entropy_loss', cross_entropy_loss, log_frequency=25)
 
     def _init_accuracy(self) -> None:
         """
@@ -103,7 +118,7 @@ class ResNet(BaseModel):
         """
         correct = tf.cast(tf.equal(tf.argmax(self.softmax, axis=1), tf.cast(self.labels, tf.int64)), dtype=tf.float32)
         self.accuracy = tf.reduce_mean(correct, name='accuracy')
-        self.logger_factory.add_scalar('accuracy', self.accuracy, log_frequency=25)
+        self.logger_factory.add_scalar('accuracy', self.accuracy, log_frequency=10)
 
     def _resnet_arg_scope(self, weight_decay: float = 0.0001) -> Dict:
         """
@@ -116,7 +131,7 @@ class ResNet(BaseModel):
             'scale': True,
             'updates_collections': tf.GraphKeys.UPDATE_OPS,
             'fused': None,  # use if possible
-            'is_training': self.is_training,
+            'is_training': False,  # use self.is_training if batch normalization usage is desired
         }
 
         with slim.arg_scope([slim.conv2d], weights_regularizer=slim.l2_regularizer(weight_decay),
@@ -240,3 +255,24 @@ class ResNet(BaseModel):
         if stride == 1:
             return x
         return slim.max_pool2d(x, [1, 1], stride=stride, scope=scope)
+
+    def _log_moments_every_epoch(self, x: tf.Tensor, axes: List[int], name: str) -> None:
+        """
+        Adds logs of the input tensor x's mean and standard deviation which are aggregated and then normalized each
+        epoch. First, the 1st and 2nd moments are calculated over the given axes, then they are normalized over
+        the other dimensions, such that the result is a scalar. May be used to find out the ideal initializer params.
+        :param x: Input tensor
+        :param axes: Axes along which the mean and stddev are calculated
+        :param name: Suffix for the log names.
+        """
+        effective_batch_size = FLAGS.physical_batch_size * FLAGS.virtual_batch_size_factor
+        steps_per_epoch = TinyImageNetPipeline.num_train_samples // effective_batch_size
+        mean, stddev = tf.nn.moments(x, axes)
+
+        if len(mean.shape) != len(axes):
+            # normalize over the other dimensions
+            mean = tf.reduce_mean(mean)
+            stddev = tf.reduce_mean(stddev)
+
+        self.logger_factory.add_scalar('mean_{}'.format(name), mean, log_frequency=steps_per_epoch)
+        self.logger_factory.add_scalar('stddev_{}'.format(name), stddev, log_frequency=steps_per_epoch)

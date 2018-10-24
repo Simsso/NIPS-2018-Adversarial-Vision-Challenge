@@ -1,19 +1,25 @@
+#!/bin/bash
 TAG_NAME=$1
 
-if [ $# -eq 0 ]
+if [ $# -eq 0  ]
   then
-    echo "Please supply tagname! In form of [a-zA-Z-0-9]*-[0-9.a-zA-Z]*$"
-    return
+  echo "Please supply tagname! In form of [a-zA-Z-0-9]*-[0-9.a-zA-Z]*$"
+  exit 1
 fi
 
-echo "Trying to delete existing local tag $1 .."
-git tag -d $TAG_NAME
+if [[ $TAG_NAME =~ ^[0-9a-zA-Z.-]+$ ]]; then
+    echo "Trying to delete existing local tag $1 .."
+    git tag -d $TAG_NAME
 
-echo "Trying to delete existing remote tag $1 .."
-git push --delete origin $TAG_NAME
+    echo "Trying to delete existing remote tag $1 .."
+    git push --delete origin $TAG_NAME
 
-echo "Creating tag for latest commit in branch .."
-git tag $TAG_NAME
+    echo "Creating tag for latest commit in branch .."
+    git tag $TAG_NAME
 
-echo "Pushing tag to origin .."
-git push origin $TAG_NAME
+    echo "Pushing tag to origin .."
+    git push origin $TAG_NAME
+else
+    echo "Please supply tagname! In form of [a-zA-Z-0-9]*-[0-9.a-zA-Z]*$"
+    exit 1
+fi

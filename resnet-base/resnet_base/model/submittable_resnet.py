@@ -10,14 +10,15 @@ class SubmittableResNet(VQResNet):
     This is a simple wrapper around the ResNet model which offers a function that converts the model to a
     foolbox model which can easily be submitted to the challenge website.
     """
+
     def __init__(self, logger_factory: LoggerFactory = None, x: tf.Tensor = None, labels: tf.Tensor = None):
         super().__init__(logger_factory=logger_factory, x=x, labels=labels)
 
-    """
-    Returns an instance of a foolbox Model (more specifically, a TensorFlowModel) which is configured to use
-    the x-placeholder and the logits of this model. It specifies pre-processing settings as expected by the model.  
-    """
-    def get_foolbox_model(self):
+    def get_foolbox_model(self) -> TensorFlowModel:
+        """
+        Returns an instance of a foolbox Model (more specifically, a TensorFlowModel) which is configured to use
+        the x-placeholder and the logits of this model. It specifies pre-processing settings as expected by the model.
+        """
         images = self.x
         logits = self.logits
 

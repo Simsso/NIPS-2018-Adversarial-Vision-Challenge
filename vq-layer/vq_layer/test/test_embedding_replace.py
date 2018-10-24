@@ -1,9 +1,8 @@
-from typing import List, Union
-
+from typing import List
 import numpy as np
 import tensorflow as tf
 from vq_layer.test.tf_test_case import TFTestCase
-from vq_layer.vq_layer import vector_quantization
+from vq_layer.vq_layer import vector_quantization as vq
 
 
 class TestEmbeddingReplace(TFTestCase):
@@ -18,77 +17,94 @@ class TestEmbeddingReplace(TFTestCase):
         self.x = tf.placeholder(tf.float32, shape=[None, 2])
         self.x_reshaped = tf.expand_dims(self.x, axis=1)
         self.emb_space_val = np.array([[0, 0], [1, 1], [2, 2]], dtype=np.float32)
+        self.is_training = tf.placeholder(tf.bool, shape=(), name='is_training')
 
-    def feed(self, x_in: List, emb_target: Union[List, np.ndarray], lookup_ord: Union[int, str],
-             num_embeds_replaced: int) -> None:
-        x_val = np.array(x_in, dtype=np.float32)
-        endpoints = vector_quantization(self.x_reshaped, len(self.emb_space_val), lookup_ord=lookup_ord,
-                                        embedding_initializer=tf.constant_initializer(self.emb_space_val),
-                                        num_embeds_replaced=num_embeds_replaced, return_endpoints=True)
+    def init_vq(self, num_embeds_replaced: int) -> None:
+        self.vq_endpoints = vq(self.x_reshaped, len(self.emb_space_val), lookup_ord=1,
+                               num_embeds_replaced=num_embeds_replaced,
+                               embedding_initializer=tf.constant_initializer(self.emb_space_val),
+                               is_training=self.is_training, return_endpoints=True)
+        self.assertIsNotNone(self.vq_endpoints.replace_embeds)
         self.init_vars()
 
-        # run the replacement op (if existent) and then check the embedding space
-        if endpoints.replace_embeds is not None:
-            self.sess.run(endpoints.replace_embeds, feed_dict={self.x: x_val})
-        emb_val = self.sess.run(endpoints.emb_space)
+    def feed(self, x_val: List, is_training_val: bool = True) -> None:
+        self.sess.run(self.vq_endpoints.layer_out, feed_dict={self.x: x_val, self.is_training: is_training_val})
 
-        self.assert_numerically_equal(emb_val, emb_target)
+    def perform_replacement(self) -> None:
+        self.sess.run(self.vq_endpoints.replace_embeds)
 
-    def test_no_action_for_no_replacements(self) -> None:
+    def assert_emb_space(self, expected_val: List) -> None:
+        emb_space_val = self.sess.run(self.vq_endpoints.emb_space)
+        self.assert_numerically_equal(emb_space_val, expected_val)
+
+    def test_single_batch_single_replacement_1(self) -> None:
         """
-        Embedding space is preserved, if the number of replacements is set to 0.
+        Replacement of a single vector after feeding a single batch.
         """
-        emb_target = self.emb_space_val
-        self.feed(x_in=[[1, 2], [4, 5]], emb_target=emb_target, lookup_ord=1, num_embeds_replaced=0)
+        self.init_vq(num_embeds_replaced=1)
+        self.feed([[.1, .1], [1.1, 1.1], [10, 10]])
+        self.perform_replacement()
+        self.assert_emb_space([[10, 10], [1, 1], [2, 2]])
 
-    def test_single_replacement(self) -> None:
+    def test_single_batch_single_replacement_2(self) -> None:
         """
-        Test replacing a single vector in the embedding space.
-
-        initial emb space: [0, 0], [1, 1], [2, 2]
-        input x_in should be mapped to the 2nd and 3rd embeddings, and [5, 5] should be the most distant input,
-        therefore replace the [0, 0] embedding
+        Replacement of a single vector after feeding a single batch.
         """
-        x_in = [[1.1, 0.9], [2.1, 1.8], [5, 5]]
-        emb_target = [[5, 5], [1, 1], [2, 2]]
+        self.init_vq(num_embeds_replaced=1)
+        self.feed([[100, 100], [1.1, 0.9], [0, 0], [0, 0], [.6, .6]])
+        self.perform_replacement()
+        self.assert_emb_space([[0, 0], [1, 1], [100, 100]])
 
-        self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=1, num_embeds_replaced=1)
-
-    def test_error_if_batch_too_small(self) -> None:
+    def test_multiple_batches_single_replacement(self) -> None:
         """
-        Test the case where the number of replacements is larger than the number of inputs.
-        num_embeds_replaced = 4 > 3 = batch_size ==> should raise error
+        Replacement of a single vector after feeding multiple batches.
+        Usage count:
+        [[0, 0], [1, 1], [2, 2]]
+             4       2       3
         """
-        x_in = [[1.1, 0.9], [2.1, 1.8], [5, 5]]
-        emb_target = [[5, 5], [1, 1], [2, 2]]
+        self.init_vq(num_embeds_replaced=1)
+        self.feed([[.1, .1], [1.1, 1.1], [10, 10]])
+        self.feed([[.1, .1], [1.1, 1.1], [20, 20]])
+        self.feed([[.1, .1], [2, 2], [-3, -3]])
+        self.perform_replacement()
+        self.assert_emb_space([[0, 0], [20, 20], [2, 2]])
 
-        with self.assertRaises(ValueError):
-            self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=1, num_embeds_replaced=len(x_in)+1)
-
-    def test_two_replacements(self) -> None:
+    def test_multiple_batches_multiple_replacements(self) -> None:
         """
-        Test the replacement feature with two replacements.
-
-        initial emb space: [0, 0], [1, 1], [2, 2]
-        usage count:       [    3,      1,     1]
-        least used (2):    [     ,      x,     x]
+        Replacement of multiple vectors after feeding multiple batches.
         """
+        self.init_vq(num_embeds_replaced=2)
+        self.feed([[4, 4], [5, 5], [6, 6], [-10, -10]])
+        self.feed([[4, 4], [5, 5], [-11, -11], [6, 6]])
+        self.perform_replacement()
+        self.assert_emb_space([[-10, -10], [-11, -11], [2, 2]])
 
-        x_in = [[0.1, -0.1], [0, 0.3], [1.1, 0.9], [-4, -4], [20, 20]]
-        emb_target = [[0, 0], [20, 20], [-4, -4]]
+    def test_is_training_consideration_1(self) -> None:
+        """
+        Test that no replacement is done when feeding data through the VQ layer with is_training set to False.
+        """
+        self.init_vq(num_embeds_replaced=1)
+        self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [5, 5]], is_training_val=True)
+        self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [10, 10]], is_training_val=False)
+        self.perform_replacement()
+        self.assert_emb_space([[0, 0], [1, 1], [5, 5]])
 
-        self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=2, num_embeds_replaced=2)
+    def test_is_training_consideration_2(self) -> None:
+        """
+        Test that no replacement is done when feeding data through the VQ layer with is_training set to False.
+        """
+        self.init_vq(num_embeds_replaced=1)
+        self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [5, 5]], is_training_val=True)
+        self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [10, 10]], is_training_val=False)
+        self.feed([[-5, 38], [.5, .5], [-3, .2], [6.4, 32], [-20, -20]], is_training_val=False)
+        self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [6, 6]], is_training_val=True)
+        self.feed([[.1, .1], [.2, -.2], [1, 1], [1.1, 1.1], [4, 4]], is_training_val=True)
+        self.perform_replacement()
+        self.assert_emb_space([[0, 0], [1, 1], [6, 6]])
 
-    def test_full_replacement(self):
-        # initial emb space: [0, 0], [1, 1], [2, 2]
-        # x_in:                                             [[0.2, 0.2], [2.5, 2.5], [1, 1], [0.15, -0.15], [2.1, 2.1]]
-        # distance to closest embedding vector (for ord=1):     0.4           1        0          0.3           0.2
-        # used as replacement for the embedding space:           y            y        n           y             n
-        x_in = [[0.2, 0.2], [2.5, 2.5], [1, 1], [0.15, -0.15], [2.1, 2.1]]
-        emb_target = [[0.2, 0.2], [2.5, 2.5], [0.15, -0.15]]
-
-        self.feed(x_in=x_in, emb_target=emb_target, lookup_ord=1, num_embeds_replaced=3)
-
-
-if __name__ == '__main__':
-    unittest.main()
+    def test_no_op_for_zero_replacements(self) -> None:
+        """
+        Test that the endpoint `replace_embeds` is `None` when setting `num_embeds_replaced=0`
+        """
+        endpoints = vq(self.x_reshaped, len(self.emb_space_val), num_embeds_replaced=0, return_endpoints=True)
+        self.assertIsNone(endpoints.replace_embeds)

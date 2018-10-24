@@ -9,6 +9,7 @@ from resnet_base.data.base_pipeline import BasePipeline
 
 tf.flags.DEFINE_string('data_dir', path.expanduser('~/.data/tiny-imagenet-200'),
                        'Path of the Tiny ImageNet dataset folder')
+tf.flags.DEFINE_bool('enable_train_augmentation', False, 'Whether to enable image augmentation for training samples.')
 
 FLAGS = tf.flags.FLAGS
 
@@ -27,10 +28,11 @@ class TinyImageNetPipeline(BasePipeline):
 
     __supported_modes = [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]
 
-    def __init__(self, data_dir: str = None, physical_batch_size: int = 256):
+    def __init__(self, data_dir: str = None, physical_batch_size: int = 256, shuffle: bool = True):
         """
         :param data_dir: Directory of the folder from http://cs231n.stanford.edu/tiny-imagenet-200.zip
         :param physical_batch_size: Batch size which the pipeline is supposed to provide
+        :param shuffle: Whether or not to shuffle the data
         """
         super().__init__()
         if not data_dir:
@@ -53,6 +55,7 @@ class TinyImageNetPipeline(BasePipeline):
         }
         self.filenames = {}
         self.raw_labels = {}
+        self.shuffle = shuffle
 
         self.__init_filenames_labels()
 
@@ -81,10 +84,10 @@ class TinyImageNetPipeline(BasePipeline):
             raise ValueError("Supported modes are {}. Got '{}'.".format(self.__supported_modes, mode))
 
         data = tf.data.Dataset.from_tensor_slices(self.placeholder[mode])
-        if mode == tf.estimator.ModeKeys.TRAIN:  # shuffle only training data
-            data = data.shuffle(buffer_size=self.__get_num_samples(mode), seed=15092017)
+        if self.shuffle:
+            data = data.shuffle(buffer_size=self.get_num_samples(mode), seed=15092017)
         data = data.map(self.__img_loading)
-        if mode == tf.estimator.ModeKeys.TRAIN:
+        if mode == tf.estimator.ModeKeys.TRAIN and FLAGS.enable_train_augmentation:
             data = data.map(self.__img_augmentation)
         data = data.map(self.__img_label_scaling)
         data = data.batch(self.batch_size)
@@ -182,13 +185,6 @@ class TinyImageNetPipeline(BasePipeline):
                     class_description[label_dict[synset]] = desc
         return label_dict, class_description
 
-    def __get_num_samples(self, mode: tf.estimator.ModeKeys) -> int:
-        """
-        :param mode: TRAIN (training) or EVAL (validation)
-        :return: Number of samples the dataset contains for the given pipeline mode.
-        """
-        return self.num_train_samples if mode == tf.estimator.ModeKeys.TRAIN else self.num_valid_samples
-
     def switch_to(self, mode: tf.estimator.ModeKeys, feed_dict: Optional[Dict] = None, sess: tf.Session = None) -> None:
         """
         Switches the input pipeline to the given mode in the given session.
@@ -203,3 +199,14 @@ class TinyImageNetPipeline(BasePipeline):
                 self.placeholder[mode][1]: self.raw_labels[mode]
             }
         super(TinyImageNetPipeline, self).switch_to(mode, feed_dict)
+
+    def get_num_samples(self, mode: tf.estimator.ModeKeys) -> int:
+        """
+        :param mode: TRAIN (training) or EVAL (validation)
+        :return: Number of samples in the given mode
+        """
+        if mode == tf.estimator.ModeKeys.TRAIN:
+            return self.num_train_samples
+        if mode == tf.estimator.ModeKeys.EVAL:
+            return self.num_valid_samples
+        raise ValueError("Could not find number of training samples for mode {}.".format(mode))

@@ -7,7 +7,7 @@ variable "model_docker_image" {
 }
 
 variable "project" {
-  default = "nips-2018-207619"
+  default = "nips-2018-102018"
 }
 
 variable "region" {
@@ -19,5 +19,5 @@ variable "zone" {
 }
 
 variable "machine_type" {
-  default = "custom-2-6400"
+  default = "custom-4-25600"
 }
