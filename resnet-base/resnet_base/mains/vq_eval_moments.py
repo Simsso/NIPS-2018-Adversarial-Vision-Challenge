@@ -6,7 +6,13 @@ from resnet_base.util.logger.factory import LoggerFactory
 from resnet_base.util.logger.tf_logger_init import init as logger_init
 
 
-tf.flags.DEFINE_integer("physical_batch_size", 32, "Number of samples per batch that is fed through the GPU at once.")
+"""
+Batch terminology:
+* Physical batch size: Number of samples that are fed through the GPU at once.
+* Virtual batch size factor: Number of physical batches that are accumulated for a gradient update.
+* Virtual batch size: physical * virtual factor 
+"""
+tf.flags.DEFINE_integer("physical_batch_size", 32, "Number of samples per batch that are fed through the GPU at once.")
 tf.flags.DEFINE_integer("virtual_batch_size_factor", 8, "Number of batches per weight update.")
 FLAGS = tf.flags.FLAGS
 

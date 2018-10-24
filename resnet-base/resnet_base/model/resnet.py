@@ -107,7 +107,7 @@ class ResNet(BaseModel):
         labels_one_hot = tf.one_hot(self.labels, depth=Data.num_classes)
         cross_entropy_loss = tf.losses.softmax_cross_entropy(labels_one_hot, self.logits)
         # cross_entropy_loss is a scalar
-        # tf.add_to_collection(tf.GraphKeys.LOSSES, cross_entropy_loss)
+        tf.add_to_collection(tf.GraphKeys.LOSSES, cross_entropy_loss)
         self.loss = tf.add_n(tf.get_collection(tf.GraphKeys.LOSSES))
         self.logger_factory.add_scalar('loss', self.loss, log_frequency=10)
         self.logger_factory.add_scalar('cross_entropy_loss', cross_entropy_loss, log_frequency=25)
