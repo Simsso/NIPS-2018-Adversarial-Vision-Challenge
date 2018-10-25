@@ -4,19 +4,37 @@ import numpy as np
 from PIL import Image
 
 from foolbox.criteria import Misclassification
-from foolbox.attacks import FGSM, LBFGSAttack, AdditiveGaussianNoiseAttack, GradientSignAttack
+import foolbox.attacks
 
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.model.submittable_resnet import SubmittableResNet
 
 VALIDATION_IMAGES_DIR = os.path.expanduser('~/.data/tiny-imagenet-200/val/images')
-NUM_IMAGES_PER_ATTACK = 5
+NUM_IMAGES_PER_ATTACK = 1
 
 __attacks = [
-    FGSM,
-    LBFGSAttack,
-    AdditiveGaussianNoiseAttack,
-    GradientSignAttack,
+    foolbox.attacks.FGSM,
+    foolbox.attacks.GradientSignAttack,
+    foolbox.attacks.IterativeGradientSignAttack,
+    foolbox.attacks.IterativeGradientAttack,
+    foolbox.attacks.LBFGSAttack,
+    foolbox.attacks.ApproximateLBFGSAttack,
+    foolbox.attacks.DeepFoolAttack,
+    foolbox.attacks.DeepFoolL2Attack,
+    foolbox.attacks.DeepFoolLinfinityAttack,
+    foolbox.attacks.SaliencyMapAttack,
+    foolbox.attacks.GaussianBlurAttack,
+    foolbox.attacks.ContrastReductionAttack,
+    foolbox.attacks.SinglePixelAttack,
+    foolbox.attacks.LocalSearchAttack,
+    foolbox.attacks.SLSQPAttack,
+    foolbox.attacks.AdditiveNoiseAttack,
+    foolbox.attacks.AdditiveUniformNoiseAttack,
+    foolbox.attacks.AdditiveGaussianNoiseAttack,
+    foolbox.attacks.BlendedUniformNoiseAttack,
+    foolbox.attacks.SaltAndPepperNoiseAttack,
+    foolbox.attacks.PrecomputedImagesAttack,
+    foolbox.attacks.BoundaryAttack
 ]
 
 
@@ -49,6 +67,7 @@ def main(args):
                 # compare pixels to original image
                 l2_pixel_distance = np.sum(np.square((image - adversarial_image) / 255.))
                 l2_distances.append(l2_pixel_distance)
+                print("{} *did* produce an attack!".format(attack.name()))
             else:
                 print("{} could not find an adversarial image.".format(attack.name()))
 
