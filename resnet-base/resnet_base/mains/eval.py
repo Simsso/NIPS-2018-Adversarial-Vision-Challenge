@@ -48,7 +48,7 @@ def run_validation(model: LESCIResNet, pipeline: TinyImageNetPipeline, mode: tf.
         for i in range(n):
             vals.append(sess.run(fetches))
             acc_mean_val, loss_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val = np.mean(vals, axis=0)
-            tf.logging.info("[{:,}/{:,}] Current overall accuracy: {:.3f}\tprojection: {:.3f}\tid-mapping: {:.3f}"
+            tf.logging.info("[{:,}/{:,}]\tCurrent overall accuracy: {:.3f}\tprojection: {:.3f}\tid-mapping: {:.3f}"
                             "\tpercentage id-mapped: {:.3f}"
                             .format(i, n, acc_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val))
 

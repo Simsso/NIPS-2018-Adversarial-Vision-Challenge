@@ -54,7 +54,7 @@ class LESCIResNet(ResNet):
                                              initializer=self._make_init(FLAGS.lesci_emb_space_file, [num_samples],
                                                                          tf.int32, mat_name='labels'), trainable=False)
             embedding_init = self._make_init(FLAGS.lesci_emb_space_file, shape, tf.float32, mat_name='act_compressed')
-            vq = cos_knn_vq(x, emb_labels=label_variable, num_classes=TinyImageNetPipeline.num_classes, k=1,
+            vq = cos_knn_vq(x, emb_labels=label_variable, num_classes=TinyImageNetPipeline.num_classes, k=10,
                             n=num_samples, embedding_initializer=embedding_init, constant_init=True,
                             num_splits=1, return_endpoints=True, majority_threshold=.5, name='cos_knn_vq')
             identity_mask = vq.identity_mapping_mask
@@ -93,17 +93,21 @@ class LESCIResNet(ResNet):
         labels = tf.cast(self.labels, tf.int64)
         identity_softmax = tf.nn.softmax(resnet_out)
 
+        # adding .001 so we don't divide by zero
+        num_identity_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32)) + .001
+        num_projected = tf.reduce_sum(tf.cast(tf.logical_not(identity_mask), dtype=tf.float32)) + .001
+
         correct_identity = tf.equal(tf.argmax(identity_softmax, axis=1), labels)
         # only include the correctly classified inputs that are identity-mapped
         correct_identity = tf.logical_and(correct_identity, identity_mask)
-        accuracy_identity = tf.reduce_mean(tf.cast(correct_identity, dtype=tf.float32))
+        accuracy_identity = tf.reduce_sum(tf.cast(correct_identity, dtype=tf.float32)) / num_identity_mapped
         self.accuracy_identity = accuracy_identity
         self.logger_factory.add_scalar('accuracy_identity_mapping', accuracy_identity, log_frequency=10)
 
         correct_projection = tf.equal(tf.cast(projection_labels, tf.int64), labels)
         # only include the correctly classified inputs that are *not* identity-mapped, i.e. projected
         correct_projection = tf.logical_and(correct_projection, tf.logical_not(identity_mask))
-        accuracy_projection = tf.reduce_mean(tf.cast(correct_projection, dtype=tf.float32))
+        accuracy_projection = tf.reduce_sum(tf.cast(correct_projection, dtype=tf.float32)) / num_projected
         self.accuracy_projection = accuracy_projection
         self.logger_factory.add_scalar('accuracy_projection', accuracy_projection, log_frequency=10)
 
