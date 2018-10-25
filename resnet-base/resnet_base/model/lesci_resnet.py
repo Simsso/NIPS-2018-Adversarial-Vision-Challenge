@@ -19,7 +19,24 @@ FLAGS = tf.flags.FLAGS
 
 class LESCIResNet(ResNet):
 
-    def _lesci_layer(self, x: tf.Tensor, shape: List[int]) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _build_model(self, x: tf.Tensor) -> tf.Tensor:
+        x = ResNet._first_conv(x)  # 16x16x64
+        x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
+        x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
+        x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)  # 2x2x1024
+
+        identity_mask, knn_label, percentage_identity_mapped = self._lesci_layer(x, shape=[74246, 64])
+        self.percentage_identity_mapped = percentage_identity_mapped
+
+        x = ResNet._v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
+        x = ResNet.batch_norm(x)
+        resnet_out = self.global_avg_pooling(x)
+        knn_label_one_hot = tf.one_hot(knn_label, depth=TinyImageNetPipeline.num_classes)
+
+        self.__log_projection_identity_accuracy(identity_mask, resnet_out, knn_label)
+        return tf.where(identity_mask, x=resnet_out, y=knn_label_one_hot)
+
+    def _lesci_layer(self, x: tf.Tensor, shape: List[int]) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         assert len(shape) == 2
         num_samples = shape[0]
         code_size = shape[1]
@@ -42,7 +59,9 @@ class LESCIResNet(ResNet):
                             num_splits=1, return_endpoints=True, majority_threshold=.5, name='cos_knn_vq')
             identity_mask = vq.identity_mapping_mask
             label = vq.most_common_label
-            return tf.reshape(identity_mask, [-1]), tf.reshape(label, [-1])
+            percentage_identity_mapped = vq.percentage_identity_mapped
+
+            return tf.reshape(identity_mask, [-1]), tf.reshape(label, [-1]), percentage_identity_mapped
 
     def _make_init(self, mat_file_path: str, shape: List[int], dtype=tf.float32, mat_name: str = 'emb_space'):
         """
@@ -65,16 +84,31 @@ class LESCIResNet(ResNet):
             tf.logging.info("Could not load variable values; model should be initialized from a checkpoint")
             return tf.placeholder(dtype, shape)
 
-    def _build_model(self, x: tf.Tensor) -> tf.Tensor:
-        x = ResNet._first_conv(x)  # 16x16x64
-        x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)
-        x = ResNet._v2_block(x, 'block2', base_depth=128, num_units=4, stride=2)
-        x = ResNet._v2_block(x, 'block3', base_depth=256, num_units=6, stride=2)  # 2x2x1024
+    def __log_projection_identity_accuracy(self, identity_mask: tf.Tensor, resnet_out: tf.Tensor,
+                                           projection_labels: tf.Tensor):
+        """
+        Calculates the classification accuracy for both the identity-mapped inputs and the projected inputs and logs
+        them.
+        """
+        labels = tf.cast(self.labels, tf.int64)
+        identity_softmax = tf.nn.softmax(resnet_out)
 
-        identity_mask, knn_label = self._lesci_layer(x, shape=[74246, 64])
+        correct_identity = tf.equal(tf.argmax(identity_softmax, axis=1), labels)
+        # only include the correctly classified inputs that are identity-mapped
+        correct_identity = tf.logical_and(correct_identity, identity_mask)
+        accuracy_identity = tf.reduce_mean(tf.cast(correct_identity, dtype=tf.float32))
+        self.accuracy_identity = accuracy_identity
+        self.logger_factory.add_scalar('accuracy_identity_mapping', accuracy_identity, log_frequency=10)
 
-        x = ResNet._v2_block(x, 'block4', base_depth=512, num_units=3, stride=1)
-        x = ResNet.batch_norm(x)
-        resnet_out = self.global_avg_pooling(x)
-        knn_label_one_hot = tf.one_hot(knn_label, depth=TinyImageNetPipeline.num_classes)
-        return tf.where(identity_mask, x=resnet_out, y=knn_label_one_hot)
+        correct_projection = tf.equal(tf.cast(projection_labels, tf.int64), labels)
+        # only include the correctly classified inputs that are *not* identity-mapped, i.e. projected
+        correct_projection = tf.logical_and(correct_projection, tf.logical_not(identity_mask))
+        accuracy_projection = tf.reduce_mean(tf.cast(correct_projection, dtype=tf.float32))
+        self.accuracy_projection = accuracy_projection
+        self.logger_factory.add_scalar('accuracy_projection', accuracy_projection, log_frequency=10)
+
+
+
+
+
+
