@@ -4,14 +4,14 @@ import tensorflow as tf
 from tensorflow.python.framework.errors_impl import InvalidArgumentError
 
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
-from resnet_base.model.lesci_resnet import LESCIResNet
-from resnet_base.model.resnet import ResNet
+from resnet_base.model.baseline_lesci_resnet import BaselineLESCIResNet
+from resnet_base.model.base_model import BaseModel
 
 BATCH_SIZE = 100  # adjustment based on available RAM
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
 
-def run_validation(model: LESCIResNet, pipeline: TinyImageNetPipeline, mode: tf.estimator.ModeKeys)\
+def run_validation(model: BaselineLESCIResNet, pipeline: TinyImageNetPipeline, mode: tf.estimator.ModeKeys)\
         -> Tuple[float, float]:
     """
     Feeds all validation/train samples through the model and report classification accuracy and loss.
@@ -35,7 +35,7 @@ def run_validation(model: LESCIResNet, pipeline: TinyImageNetPipeline, mode: tf.
 
         tf.logging.info("Starting evaluation")
         vals = []
-        acc_mean_val, loss_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val = 0., 0., 0., 0., 0.
+        acc_mean_val, loss_mean_val = 0., 0.
         num_samples = pipeline.get_num_samples(mode)
         n = num_samples // BATCH_SIZE
         missed_samples = num_samples % BATCH_SIZE
@@ -43,25 +43,21 @@ def run_validation(model: LESCIResNet, pipeline: TinyImageNetPipeline, mode: tf.
             tf.logging.warning("Omitting {} samples because the batch size ({}) is not a divisor of the number of "
                                "samples ({}).".format(missed_samples, num_samples, BATCH_SIZE))
 
-        fetches = [model.accuracy, model.loss, model.accuracy_projection, model.accuracy_identity,
-                   model.percentage_identity_mapped]
+        fetches = [model.accuracy, model.loss]
         for i in range(n):
             vals.append(sess.run(fetches))
-            acc_mean_val, loss_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val = np.mean(vals, axis=0)
-            tf.logging.info("[{:,}/{:,}]\tCurrent overall accuracy: {:.3f}\tprojection: {:.3f}\tid-mapping: {:.3f}"
-                            "\tpercentage id-mapped: {:.3f}"
-                            .format(i, n, acc_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val))
+            acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
+            tf.logging.info("[{:,}/{:,}]\tCurrent overall accuracy: {:.3f}".format(i, n, acc_mean_val))
 
-        tf.logging.info("[Done] Mean: accuracy {:.3f}, projection accuracy {:.3f}, identity mapping accuracy {:.3f}, "
-                        "loss {:.3f}, id-mapped {:.3f}"
-                        .format(acc_mean_val, acc_proj_mean_val, acc_id_mean_val, loss_mean_val, id_mapped_mean_val))
+        tf.logging.info("[Done] Mean: accuracy {:.3f}, loss {:.3f}"
+                        .format(acc_mean_val, loss_mean_val))
     return acc_mean_val, loss_mean_val
 
 
 def main(args):
     pipeline = TinyImageNetPipeline(physical_batch_size=BATCH_SIZE, shuffle=False)
     imgs, labels = pipeline.get_iterator().get_next()
-    model = LESCIResNet(x=imgs, labels=labels)
+    model = BaselineLESCIResNet(x=imgs, labels=labels)
     run_validation(model, pipeline, mode=tf.estimator.ModeKeys.EVAL)
 
 
