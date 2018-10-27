@@ -46,7 +46,7 @@ class BaselineLESCIResNet(BaseModel):
 
     def init_saver(self) -> None:
         """
-        Creates two savers: (1) for all weights (restore-and-save), (2) for pre-trained weights (restore-only).
+        Creates a saver for all weights (restore-and-save).
         """
         self.saver = BaseModel._create_saver('')
 
@@ -109,7 +109,12 @@ class BaselineLESCIResNet(BaseModel):
 
     @staticmethod
     def __baseline_preprocessing(x: tf.Tensor) -> tf.Tensor:
-        # x is in [-1, 1], but the baseline ResNet expects [0, 255] and then does it's own preprocessing
+        """
+        Performs preprocessing on a standard Tiny ImageNet input which is expected to be in [-1, 1].
+        :param x: the input Tensor
+        :return: a rescaled input tensor
+        """
+        # the baseline ResNet expects [0, 255]
         x = (x + 1.) * 127.5
 
         # preprocessing
@@ -168,7 +173,6 @@ class BaselineLESCIResNet(BaseModel):
             [batch, height_in, width_in, channels] depending on data_format.
           kernel_size: The kernel to be used in the conv2d or max_pool2d operation.
                        Should be a positive integer.
-          data_format: The input format ('channels_last' or 'channels_first').
 
         Returns:
           A tensor with the same format as the input with the data either intact
@@ -200,7 +204,6 @@ class BaselineLESCIResNet(BaseModel):
             (typically a 1x1 convolution when downsampling the input).
           strides: The block's stride. If greater than 1, this block will ultimately
             downsample the input.
-          data_format: The input format ('channels_last' or 'channels_first').
 
         Returns:
           The output tensor of the block; shape should match inputs.
@@ -226,8 +229,5 @@ class BaselineLESCIResNet(BaseModel):
     @staticmethod
     def __batch_norm(inputs, training):
         """Performs a batch normalization using a standard set of parameters."""
-        # We set fused=True for a significant performance boost. See
-        # https://www.tensorflow.org/performance/performance_guide#common_fused_ops
-        b = tf.layers.batch_normalization(inputs=inputs, axis=3, momentum=0.997, epsilon=1e-5, center=True,
-                                          scale=True, training=training, fused=True)
-        return b
+        return tf.layers.batch_normalization(inputs=inputs, axis=3, momentum=0.997, epsilon=1e-5, center=True,
+                                             scale=True, training=training, fused=True)

@@ -5,7 +5,6 @@ from tensorflow.python.framework.errors_impl import InvalidArgumentError
 
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
 from resnet_base.model.baseline_lesci_resnet import BaselineLESCIResNet
-from resnet_base.model.base_model import BaseModel
 
 BATCH_SIZE = 100  # adjustment based on available RAM
 tf.logging.set_verbosity(tf.logging.DEBUG)
