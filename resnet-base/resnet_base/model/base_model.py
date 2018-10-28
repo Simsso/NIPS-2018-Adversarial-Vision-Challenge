@@ -4,7 +4,7 @@ https://github.com/MrGemy95/Tensorflow-Project-Template/blob/master/base/base_mo
 """
 
 import tensorflow as tf
-from typing import Optional
+from typing import Optional, List
 import os
 
 from resnet_base.util.logger.factory import LoggerFactory
@@ -84,8 +84,8 @@ class BaseModel:
                 tf.logging.info("No valid checkpoint has been found at {}. Ignoring.".format(path))
 
     @staticmethod
-    def _create_saver(collection_name: str) -> Optional[tf.train.Saver]:
-        var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, collection_name)
+    def _create_saver(var_list: List[tf.Tensor]) -> Optional[tf.train.Saver]:
+        # var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, collection_name)
         if var_list:
             return tf.train.Saver(var_list=var_list)
         return None
