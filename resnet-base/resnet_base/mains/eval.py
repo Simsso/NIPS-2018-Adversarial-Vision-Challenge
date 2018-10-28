@@ -34,7 +34,7 @@ def run_validation(model: BaselineLESCIResNet, pipeline: TinyImageNetPipeline, m
 
         tf.logging.info("Starting evaluation")
         vals = []
-        acc_mean_val, loss_mean_val = 0., 0.
+        acc_mean_val, loss_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val = 0., 0., 0., 0., 0.
         num_samples = pipeline.get_num_samples(mode)
         n = num_samples // BATCH_SIZE
         missed_samples = num_samples % BATCH_SIZE
@@ -42,14 +42,18 @@ def run_validation(model: BaselineLESCIResNet, pipeline: TinyImageNetPipeline, m
             tf.logging.warning("Omitting {} samples because the batch size ({}) is not a divisor of the number of "
                                "samples ({}).".format(missed_samples, num_samples, BATCH_SIZE))
 
-        fetches = [model.accuracy, model.loss]
+        fetches = [model.accuracy, model.loss, model.accuracy_projection, model.accuracy_identity,
+                   model.percentage_identity_mapped]
         for i in range(n):
             vals.append(sess.run(fetches))
-            acc_mean_val, loss_mean_val = np.mean(vals, axis=0)
-            tf.logging.info("[{:,}/{:,}]\tCurrent overall accuracy: {:.3f}".format(i, n, acc_mean_val))
+            acc_mean_val, loss_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val = np.mean(vals, axis=0)
+            tf.logging.info("[{:,}/{:,}]\tCurrent overall accuracy: {:.3f}\tprojection: {:.3f}\tid-mapping: {:.3f}"
+                            "\tpercentage id-mapped: {:.3f}"
+                            .format(i, n, acc_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val))
 
-        tf.logging.info("[Done] Mean: accuracy {:.3f}, loss {:.3f}"
-                        .format(acc_mean_val, loss_mean_val))
+        tf.logging.info("[Done] Mean: accuracy {:.3f}, projection accuracy {:.3f}, identity mapping accuracy {:.3f}, "
+                        "loss {:.3f}, id-mapped {:.3f}"
+                        .format(acc_mean_val, acc_proj_mean_val, acc_id_mean_val, loss_mean_val, id_mapped_mean_val))
     return acc_mean_val, loss_mean_val
 
 

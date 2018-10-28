@@ -11,9 +11,18 @@ from resnet_base.model.base_model import BaseModel
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data, TinyImageNetPipeline
 from resnet_base.util.logger.factory import LoggerFactory
 from vq_layer import cosine_knn_vector_quantization as cos_knn_vq
+import os
 
 # define flags
 FLAGS = tf.flags.FLAGS
+
+tf.flags.DEFINE_string("lesci_emb_space_file", os.path.expanduser(os.path.join('~', '.data', 'activations',
+                                                                               'data_lesci_emb_space_small.mat')),
+                       "Path to the file (*.mat) where embedding space values ('act_compressed') and labels ('labels') "
+                       "are being stored.")
+tf.flags.DEFINE_string("pca_compression_file", os.path.expanduser(os.path.join('~', '.data', 'activations',
+                                                                               'pca.mat')),
+                       "Path to the file (*.mat) where the PCA compression matrix ('pca_out') is stored.")
 
 
 class BaselineLESCIResNet(BaseModel):
@@ -57,7 +66,7 @@ class BaselineLESCIResNet(BaseModel):
         for var in custom_var_list:
             all_var_list.remove(var)
         baseline_var_list = list(all_var_list)
-        
+
         self.saver = BaseModel._create_saver(baseline_var_list)
 
     def init_current_epoch(self):
@@ -84,7 +93,8 @@ class BaselineLESCIResNet(BaseModel):
         block3 = BaselineLESCIResNet.__block_layer(block2, filters=256, strides=2, is_training=self.is_training, index=3)
         block4 = BaselineLESCIResNet.__block_layer(block3, filters=512, strides=2, is_training=self.is_training, index=4)
 
-        # identity_mask, knn_label, percentage_identity_mapped = self._lesci_layer(block4, shape=[8843, 256])
+        identity_mask, knn_label, percentage_identity_mapped = self._lesci_layer(block4, shape=[8843, 256])
+        self.percentage_identity_mapped = percentage_identity_mapped
 
         block4_norm = BaselineLESCIResNet.__batch_norm(block4, self.is_training)
         block4_postact = tf.nn.relu(block4_norm)
@@ -109,9 +119,10 @@ class BaselineLESCIResNet(BaseModel):
             'act9_logits': dense
         }
 
-        #knn_label_one_hot = tf.one_hot(knn_label, depth=TinyImageNetPipeline.num_classes)
-        #return tf.where(identity_mask, x=dense, y=knn_label_one_hot)
-        return  dense
+        self.__log_projection_identity_accuracy(identity_mask, dense, knn_label)
+        knn_label_one_hot = tf.one_hot(knn_label, depth=TinyImageNetPipeline.num_classes)
+        return tf.where(identity_mask, x=dense, y=knn_label_one_hot)
+        # return dense
 
     def _lesci_layer(self, x: tf.Tensor, shape: List[int]) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         assert len(shape) == 2
@@ -132,7 +143,7 @@ class BaselineLESCIResNet(BaseModel):
                                              initializer=self._make_init(FLAGS.lesci_emb_space_file, [num_samples],
                                                                          tf.int32, mat_name='labels'), trainable=False)
             embedding_init = self._make_init(FLAGS.lesci_emb_space_file, shape, tf.float32, mat_name='act_compressed')
-            vq = cos_knn_vq(x, emb_labels=label_variable, num_classes=TinyImageNetPipeline.num_classes, k=10,
+            vq = cos_knn_vq(x, emb_labels=label_variable, num_classes=TinyImageNetPipeline.num_classes, k=50,
                             n=num_samples, embedding_initializer=embedding_init, constant_init=True,
                             num_splits=1, return_endpoints=True, majority_threshold=.5, name='cos_knn_vq')
             identity_mask = vq.identity_mapping_mask
@@ -161,6 +172,33 @@ class BaselineLESCIResNet(BaseModel):
         except FileNotFoundError:
             tf.logging.info("Could not load variable values; model should be initialized from a checkpoint")
             return tf.placeholder(dtype, shape)
+
+    def __log_projection_identity_accuracy(self, identity_mask: tf.Tensor, resnet_out: tf.Tensor,
+                                           projection_labels: tf.Tensor):
+        """
+        Calculates the classification accuracy for both the identity-mapped inputs and the projected inputs and logs
+        them.
+        """
+        labels = tf.cast(self.labels, tf.int64)
+        identity_softmax = tf.nn.softmax(resnet_out)
+
+        # adding .001 so we don't divide by zero
+        num_identity_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32)) + .001
+        num_projected = tf.reduce_sum(tf.cast(tf.logical_not(identity_mask), dtype=tf.float32)) + .001
+
+        correct_identity = tf.equal(tf.argmax(identity_softmax, axis=1), labels)
+        # only include the correctly classified inputs that are identity-mapped
+        correct_identity = tf.logical_and(correct_identity, identity_mask)
+        accuracy_identity = tf.reduce_sum(tf.cast(correct_identity, dtype=tf.float32)) / num_identity_mapped
+        self.accuracy_identity = accuracy_identity
+        self.logger_factory.add_scalar('accuracy_identity_mapping', accuracy_identity, log_frequency=10)
+
+        correct_projection = tf.equal(tf.cast(projection_labels, tf.int64), labels)
+        # only include the correctly classified inputs that are *not* identity-mapped, i.e. projected
+        correct_projection = tf.logical_and(correct_projection, tf.logical_not(identity_mask))
+        accuracy_projection = tf.reduce_sum(tf.cast(correct_projection, dtype=tf.float32)) / num_projected
+        self.accuracy_projection = accuracy_projection
+        self.logger_factory.add_scalar('accuracy_projection', accuracy_projection, log_frequency=10)
 
     def _init_loss(self) -> None:
         """
