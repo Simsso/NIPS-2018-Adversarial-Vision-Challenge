@@ -42,6 +42,9 @@ class BaseModel:
         # should be passed when initializing the model variables, i.e. sess.run(init, feed_dict=init_feed_dict)
         self.init_feed_dict = {}
 
+        # may be filled with [str, Tensor] values if activations need to be exposed
+        self.activations = {}
+
     def post_build_init(self):
         self.init_saver()
 

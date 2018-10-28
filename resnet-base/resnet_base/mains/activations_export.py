@@ -3,13 +3,13 @@ from os import path
 import scipy.io
 import tensorflow as tf
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
-from resnet_base.model.activations_resnet import ActivationsResNet
+from resnet_base.model.baseline_lesci_resnet import BaselineLESCIResNet
 from resnet_base.util.logger.factory import LoggerFactory
 from resnet_base.util.logger.tf_logger_init import init as logger_init
 from typing import Dict, List
 
 
-tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/data_100k_act5_block3.mat'),
+tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/baseline/act6_block4.mat'),
                        'File to export the activations to.')
 FLAGS = tf.flags.FLAGS
 
@@ -34,7 +34,7 @@ def main(args) -> None:
 
         # model
         logger_factory = LoggerFactory(num_valid_steps=1)
-        model = ActivationsResNet(logger_factory, imgs, labels)
+        model = BaselineLESCIResNet(logger_factory, imgs, labels)
 
         # restore pre-trained weights
         model.restore(sess)
@@ -43,7 +43,7 @@ def main(args) -> None:
         save_activations(FLAGS.activations_export_file, export_vals)
 
 
-def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: ActivationsResNet,
+def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: BaselineLESCIResNet,
                        mode: tf.estimator.ModeKeys, only_correct_ones: bool = True) -> Dict[str, List]:
     """
     Feeds samples of the given mode through the given model and accumulates the activation values for correctly
@@ -52,7 +52,7 @@ def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: 
              same length.
     """
 
-    n = min(pipeline.get_num_samples(mode), 100000)
+    n = min(pipeline.get_num_samples(mode), 20000)
 
     pipeline.switch_to(mode)
     export_tensors = model.activations.copy()

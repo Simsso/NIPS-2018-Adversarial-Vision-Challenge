@@ -85,16 +85,16 @@ class BaselineLESCIResNet(BaseModel):
         dense = tf.identity(dense, 'final_dense')
 
         self.activations = {
-            'raw_input': raw_imgs,
-            'processed_imgs': processed_imgs,
-            'first_conv': first_conv,
-            'block1': block1,
-            'block2': block2,
-            'block3': block3,
-            'block4': block4,
-            'block4_postact': block4_postact,
-            'global_avg': global_avg,
-            'logits': dense
+            'act0_raw_input': raw_imgs,
+            'act1_processed_imgs': processed_imgs,
+            'act2_first_conv': first_conv,
+            'act3_block1': block1,
+            'act4_block2': block2,
+            'act5_block3': block3,
+            'act6_block4': block4,
+            'act7_block4_postact': block4_postact,
+            'act8_global_avg': global_avg,
+            'act9_logits': dense
         }
 
         return dense
@@ -128,7 +128,7 @@ class BaselineLESCIResNet(BaseModel):
         :return: a rescaled input tensor
         """
         # the baseline ResNet expects [0, 255]
-        x = (x + 1.) * 127.5
+        x = (x + tf.constant(1.)) * 127.5
 
         # preprocessing
         _R_MEAN = 123.68
