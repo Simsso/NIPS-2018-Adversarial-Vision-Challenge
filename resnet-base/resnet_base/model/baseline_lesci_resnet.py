@@ -58,33 +58,46 @@ class BaselineLESCIResNet(BaseModel):
         # needs to be skipped here, since 'global_step' is not contained in the baseline-checkpoint
         pass
 
-    def _build_model(self, x: tf.Tensor) -> tf.Tensor:
+    def _build_model(self, raw_imgs: tf.Tensor) -> tf.Tensor:
         """
         Builds the ResNet model graph with the TF API. This function is intentionally kept simple and sequential to
         simplify the addition of new layers.
-        :param x: Input to the model, i.e. an image batch
+        :param raw_imgs: Input to the model, i.e. an image batch
         :return: Logits of the model
         """
-        x = BaselineLESCIResNet.__baseline_preprocessing(x)
-        x = BaselineLESCIResNet.__conv2d_fixed_padding(inputs=x, filters=64, kernel_size=3, strides=1)
+        processed_imgs = BaselineLESCIResNet.__baseline_preprocessing(raw_imgs)
+        first_conv = BaselineLESCIResNet.__conv2d_fixed_padding(inputs=processed_imgs, filters=64, kernel_size=3, strides=1)
 
         # blocks
-        x = BaselineLESCIResNet.__block_layer(x, filters=64, strides=1, is_training=self.is_training, index=1)
-        x = BaselineLESCIResNet.__block_layer(x, filters=128, strides=2, is_training=self.is_training, index=2)
-        x = BaselineLESCIResNet.__block_layer(x, filters=256, strides=2, is_training=self.is_training, index=3)
-        x = BaselineLESCIResNet.__block_layer(x, filters=512, strides=2, is_training=self.is_training, index=4)
+        block1 = BaselineLESCIResNet.__block_layer(first_conv, filters=64, strides=1, is_training=self.is_training, index=1)
+        block2 = BaselineLESCIResNet.__block_layer(block1, filters=128, strides=2, is_training=self.is_training, index=2)
+        block3 = BaselineLESCIResNet.__block_layer(block2, filters=256, strides=2, is_training=self.is_training, index=3)
+        block4 = BaselineLESCIResNet.__block_layer(block3, filters=512, strides=2, is_training=self.is_training, index=4)
 
-        x = BaselineLESCIResNet.__batch_norm(x, self.is_training)
-        x = tf.nn.relu(x)
+        block4_norm = BaselineLESCIResNet.__batch_norm(block4, self.is_training)
+        block4_postact = tf.nn.relu(block4_norm)
 
-        x = tf.reduce_mean(x, [1, 2], keepdims=True)
-        x = tf.identity(x, 'final_reduce_mean')
+        global_avg = tf.reduce_mean(block4_postact, [1, 2], keepdims=True)
+        global_avg = tf.identity(global_avg, 'final_reduce_mean')
 
-        x = tf.reshape(x, [-1, 512])
-        x = tf.layers.Dense(units=self.num_classes, name='readout_layer')(x)
-        x = tf.identity(x, 'final_dense')
+        global_avg = tf.reshape(global_avg, [-1, 512])
+        dense = tf.layers.Dense(units=self.num_classes, name='readout_layer')(global_avg)
+        dense = tf.identity(dense, 'final_dense')
 
-        return x
+        self.activations = {
+            'raw_input': raw_imgs,
+            'processed_imgs': processed_imgs,
+            'first_conv': first_conv,
+            'block1': block1,
+            'block2': block2,
+            'block3': block3,
+            'block4': block4,
+            'block4_postact': block4_postact,
+            'global_avg': global_avg,
+            'logits': dense
+        }
+
+        return dense
 
     def _init_loss(self) -> None:
         """
