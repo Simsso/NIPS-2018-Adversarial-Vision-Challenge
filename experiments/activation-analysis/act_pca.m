@@ -7,11 +7,11 @@ resulting matrix. The first dim_out columns of the PCA output matrix, which
 can be used e.g. for compression, is then written to a file at export_path.
 %}
 
-act = act5_block3; % CNN activation tensor (n, m, o, p)
+act = act6_block4; % CNN activation tensor (n, m, o, p)
 labels = transpose(target_labels);
-export_path = '/Users/timodenk/.data/activations/pca.mat' % PCA output file
-export_path_act_reduced = '/Users/timodenk/.data/activations/lesci.mat'
-dim_out = 64 % number of PCA output vectors to use, must be <= m*o*p
+export_path = '/Users/timodenk/.data/activations/baseline/pca.mat' % PCA output file
+export_path_act_reduced = '/Users/timodenk/.data/activations/baseline/lesci.mat'
+dim_out = 256 % number of PCA output vectors to use, must be <= m*o*p
 
 act_shape = size(act)
 
