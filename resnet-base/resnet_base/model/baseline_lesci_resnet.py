@@ -26,6 +26,8 @@ tf.flags.DEFINE_string("pca_compression_file", os.path.expanduser(os.path.join('
                                                                                'pca.mat')),
                        "Path to the file (*.mat) where the PCA compression matrix ('pca_out') is stored.")
 
+tf.flags.DEFINE_string("baseline_checkpoint", "", "Path to the baseline weights checkpoint (used to restore only")
+
 
 class BaselineLESCIResNet(BaseModel):
 
@@ -53,6 +55,8 @@ class BaselineLESCIResNet(BaseModel):
 
         self.logits = self._build_model(self.x)
         self.softmax = tf.nn.softmax(self.logits, name='predictions')
+
+        self.baseline_saver: tf.train.Saver = None
 
         self._init_loss()
         self._init_accuracy()
@@ -158,30 +162,31 @@ class BaselineLESCIResNet(BaseModel):
 
     def init_saver(self) -> None:
         """
-        Creates a saver for all baseline weights (restore-and-save).
+        Creates two savers:
+            - baseline_saver for all baseline weights (restore-only)
+            - saver for all variables in the graph (save-only)
         """
         all_vars = set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, ''))
-        custom_vars = set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.custom_scope.name))
-        for var in custom_vars:
+        custom_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.custom_scope.name)
+        meta_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, 'meta')
+        for var in custom_vars + meta_vars:
             all_vars.remove(var)
         baseline_var_list = list(all_vars)
 
-        self.saver = BaseModel._create_saver_from_var_list(baseline_var_list)
+        self.baseline_saver = BaseModel._create_saver_from_var_list(baseline_var_list)  
+        self.saver = BaseModel._create_saver('') 
 
-    def save(self, sess: tf.Session):
-        """
-        Not use the baseline-saver here to store the baseline weights.
-        If saving weights is required, use an externally managed saver.
-        """
-        pass
+    def save(self, sess: tf.Session) -> None:
+        # only save the full graph to the save_dir
+        BaseModel._save_to_path(sess, self.saver, self.global_step, path=FLAGS.save_dir)
 
-    def init_current_epoch(self):
-        # needs to be skipped here, since 'current_epoch' is not contained in the baseline-checkpoint
-        pass
-
-    def init_global_step(self):
-        # needs to be skipped here, since 'global_step' is not contained in the baseline-checkpoint
-        pass
+    def restore(self, sess: tf.Session) -> None:
+        if FLAGS.baseline_checkpoint:
+            # only restore the baseline checkpoint
+            BaseModel._restore_checkpoint(self.baseline_saver, sess, path=FLAGS.baseline_checkpoint)
+        else:
+            # (try to) restore the full graph
+            BaseModel._restore_checkpoint(self.saver, sess, path=FLAGS.save_dir)
 
     def _init_loss(self) -> None:
         """
