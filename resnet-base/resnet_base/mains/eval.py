@@ -1,4 +1,5 @@
 from typing import Tuple
+from collections import namedtuple
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework.errors_impl import InvalidArgumentError
@@ -9,9 +10,11 @@ from resnet_base.model.baseline_lesci_resnet import BaselineLESCIResNet
 BATCH_SIZE = 100  # adjustment based on available RAM
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
+LESCIMetrics = namedtuple("LESCIMetrics", ['acc_mean', 'loss_mean', 'acc_proj_mean', 'acc_id_mean', 'id_mapped_mean'])
+
 
 def run_validation(model: BaselineLESCIResNet, pipeline: TinyImageNetPipeline, mode: tf.estimator.ModeKeys)\
-        -> Tuple[float, float]:
+        -> LESCIMetrics:
     """
     Feeds all validation/train samples through the model and report classification accuracy and loss.
     :return: Dictionary of mean accuracy and mean loss
@@ -54,7 +57,7 @@ def run_validation(model: BaselineLESCIResNet, pipeline: TinyImageNetPipeline, m
         tf.logging.info("[Done] Mean: accuracy {:.3f}, projection accuracy {:.3f}, identity mapping accuracy {:.3f}, "
                         "loss {:.3f}, id-mapped {:.3f}"
                         .format(acc_mean_val, acc_proj_mean_val, acc_id_mean_val, loss_mean_val, id_mapped_mean_val))
-    return acc_mean_val, loss_mean_val
+    return LESCIMetrics(acc_mean_val, loss_mean_val, acc_proj_mean_val, acc_id_mean_val, id_mapped_mean_val)
 
 
 def main(args):
