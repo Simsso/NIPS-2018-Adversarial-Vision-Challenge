@@ -6,12 +6,14 @@ import tensorflow as tf
 from typing import List, Tuple
 import numpy as np
 import scipy.io
+import os
 
 from resnet_base.model.base_model import BaseModel
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline as Data, TinyImageNetPipeline
 from resnet_base.util.logger.factory import LoggerFactory
 from vq_layer import cosine_knn_vector_quantization as cos_knn_vq
-import os
+from resnet_base.util.projection_metrics import projection_identity_accuracy
+
 
 # define flags
 FLAGS = tf.flags.FLAGS
@@ -57,26 +59,6 @@ class BaselineLESCIResNet(BaseModel):
 
         self.post_build_init()
 
-    def init_saver(self) -> None:
-        """
-        Creates a saver for all weights (restore-and-save).
-        """
-        all_var_list = set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, ''))
-        custom_var_list = set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.custom_scope.name))
-        for var in custom_var_list:
-            all_var_list.remove(var)
-        baseline_var_list = list(all_var_list)
-
-        self.saver = BaseModel._create_saver(baseline_var_list)
-
-    def init_current_epoch(self):
-        # needs to be skipped here, since 'current_epoch' is not contained in the baseline-checkpoint
-        pass
-
-    def init_global_step(self):
-        # needs to be skipped here, since 'global_step' is not contained in the baseline-checkpoint
-        pass
-
     def _build_model(self, raw_imgs: tf.Tensor) -> tf.Tensor:
         """
         Builds the ResNet model graph with the TF API. This function is intentionally kept simple and sequential to
@@ -119,10 +101,11 @@ class BaselineLESCIResNet(BaseModel):
             'act9_logits': dense
         }
 
-        self.__log_projection_identity_accuracy(identity_mask, dense, knn_label)
+        self.accuracy_projection, self.accuracy_identity = projection_identity_accuracy(identity_mask, dense, knn_label,
+                                                                                        labels=self.labels)
         knn_label_one_hot = tf.one_hot(knn_label, depth=TinyImageNetPipeline.num_classes)
+
         return tf.where(identity_mask, x=dense, y=knn_label_one_hot)
-        # return dense
 
     def _lesci_layer(self, x: tf.Tensor, shape: List[int]) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         assert len(shape) == 2
@@ -173,32 +156,32 @@ class BaselineLESCIResNet(BaseModel):
             tf.logging.info("Could not load variable values; model should be initialized from a checkpoint")
             return tf.placeholder(dtype, shape)
 
-    def __log_projection_identity_accuracy(self, identity_mask: tf.Tensor, resnet_out: tf.Tensor,
-                                           projection_labels: tf.Tensor):
+    def init_saver(self) -> None:
         """
-        Calculates the classification accuracy for both the identity-mapped inputs and the projected inputs and logs
-        them.
+        Creates a saver for all baseline weights (restore-and-save).
         """
-        labels = tf.cast(self.labels, tf.int64)
-        identity_softmax = tf.nn.softmax(resnet_out)
+        all_vars = set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, ''))
+        custom_vars = set(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.custom_scope.name))
+        for var in custom_vars:
+            all_vars.remove(var)
+        baseline_var_list = list(all_vars)
 
-        # adding .001 so we don't divide by zero
-        num_identity_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32)) + .001
-        num_projected = tf.reduce_sum(tf.cast(tf.logical_not(identity_mask), dtype=tf.float32)) + .001
+        self.saver = BaseModel._create_saver_from_var_list(baseline_var_list)
 
-        correct_identity = tf.equal(tf.argmax(identity_softmax, axis=1), labels)
-        # only include the correctly classified inputs that are identity-mapped
-        correct_identity = tf.logical_and(correct_identity, identity_mask)
-        accuracy_identity = tf.reduce_sum(tf.cast(correct_identity, dtype=tf.float32)) / num_identity_mapped
-        self.accuracy_identity = accuracy_identity
-        self.logger_factory.add_scalar('accuracy_identity_mapping', accuracy_identity, log_frequency=10)
+    def save(self, sess: tf.Session):
+        """
+        Not use the baseline-saver here to store the baseline weights.
+        If saving weights is required, use an externally managed saver.
+        """
+        pass
 
-        correct_projection = tf.equal(tf.cast(projection_labels, tf.int64), labels)
-        # only include the correctly classified inputs that are *not* identity-mapped, i.e. projected
-        correct_projection = tf.logical_and(correct_projection, tf.logical_not(identity_mask))
-        accuracy_projection = tf.reduce_sum(tf.cast(correct_projection, dtype=tf.float32)) / num_projected
-        self.accuracy_projection = accuracy_projection
-        self.logger_factory.add_scalar('accuracy_projection', accuracy_projection, log_frequency=10)
+    def init_current_epoch(self):
+        # needs to be skipped here, since 'current_epoch' is not contained in the baseline-checkpoint
+        pass
+
+    def init_global_step(self):
+        # needs to be skipped here, since 'global_step' is not contained in the baseline-checkpoint
+        pass
 
     def _init_loss(self) -> None:
         """

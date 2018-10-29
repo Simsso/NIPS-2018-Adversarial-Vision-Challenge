@@ -84,11 +84,15 @@ class BaseModel:
                 tf.logging.info("No valid checkpoint has been found at {}. Ignoring.".format(path))
 
     @staticmethod
-    def _create_saver(var_list: List[tf.Tensor]) -> Optional[tf.train.Saver]:
-        # var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, collection_name)
+    def _create_saver(collection_name: str) -> Optional[tf.train.Saver]:
+        var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, collection_name)
         if var_list:
-            return tf.train.Saver(var_list=var_list)
+            return BaseModel._create_saver_from_var_list(var_list)
         return None
+
+    @staticmethod
+    def _create_saver_from_var_list(var_list: List[tf.Tensor]) -> tf.train.Saver:
+        return tf.train.Saver(var_list)
 
     @staticmethod
     def _save_to_path(sess: tf.Session, saver: Optional[tf.train.Saver], global_step: tf.Tensor, path: Optional[str]):

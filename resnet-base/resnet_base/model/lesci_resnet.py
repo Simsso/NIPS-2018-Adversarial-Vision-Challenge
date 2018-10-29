@@ -6,6 +6,7 @@ import scipy.io
 import tensorflow as tf
 from vq_layer import cosine_knn_vector_quantization as cos_knn_vq
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
+from resnet_base.util.projection_metrics import projection_identity_accuracy
 
 tf.flags.DEFINE_string("lesci_emb_space_file", os.path.expanduser(os.path.join('~', '.data', 'activations',
                                                                                'data_lesci_emb_space_small.mat')),
@@ -33,7 +34,8 @@ class LESCIResNet(ResNet):
         resnet_out = self.global_avg_pooling(x)
         knn_label_one_hot = tf.one_hot(knn_label, depth=TinyImageNetPipeline.num_classes)
 
-        self.__log_projection_identity_accuracy(identity_mask, resnet_out, knn_label)
+        self.accuracy_projection, self.accuracy_identity = projection_identity_accuracy(identity_mask, resnet_out,
+                                                                                        knn_label, labels=self.labels)
         return tf.where(identity_mask, x=resnet_out, y=knn_label_one_hot)
 
     def _lesci_layer(self, x: tf.Tensor, shape: List[int]) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
@@ -83,36 +85,3 @@ class LESCIResNet(ResNet):
         except FileNotFoundError:
             tf.logging.info("Could not load variable values; model should be initialized from a checkpoint")
             return tf.placeholder(dtype, shape)
-
-    def __log_projection_identity_accuracy(self, identity_mask: tf.Tensor, resnet_out: tf.Tensor,
-                                           projection_labels: tf.Tensor):
-        """
-        Calculates the classification accuracy for both the identity-mapped inputs and the projected inputs and logs
-        them.
-        """
-        labels = tf.cast(self.labels, tf.int64)
-        identity_softmax = tf.nn.softmax(resnet_out)
-
-        # adding .001 so we don't divide by zero
-        num_identity_mapped = tf.reduce_sum(tf.cast(identity_mask, dtype=tf.float32)) + .001
-        num_projected = tf.reduce_sum(tf.cast(tf.logical_not(identity_mask), dtype=tf.float32)) + .001
-
-        correct_identity = tf.equal(tf.argmax(identity_softmax, axis=1), labels)
-        # only include the correctly classified inputs that are identity-mapped
-        correct_identity = tf.logical_and(correct_identity, identity_mask)
-        accuracy_identity = tf.reduce_sum(tf.cast(correct_identity, dtype=tf.float32)) / num_identity_mapped
-        self.accuracy_identity = accuracy_identity
-        self.logger_factory.add_scalar('accuracy_identity_mapping', accuracy_identity, log_frequency=10)
-
-        correct_projection = tf.equal(tf.cast(projection_labels, tf.int64), labels)
-        # only include the correctly classified inputs that are *not* identity-mapped, i.e. projected
-        correct_projection = tf.logical_and(correct_projection, tf.logical_not(identity_mask))
-        accuracy_projection = tf.reduce_sum(tf.cast(correct_projection, dtype=tf.float32)) / num_projected
-        self.accuracy_projection = accuracy_projection
-        self.logger_factory.add_scalar('accuracy_projection', accuracy_projection, log_frequency=10)
-
-
-
-
-
-
