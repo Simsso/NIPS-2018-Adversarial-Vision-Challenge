@@ -6,7 +6,7 @@ from resnet_base.util.validation import LESCIMetrics
 FLAGS = tf.flags.FLAGS
 BATCH_SIZE = 100
 
-COMPRESSIONS = {
+CODE_SIZES = {
     'act6_block4': [128, 256, 512, 1024],
     'act8_global_avg': [32, 128, 512],
     'act5_block3': [512, 1024]
@@ -22,11 +22,12 @@ def criterion(metrics: LESCIMetrics) -> float:
 
 
 def grid_search():
-    for lesci_pos in COMPRESSIONS.keys():
-        for compression in COMPRESSIONS[lesci_pos]:
+    for lesci_pos in CODE_SIZES.keys():
+        for code_size in CODE_SIZES[lesci_pos]:
             for proj_thres in PROJECTION_THRESHOLDS:
                 for min_accurary in ACCURACY_CONSTRAINTS:
                     for k in KS:
-                        # TODO reset graph, execute experiment, ...
-                        experiment = LESCIExperiment(lesci_pos, compression, proj_thres, k, min_accurary)
+                        experiment = LESCIExperiment(lesci_pos, code_size, proj_thres, k, min_accurary)
                         experiment.run()
+
+                        # TODO manage results
