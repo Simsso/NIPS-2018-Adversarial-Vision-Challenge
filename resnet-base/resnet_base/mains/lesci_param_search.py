@@ -1,8 +1,10 @@
 import tensorflow as tf
 import numpy as np
+import time
 from resnet_base.util.lesci_experiment import LESCIExperiment
 from resnet_base.util.validation import LESCIMetrics
 
+tf.logging.set_verbosity(tf.logging.DEBUG)
 FLAGS = tf.flags.FLAGS
 BATCH_SIZE = 100
 
@@ -15,6 +17,7 @@ CODE_SIZES = {
 KS = [1, 10, 20, 100]
 PROJECTION_THRESHOLDS = np.linspace(0.0, 0.9, 10)
 ACCURACY_CONSTRAINTS = [0.7, 0.75, 0.8]
+EMB_SIZE = 82480
 
 
 def criterion(metrics: LESCIMetrics) -> float:
@@ -29,8 +32,8 @@ def grid_search():
         for code_size in CODE_SIZES[lesci_pos]:
             for proj_thres in PROJECTION_THRESHOLDS:
                 for min_accurary in ACCURACY_CONSTRAINTS:
-                    for k in KS:                                                # TODO emb_size??
-                        experiment = LESCIExperiment(lesci_pos, code_size, proj_thres, k, 0, min_accurary)
+                    for k in KS:
+                        experiment = LESCIExperiment(lesci_pos, code_size, proj_thres, k, EMB_SIZE, min_accurary)
 
                         try:
                             experiment.run()
@@ -45,3 +48,11 @@ def grid_search():
                         except:
                             tf.logging.error("Error occurred while executing experiment: {}"
                                              .format(experiment.experiment_description()))
+
+
+if __name__ == "__main__":
+    tf.logging.info("Starting grid search...")
+    start = time.time()
+    grid_search()
+    end = time.time()
+    tf.logging.info("Completed grid search. Took {:.1f} seconds".format((end - start)))
