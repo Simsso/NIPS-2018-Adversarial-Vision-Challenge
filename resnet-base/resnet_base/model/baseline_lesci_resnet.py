@@ -1,7 +1,7 @@
 import tensorflow as tf
 from typing import List, Tuple
 import numpy as np
-import scipy.io
+import h5py
 import os
 
 from vq_layer import cosine_knn_vector_quantization as cos_knn_vq
@@ -40,13 +40,13 @@ class BaselineLESCIResNet(BaselineResNet):
 
     def __init__(self, lesci_pos: str, code_size: int, proj_thres: float, k: int, emb_size: int,
                  logger_factory: LoggerFactory = None, x: tf.Tensor = None, labels: tf.Tensor = None):
-        super().__init__(logger_factory, x, labels)
-
         self.lesci_pos = lesci_pos
         self.code_size = code_size
         self.proj_thres = proj_thres
         self.k = k
         self.emb_size = emb_size  # n
+
+        super().__init__(logger_factory, x, labels)
 
     def _build_model(self, raw_imgs: tf.Tensor) -> tf.Tensor:
         """
@@ -55,17 +55,17 @@ class BaselineLESCIResNet(BaselineResNet):
         :param raw_imgs: Input to the model, i.e. an image batch
         :return: Logits of the model
         """
-        processed_imgs = BaselineLESCIResNet.__baseline_preprocessing(raw_imgs)
-        first_conv = BaselineLESCIResNet.__conv2d_fixed_padding(inputs=processed_imgs, filters=64, kernel_size=3,
-                                                                strides=1)
+        processed_imgs = BaselineResNet._baseline_preprocessing(raw_imgs)
+        first_conv = BaselineResNet._conv2d_fixed_padding(inputs=processed_imgs, filters=64, kernel_size=3,
+                                                          strides=1)
 
         # blocks
-        block1 = BaselineLESCIResNet.__block_layer(first_conv, filters=64, strides=1, is_training=self.is_training, index=1)
-        block2 = BaselineLESCIResNet.__block_layer(block1, filters=128, strides=2, is_training=self.is_training, index=2)
-        block3 = BaselineLESCIResNet.__block_layer(block2, filters=256, strides=2, is_training=self.is_training, index=3)
-        block4 = BaselineLESCIResNet.__block_layer(block3, filters=512, strides=2, is_training=self.is_training, index=4)
+        block1 = BaselineResNet._block_layer(first_conv, filters=64, strides=1, is_training=self.is_training, index=1)
+        block2 = BaselineResNet._block_layer(block1, filters=128, strides=2, is_training=self.is_training, index=2)
+        block3 = BaselineResNet._block_layer(block2, filters=256, strides=2, is_training=self.is_training, index=3)
+        block4 = BaselineResNet._block_layer(block3, filters=512, strides=2, is_training=self.is_training, index=4)
 
-        block4_norm = BaselineLESCIResNet.__batch_norm(block4, self.is_training)
+        block4_norm = BaselineResNet._batch_norm(block4, self.is_training)
         block4_postact = tf.nn.relu(block4_norm)
 
         global_avg = tf.reduce_mean(block4_postact, [1, 2], keepdims=True)
@@ -74,6 +74,19 @@ class BaselineLESCIResNet(BaselineResNet):
         global_avg = tf.reshape(global_avg, [-1, 512])
         dense = tf.layers.Dense(units=self.num_classes, name='readout_layer')(global_avg)
         dense = tf.identity(dense, 'final_dense')
+
+        self.activations = {
+            'act0_raw_input': raw_imgs,
+            'act1_processed_imgs': processed_imgs,
+            'act2_first_conv': first_conv,
+            'act3_block1': block1,
+            'act4_block2': block2,
+            'act5_block3': block3,
+            'act6_block4': block4,
+            'act7_block4_postact': block4_postact,
+            'act8_global_avg': global_avg,
+            'act9_logits': dense
+        }
 
         # add LESCI layer
         emb_shape = [self.emb_size, self.code_size]
@@ -102,6 +115,7 @@ class BaselineLESCIResNet(BaselineResNet):
                                                                   shape=[activation_size, code_size],
                                                                   dtype=tf.float32, mat_name='pca_out'),
                                       trainable=False)
+
             x = tf.matmul(x, pca_mat)
             x = tf.expand_dims(x, axis=1)
             label_variable = tf.get_variable('lesci_labels', dtype=tf.int32,
@@ -129,8 +143,19 @@ class BaselineLESCIResNet(BaselineResNet):
         :return: Initializer for the variable
         """
         try:
-            tf.logging.info("Tying to load variable values space from '{}'.".format(mat_file_path))
-            var_val = scipy.io.loadmat(mat_file_path)[mat_name]
+            tf.logging.info("Trying to load variable values space from '{}'.".format(mat_file_path))
+
+            # need to use h5py for MATLAB v7.3 files
+            f = h5py.File(mat_file_path)
+
+            var_val = None
+            for k, v in f.items():
+                if k == mat_name:
+                    var_val = np.array(v)
+                    break
+            if var_val is None:
+                raise FileNotFoundError()
+
             tf.logging.info("Loaded variable with shape {}".format(var_val.shape))
             var_val = np.reshape(var_val, shape)
             var_placeholder = tf.placeholder(dtype, var_val.shape)

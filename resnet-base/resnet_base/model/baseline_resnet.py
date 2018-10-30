@@ -55,16 +55,16 @@ class BaselineResNet(BaseModel):
         :param raw_imgs: Input to the model, i.e. an image batch
         :return: Logits of the model
         """
-        processed_imgs = BaselineResNet.__baseline_preprocessing(raw_imgs)
-        first_conv = BaselineResNet.__conv2d_fixed_padding(inputs=processed_imgs, filters=64, kernel_size=3, strides=1)
+        processed_imgs = BaselineResNet._baseline_preprocessing(raw_imgs)
+        first_conv = BaselineResNet._conv2d_fixed_padding(inputs=processed_imgs, filters=64, kernel_size=3, strides=1)
 
         # blocks
-        block1 = BaselineResNet.__block_layer(first_conv, filters=64, strides=1, is_training=self.is_training, index=1)
-        block2 = BaselineResNet.__block_layer(block1, filters=128, strides=2, is_training=self.is_training, index=2)
-        block3 = BaselineResNet.__block_layer(block2, filters=256, strides=2, is_training=self.is_training, index=3)
-        block4 = BaselineResNet.__block_layer(block3, filters=512, strides=2, is_training=self.is_training, index=4)
+        block1 = BaselineResNet._block_layer(first_conv, filters=64, strides=1, is_training=self.is_training, index=1)
+        block2 = BaselineResNet._block_layer(block1, filters=128, strides=2, is_training=self.is_training, index=2)
+        block3 = BaselineResNet._block_layer(block2, filters=256, strides=2, is_training=self.is_training, index=3)
+        block4 = BaselineResNet._block_layer(block3, filters=512, strides=2, is_training=self.is_training, index=4)
 
-        block4_norm = BaselineResNet.__batch_norm(block4, self.is_training)
+        block4_norm = BaselineResNet._batch_norm(block4, self.is_training)
         block4_postact = tf.nn.relu(block4_norm)
 
         global_avg = tf.reduce_mean(block4_postact, [1, 2], keepdims=True)
@@ -139,7 +139,7 @@ class BaselineResNet(BaseModel):
         self.logger_factory.add_scalar('accuracy', self.accuracy, log_frequency=10)
 
     @staticmethod
-    def __baseline_preprocessing(x: tf.Tensor) -> tf.Tensor:
+    def _baseline_preprocessing(x: tf.Tensor) -> tf.Tensor:
         """
         Performs preprocessing on a standard Tiny ImageNet input which is expected to be in [-1, 1].
         :param x: the input Tensor
@@ -157,12 +157,12 @@ class BaselineResNet(BaseModel):
         return x - tf.constant(_CHANNEL_MEANS)
 
     @staticmethod
-    def __conv2d_fixed_padding(inputs, filters, kernel_size, strides):
+    def _conv2d_fixed_padding(inputs, filters, kernel_size, strides):
         """Strided 2-D convolution with explicit padding."""
         # The padding is consistent and is based only on `kernel_size`, not on the
         # dimensions of `inputs` (as opposed to using `tf.layers.conv2d` alone).
         if strides > 1:
-            inputs = BaselineResNet.__fixed_padding(inputs, kernel_size)
+            inputs = BaselineResNet._fixed_padding(inputs, kernel_size)
 
         return tf.layers.conv2d(
             inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
@@ -170,7 +170,7 @@ class BaselineResNet(BaseModel):
             kernel_initializer=tf.variance_scaling_initializer())
 
     @staticmethod
-    def __block_layer(inputs, filters, strides, is_training, index):
+    def _block_layer(inputs, filters, strides, is_training, index):
         """Creates one layer of blocks for the ResNet model.
 
         Args:
@@ -186,7 +186,7 @@ class BaselineResNet(BaseModel):
           The output tensor of the block layer.
         """
         def projection_shortcut(inputs):
-            return BaselineResNet.__conv2d_fixed_padding(inputs=inputs, filters=filters, kernel_size=1, strides=strides)
+            return BaselineResNet._conv2d_fixed_padding(inputs=inputs, filters=filters, kernel_size=1, strides=strides)
 
         # Only the first block per block_layer uses projection_shortcut and strides
         inputs = BaselineResNet._building_block_v2(inputs, filters, is_training, projection_shortcut, strides)
@@ -195,7 +195,7 @@ class BaselineResNet(BaseModel):
         return tf.identity(inputs, "block_layer{}".format(index))
 
     @staticmethod
-    def __fixed_padding(inputs, kernel_size):
+    def _fixed_padding(inputs, kernel_size):
         """Pads the input along the spatial dimensions independently of input size.
 
         Args:
@@ -239,7 +239,7 @@ class BaselineResNet(BaseModel):
           The output tensor of the block; shape should match inputs.
         """
         shortcut = inputs
-        inputs = BaselineResNet.__batch_norm(inputs, training)
+        inputs = BaselineResNet._batch_norm(inputs, training)
         inputs = tf.nn.relu(inputs)
 
         # The projection shortcut should come after the first batch norm and ReLU
@@ -247,17 +247,17 @@ class BaselineResNet(BaseModel):
         if projection_shortcut is not None:
             shortcut = projection_shortcut(inputs)
 
-        inputs = BaselineResNet.__conv2d_fixed_padding(inputs=inputs, filters=filters, kernel_size=3,
+        inputs = BaselineResNet._conv2d_fixed_padding(inputs=inputs, filters=filters, kernel_size=3,
                                                             strides=strides)
 
-        inputs = BaselineResNet.__batch_norm(inputs, training)
+        inputs = BaselineResNet._batch_norm(inputs, training)
         inputs = tf.nn.relu(inputs)
-        inputs = BaselineResNet.__conv2d_fixed_padding(inputs=inputs, filters=filters, kernel_size=3, strides=1)
+        inputs = BaselineResNet._conv2d_fixed_padding(inputs=inputs, filters=filters, kernel_size=3, strides=1)
 
         return inputs + shortcut
 
     @staticmethod
-    def __batch_norm(inputs, training):
+    def _batch_norm(inputs, training):
         """Performs a batch normalization using a standard set of parameters."""
         return tf.layers.batch_normalization(inputs=inputs, axis=3, momentum=0.997, epsilon=1e-5, center=True,
                                              scale=True, training=training, fused=True)

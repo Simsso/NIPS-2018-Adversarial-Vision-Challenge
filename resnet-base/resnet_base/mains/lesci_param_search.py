@@ -9,7 +9,7 @@ FLAGS = tf.flags.FLAGS
 BATCH_SIZE = 100
 
 CODE_SIZES = {
-    'act6_block4': [128, 256, 512, 1024],
+    # 'act6_block4': [128, 256, 512, 1024],
     'act8_global_avg': [32, 128, 512],
     # 'act5_block3': [512, 1024]
 }
@@ -17,7 +17,10 @@ CODE_SIZES = {
 KS = [1, 10, 20, 100]
 PROJECTION_THRESHOLDS = np.linspace(0.0, 0.9, 10)
 ACCURACY_CONSTRAINTS = [0.7, 0.75, 0.8]
-EMB_SIZE = 82480
+EMB_SIZES = {
+    'act6_block4': 82480,
+    'act8_global_avg': 86706
+}
 
 
 def criterion(metrics: LESCIMetrics) -> float:
@@ -33,7 +36,8 @@ def grid_search():
             for proj_thres in PROJECTION_THRESHOLDS:
                 for min_accurary in ACCURACY_CONSTRAINTS:
                     for k in KS:
-                        experiment = LESCIExperiment(lesci_pos, code_size, proj_thres, k, EMB_SIZE, min_accurary)
+                        emb_size = EMB_SIZES[lesci_pos]
+                        experiment = LESCIExperiment(lesci_pos, code_size, proj_thres, k, emb_size, min_accurary)
 
                         try:
                             experiment.run()
@@ -44,13 +48,12 @@ def grid_search():
                                 best_experiment = experiment
                                 best_score = score
                                 tf.logging.info("*** This is the new best experiment! Score: {}. ***".format(score))
-
                         except:
                             tf.logging.error("Error occurred while executing experiment: {}"
                                              .format(experiment.experiment_description()))
 
 
-if __name__ == "__main__":
+def main(args):
     tf.logging.info("Starting grid search...")
     start = time.time()
     grid_search()

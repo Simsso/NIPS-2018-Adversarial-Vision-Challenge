@@ -1,14 +1,13 @@
 import tensorflow as tf
 import os
-
-from data.tiny_imagenet_pipeline import TinyImageNetPipeline
-from model.baseline_lesci_resnet import BaselineLESCIResNet
-from util.validation import run_validation, LESCIMetrics
+from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
+from resnet_base.model.baseline_lesci_resnet import BaselineLESCIResNet
+from resnet_base.util.validation import run_validation, LESCIMetrics
 
 BATCH_SIZE = 100
 FLAGS = tf.flags.FLAGS
 
-tf.flags.DEFINE_string("mat_base_dir", os.path.expanduser('~/.models/activations/baseline/'),
+tf.flags.DEFINE_string("mat_base_dir", os.path.expanduser('~/.data/activations/baseline/'),
                        "The directory in which all needed .mat files can be found.")
 
 
@@ -50,12 +49,13 @@ class LESCIExperiment:
         self.metrics = run_validation(model, pipeline, mode=tf.estimator.ModeKeys.EVAL)
 
     def experiment_description(self):
-        return "-- Parameters: \n" + \
-               "  - lesci_pos: {}\n" + \
-               "  - code_size: {}\n" + \
-               "  - proj_thres: {}\n" + \
-               "  - k: {}\n" + \
-               "  - min_accuracy: {}".format(self.lesci_pos, self.code_size, self.proj_thres, self.k, self.min_accuracy)
+        return ("-- Parameters: \n" +
+                "  - lesci_pos: {}\n" +
+                "  - code_size: {}\n" +
+                "  - proj_thres: {}\n" +
+                "  - k: {}\n" +
+                "  - min_accuracy: {}").format(self.lesci_pos, self.code_size, self.proj_thres, self.k,
+                                               self.min_accuracy)
 
     def print_results(self):
         min_accuracy_reached = "YES" if self.metrics.accuracy >= self.min_accuracy else "NO"
