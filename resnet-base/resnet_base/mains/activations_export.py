@@ -9,7 +9,7 @@ from resnet_base.util.logger.tf_logger_init import init as logger_init
 from typing import Dict, List
 
 
-tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/baseline/act6_block4'),
+tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/baseline/act8_global_avg'),
                        'File to export the activations to, without file extension.')
 FLAGS = tf.flags.FLAGS
 
@@ -50,7 +50,7 @@ def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: 
     Feeds samples of the given mode through the given model and accumulates the activation values for correctly
     classified samples. Writes the activations to .mat files.
     """
-    values_per_file = 10000
+    values_per_file = 100000
     n = pipeline.get_num_samples(mode)
 
     pipeline.switch_to(mode)
@@ -71,11 +71,11 @@ def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: 
         if accuracy < 1 and only_correct_ones:
             skipped_ctr += 1
             tf.logging.info("Skipping misclassified sample #{}".format(skipped_ctr))
-            continue
-        for key in sample_export_val.keys():
-            export_vals[key].append(sample_export_val[key][0])  # unpack batches and push into storage
+        else:
+            for key in sample_export_val.keys():
+                export_vals[key].append(sample_export_val[key][0])  # unpack batches and push into storage
         tf.logging.info("Progress: {}/{}".format(i, n))
-        if (i-1) % values_per_file == 0 or (i+1) == n:
+        if (i > 0 and i % values_per_file == 0) or (i+1) == n:
             save_activations(file_ctr, FLAGS.activations_export_file, export_vals)
             export_vals = get_blank_export_vals()
             file_ctr += 1

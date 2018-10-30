@@ -34,6 +34,7 @@ The current code is still not production-ready.
 | `val_log_dir` | ../tf_logs/val | The directory used to save the validation summaries. |
 | `pca_mat_file` | ~/.data/activations/pca.mat | Path to the file (*.mat) where the PCA matrices are being stored. |
 | `activations_export_file` | ~/.data/activations/data_100k_act5_block3.mat | File to export the activations to. |
+| `baseline_checkpoint` | ~/.models/resnet-baseline/model.ckpt | Checkpoint file for the baseline ResNet model. |
 
 
 ### Local Execution
