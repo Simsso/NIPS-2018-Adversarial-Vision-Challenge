@@ -16,7 +16,7 @@ CODE_SIZES = {
 
 KS = [1, 10, 20, 100]
 PROJECTION_THRESHOLDS = np.linspace(0.0, 0.9, 10)
-ACCURACY_CONSTRAINTS = [0.7, 0.75, 0.8]
+ACCURACY_CONSTRAINTS = [0.7]
 EMB_SIZES = {
     'act6_block4': 82480,
     'act8_global_avg': 86706
@@ -39,18 +39,19 @@ def grid_search():
                         emb_size = EMB_SIZES[lesci_pos]
                         experiment = LESCIExperiment(lesci_pos, code_size, proj_thres, k, emb_size, min_accurary)
 
-                        try:
-                            experiment.run()
-                            experiment.print_results()
+                        #try:
+                        experiment.run()
+                        experiment.print_results()
 
-                            score = criterion(experiment.metrics)
-                            if best_experiment is None or score > best_score:
-                                best_experiment = experiment
-                                best_score = score
-                                tf.logging.info("*** This is the new best experiment! Score: {}. ***".format(score))
-                        except:
-                            tf.logging.error("Error occurred while executing experiment: {}"
-                                             .format(experiment.experiment_description()))
+                        score = criterion(experiment.metrics)
+                        accuracy = experiment.metrics.accuracy
+                        if best_experiment is None or (score > best_score and accuracy > min_accurary):
+                            best_experiment = experiment
+                            best_score = score
+                            tf.logging.info("*** This is the new best experiment! Score: {}. ***".format(score))
+                        #except:
+                        #    tf.logging.error("Error occurred while executing experiment: {}"
+                        #                     .format(experiment.experiment_description()))
 
 
 def main(args):

@@ -35,6 +35,8 @@ class LESCIExperiment:
         self.metrics: LESCIMetrics = None
 
     def run(self):
+        tf.reset_default_graph()
+
         # set up the model's flags so it uses the correct matrices corresponding to this experiment
         FLAGS.pca_compression_file = FLAGS.mat_base_dir + 'pca_{}_{}.mat'.format(self.lesci_pos, self.code_size)
         FLAGS.lesci_emb_space_file = FLAGS.mat_base_dir + 'lesci_{}_{}.mat'.format(self.lesci_pos, self.code_size)
