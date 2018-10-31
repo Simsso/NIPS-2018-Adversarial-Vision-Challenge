@@ -1,5 +1,10 @@
-# NIPS 2018 Adversarial Vision Challenge
-This repository contains code, notes, and documents, related to the 2018 NIPS Adversarial Vision Challenge -- Pitting machine vision models against adversarial attacks.
+# NIPS 2018 Adversarial Vision Challenge (Robust Model Track)
+_[Timo I. Denk](https://timodenk.com/), [Florian Pfisterer](https://twitter.com/florianpfi), [Samed Guener](https://twitter.com/samedguener)  
+(published in November 2018)_
+
+**Abstract**. This repository contains code, documents, and deployment configuration files, related to our participation in the 2018 NIPS Adversarial Vision Challenge "Robust Model Track".  
+We have implemented a technique called LESCI which is supposed to increase the robustness of a neural network classifier. It compresses the output of a layer with a matrix computed using PCA on vectors induced by correctly classified training samples. The compressed vector is being compared to an embedding space; and replaced with contained vectors if a certain percentage of the _k_ most similar vectors belongs to the same output label.  
+Our method did not increase the robustness of the model as measured by the challenge, presumably because it comes with a decrease in classification accuracy.
 
 ## Links
 * [Crowd.ai page](https://www.crowdai.org/challenges/nips-2018-adversarial-vision-challenge)
