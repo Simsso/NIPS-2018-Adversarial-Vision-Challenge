@@ -39,19 +39,20 @@ def grid_search():
                         emb_size = EMB_SIZES[lesci_pos]
                         experiment = LESCIExperiment(lesci_pos, code_size, proj_thres, k, emb_size, min_accurary)
 
-                        #try:
-                        experiment.run()
-                        experiment.print_results()
+                        try:
+                            experiment.run()
+                            experiment.print_results()
 
-                        score = criterion(experiment.metrics)
-                        accuracy = experiment.metrics.accuracy
-                        if best_experiment is None or (score > best_score and accuracy > min_accurary):
-                            best_experiment = experiment
-                            best_score = score
-                            tf.logging.info("*** This is the new best experiment! Score: {}. ***".format(score))
-                        #except:
-                        #    tf.logging.error("Error occurred while executing experiment: {}"
-                        #                     .format(experiment.experiment_description()))
+                            score = criterion(experiment.metrics)
+                            accuracy = experiment.metrics.accuracy
+                            if best_experiment is None or (score > best_score and accuracy > min_accurary):
+                                best_experiment = experiment
+                                best_score = score
+                                tf.logging.info("*** This is the new best experiment! Score: {}. ***".format(score))
+                        except Exception as error:
+                            tf.logging.error("Error occurred while executing experiment: {}, \n{}"
+                                             .format(error, experiment.experiment_description()))
+
 
 
 def main(args):
