@@ -54,10 +54,13 @@ def grid_search():
                                              .format(error, experiment.experiment_description()))
 
 
-
 def main(args):
     tf.logging.info("Starting grid search...")
     start = time.time()
     grid_search()
     end = time.time()
     tf.logging.info("Completed grid search. Took {:.1f} seconds".format((end - start)))
+
+
+if __name__ == '__main__':
+    tf.app.run()
