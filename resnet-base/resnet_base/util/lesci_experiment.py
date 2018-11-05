@@ -34,7 +34,11 @@ class LESCIExperiment:
 
         self.metrics: LESCIMetrics = None
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Feeds validation data through a BaselineLESCIResNet parameterized with the hyperparameters that are held in the
+        attributes of this object.
+        """
         tf.reset_default_graph()
 
         # set up the model's flags so it uses the correct matrices corresponding to this experiment
@@ -50,7 +54,7 @@ class LESCIExperiment:
 
         self.metrics = run_validation(model, pipeline, mode=tf.estimator.ModeKeys.EVAL)
 
-    def experiment_description(self):
+    def experiment_description(self) -> str:
         return ("-- Parameters: \n" +
                 "  - lesci_pos: {}\n" +
                 "  - code_size: {}\n" +
@@ -59,7 +63,7 @@ class LESCIExperiment:
                 "  - min_accuracy: {}").format(self.lesci_pos, self.code_size, self.proj_thres, self.k,
                                                self.min_accuracy)
 
-    def print_results(self):
+    def print_results(self) -> None:
         min_accuracy_reached = "YES" if self.metrics.accuracy >= self.min_accuracy else "NO"
         tf.logging.info("----- Experiment completed -----\n"
                         "{}\n"
@@ -67,7 +71,6 @@ class LESCIExperiment:
                         "  - accuracy: {}\n"
                         "  - min_accuracy reached: {}\n"
                         "  - percentage_id_mapped: {}\n"
-                        "  - accuracy_projection: {}\n".format(self.experiment_description(), self.metrics.accuracy,
-                                                               min_accuracy_reached,
-                                                               self.metrics.percentage_identity_mapped,
-                                                               self.metrics.accuracy_projection))
+                        "  - accuracy_projection: {}\n"
+                        .format(self.experiment_description(), self.metrics.accuracy, min_accuracy_reached,
+                                self.metrics.percentage_identity_mapped, self.metrics.accuracy_projection))

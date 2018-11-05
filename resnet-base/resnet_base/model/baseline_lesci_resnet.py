@@ -103,6 +103,16 @@ class BaselineLESCIResNet(BaselineResNet):
 
     def _lesci_layer(self, x: tf.Tensor, shape: List[int], activation_size: int)\
             -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+        """
+        Scales the input vector down using a loaded PCA matrix and compares it to a loaded embedding space (k-NN).
+        :param x: Activations of the previous layer
+        :param shape: Size of the embedding space (num_samples x code_size)
+        :param activation_size: Size of the flattened input vector x
+        :return: Tuple with three tensors:
+                - Mask indicating whether a sample was identity mapped
+                - Label that is suggested for the sample (only meaningful, where no identity mapping was used)
+                - Percentage of identity mapped samples
+        """
 
         assert len(shape) == 2
         num_samples = shape[0]
