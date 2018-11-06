@@ -55,6 +55,9 @@ def grid_search():
 
 
 def main(args):
+    """
+    Performs hyperparameter grid-search for a Baseline LESCI ResNet.
+    """
     tf.logging.info("Starting grid search...")
     start = time.time()
     grid_search()

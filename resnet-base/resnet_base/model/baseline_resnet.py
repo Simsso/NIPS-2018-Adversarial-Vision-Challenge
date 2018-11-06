@@ -15,6 +15,10 @@ tf.flags.DEFINE_string("baseline_checkpoint", "", "Path to the baseline weights 
 
 
 class BaselineResNet(BaseModel):
+    """
+    Contains a ResNet implementation given as a baseline by the 2018 NIPS Adversarial Vision Challenge and is able to
+    restore the provided pre-trained baseline weights.
+    """
 
     def __init__(self, logger_factory: LoggerFactory = None, x: tf.Tensor = None, labels: tf.Tensor = None):
         super().__init__(logger_factory)

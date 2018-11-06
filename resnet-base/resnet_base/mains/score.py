@@ -39,6 +39,10 @@ __attacks = [
 
 
 def main(args):
+    """
+    Runs a number of foolbox attacks on a SubmittableResNet. Used to evaluate the robustness of the model.
+    Prints the median and mean L2 pixel distances between clean and adversarial images for all successful attacks.
+    """
     w = TinyImageNetPipeline.img_width
     h = TinyImageNetPipeline.img_height
     c = TinyImageNetPipeline.img_channels

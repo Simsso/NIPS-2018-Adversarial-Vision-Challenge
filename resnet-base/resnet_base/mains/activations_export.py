@@ -45,7 +45,7 @@ def main(args) -> None:
 
 
 def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: BaselineResNet,
-                       mode: tf.estimator.ModeKeys, only_correct_ones: bool = True):
+                       mode: tf.estimator.ModeKeys, only_correct_ones: bool = True) -> None:
     """
     Feeds samples of the given mode through the given model and accumulates the activation values for correctly
     classified samples. Writes the activations to .mat files.
