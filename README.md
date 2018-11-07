@@ -7,7 +7,7 @@ We have implemented a technique called a LESCI layer which is supposed to increa
 It compresses the representation at a certain layer with a matrix computed using PCA on representations induced by correctly classified training samples at this same layer.
 The compressed vector is being compared to an embedding space; and replaced with an embedding vector if a certain percentage of the _k_ most similar vectors belong to the same output label.  
 In the current configuration, our method did not increase the robustness of the model as measured by the challenge, presumably because it comes with a decrease in classification accuracy.
-We have formalized this approach in [this PDF](https//TODO_INSERT_LINK_HERE.com).
+We have formalized our approach in [this PDF](./docs/article/article.pdf).
 
 
 ## Background
