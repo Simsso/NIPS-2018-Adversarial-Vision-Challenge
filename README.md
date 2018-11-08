@@ -2,12 +2,13 @@
 _[Timo I. Denk](https://timodenk.com/), [Florian Pfisterer](https://twitter.com/FlorianPfi), [Samed Guener](https://twitter.com/samedguener)  
 (published in November 2018)_
 
-**Abstract**. This repository contains code, documents, and deployment configuration files, related to our participation in the 2018 NIPS Adversarial Vision Challenge "Robust Model Track".  
-We have implemented a technique called a LESCI layer which is supposed to increase the robustness of a neural network classifier.
-It compresses the representation at a certain layer with a matrix computed using PCA on representations induced by correctly classified training samples at this same layer.
+## Abstract
+This repository contains code, documents, and deployment configuration files, related to our participation in the 2018 NIPS Adversarial Vision Challenge "Robust Model Track".  
+We implemented a technique called a _LESCI-layer_ which is supposed to increase the robustness of a neural network classifier.
+It compresses the representation at a certain layer with a matrix computed using PCA on representations induced by correctly classified training samples at this layer.
 The compressed vector is being compared to an embedding space; and replaced with an embedding vector if a certain percentage of the _k_ most similar vectors belong to the same output label.  
 In the current configuration, our method did not increase the robustness of the model as measured by the challenge, presumably because it comes with a decrease in classification accuracy.
-We have formalized our approach in [this PDF](./docs/article/article.pdf).
+We have documented our approach formally in [this PDF](./docs/article/article.pdf).
 
 
 ## Background
