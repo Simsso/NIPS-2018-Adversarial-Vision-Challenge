@@ -19,7 +19,9 @@ FLAGS = tf.flags.FLAGS
 
 
 class LESCIResNet(ResNet):
-
+    """
+    ResNet version that can restore ALP weights and contains a LESCI layer.
+    """
     def _build_model(self, x: tf.Tensor) -> tf.Tensor:
         x = ResNet._first_conv(x)  # 16x16x64
         x = ResNet._v2_block(x, 'block1', base_depth=64, num_units=3, stride=2)

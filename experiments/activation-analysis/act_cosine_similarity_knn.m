@@ -1,3 +1,11 @@
+%{
+Script to be used in combination with 'act_cosine_similarity.m'.
+Given a sample vector and a vector of all activations (may be compressed),
+this script plots the classes of the top k most similar activations.
+Ideally, one class is dominant (the class of the sample) and the other
+classes are rather evenly distributed.
+%}
+
 % sort label vector based on similarity
 [cos_sim_sorted, cos_sim_order] = sort(cos_sim, 'descend');
 labels_sorted = labels(cos_sim_order);

@@ -1,3 +1,11 @@
+%{
+Plots a histogram of the cosine similarity measure between
+a sample vector (index sample_index) and all other activations.
+The color of vectors that belong to the same class is different
+so the user can see how much information the cosine similarity
+contains about the classes.
+%}
+
 act = act5_block3;
 labels = transpose(target_labels);
 sample_index = 4
