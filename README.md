@@ -7,7 +7,7 @@ This repository contains code, documents, and deployment configuration files, re
 We implemented a technique called a _LESCI-layer_ which is supposed to increase the robustness of a neural network classifier.
 It compresses the representation at a certain layer with a matrix computed using PCA on representations induced by correctly classified training samples at this layer.
 The compressed vector is being compared to an embedding space; and replaced with an embedding vector if a certain percentage of the _k_ most similar vectors belong to the same output label.  
-In the current configuration, our method did not increase the robustness of the model as measured by the challenge, presumably because it comes with a decrease in classification accuracy.
+In the current configuration, our method did not increase the robustness of the model (a ResNet trained on Tiny ImageNet) as measured by the challenge, presumably because it comes with a decrease in classification accuracy.
 We have documented our approach formally in [this PDF](./docs/article/article.pdf).
 
 
@@ -32,38 +32,38 @@ These were our responsibilities:
 ## Repository
 
 This repository is an integral component of our work and served the following purposes:
-* **Code**. Version control our code base and keeping track of contributions other team members have made.
-* **Project management tool**. We have used issues quite extensively to keep track of [work items](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/issues?q=label%3Awork-item+) and [meetings](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/issues?q=label%3Ameeting). For each meeting we took notes of assignments and documented the progress we had made.
-* **Knowledge base**. The repository's [wiki](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki) contains enduring information, such as [how our pipeline is set up](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Training-Pipeline), which [papers we consider relevant](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Reading-List), or [how we name our commits](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Repository-Conventions), just to name a few.
-* **Review**. Every contribution to the `master` branch had to go through a review process. In total we have have opened [more than 25 pull requests](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/pulls?q=is%3Apr); some of which have received more than 30 comments.
-* **Dev ops**. We have set up webhooks to the Google Cloud Platform to be able to automatically spin up new instances for training, once a commit has been given a certain tag.
+* **Code**. The repository contains the entire commit history of our code. During development it has proven to be an effective way of catching up with the commits of other team members.
+* **Project management tool**. We used issues quite extensively to keep track of [work items](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/issues?q=label%3Awork-item+) and [meetings](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/issues?q=label%3Ameeting). For each meeting we took notes of assignments and documented the progress we had made.
+* **Knowledge base**. The repository's [wiki](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki) contains enduring ideas and documentation, such as [how our pipeline is set up](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Training-Pipeline), which [papers we consider relevant](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Reading-List), or [how we name our commits](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Repository-Conventions), just to name a few.
+* **Review**. Every contribution to the `master` branch had to be reviewed. In total we opened [more than 25 pull requests](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/pulls?q=is%3Apr); some of which received more than 30 comments.
+* **Dev ops**. We set up webhooks to the Google Cloud Platform to be able to automatically spin up new instances for training, once a commit was flagged with a certain tag.
 
 ## Codebase
 Our codebase consists of two Python modules, namely `resnet_base` and `vq_layer`. In addition to that we publish an `experiments` folder which contains _dirty_ code that was written for the sake of testing ideas. This section mentions some specifics and references the actual documentation. The class diagrams were generated with `pyreverse`. TODO(florianpfisterer): update resnet_base to match the new name and update links accordingly.
 
 ### VQ-Layer
-The `vq_layer` module contains TensorFlow (TF) implementations of our vector quantization ideas. Following the TF API, that is a [number of functions](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/docs/vq-layer/vq_layer/vq_layer.py) which work with `tf.Tensor` objects. The features as well as install instructions can be found in the [README file of the module](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/docs/vq-layer/README.md).
+The `vq_layer` module contains TensorFlow (TF) implementations of our vector quantization ideas. Following the TF API, that is a [number of functions](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/master/vq-layer/vq_layer/vq_layer.py) which work with `tf.Tensor` objects. The features as well as install instructions can be found in the [README file of the module](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/master/vq-layer/README.md).
 
-We put quite some effort into testing the functions properly because it is very tedious to debug the TF's computational graph once created. Each of the test classes covers one specific aspect (described in a comment) of the module. The test classes share some functionality, e.g. graph reset, session creation, and random seed, which we have placed in the `TFTestCase` class.
+We prioritized a good test coverage to ensure the proper functioning of the module. Each of the test classes covers one specific aspect (described in a comment) of the module. The test classes share some functionality, e.g. graph reset, session creation, and random seed, which we have placed in the `TFTestCase` class.
 
 ![vq_layer class diagram](https://user-images.githubusercontent.com/6556307/48197469-1c857100-e356-11e8-9469-2451c8e38654.png)  
 _Fig.: Class diagram of the module `vq_layer`. It shows the test classes which inherit from `TFTestCase`. Each class is responsible for testing a specific aspect for which it implements a plurality of test cases (methods)._
 
 ### ResNet Base
 
-The `resnet_base` module contains our approaches to developing a more robust classifier for the Tiny ImageNet dataset. The documentations can be found [in the README file](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/master/resnet-base/README.md).
+The `resnet_base` module contains our approaches to developing a more robust classifier for the Tiny ImageNet dataset. The documentation can be found [in the README file](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/master/resnet-base/README.md).
 
-Our basic idea was to be able to try out new things by inheriting from some `Model` class and overriding its graph construction method. The new method would then contain some special features that we want to test. This idea is being reflected in the class diagram below. 
+Our basic idea was to be able to try out new things by inheriting from some `Model` class and overriding its graph construction method. The new method would then contain some special features that we want to test. This idea is reflected in the class diagram below. 
 
-The **`BaseModel`** contains fundamental things that all our ML models need. For instance an epoch counter or functionality for saving and restoring weights. The two inheriting classes are two ResNet implementations, that can restore pre-trained weights. 
+The **`BaseModel`** contains fundamental methods and attributes that all our ML models need. For instance an epoch counter or functionality for saving and restoring weights. The two inheriting classes are two ResNet implementations that can restore pre-trained weights. 
 
 **`BaselineResNet`** is designed to work with baseline weights [provided by the challenge organizers](https://gitlab.crowdai.org/adversarial-vision-challenge/resnet18_model_baseline/tree/master/resnet18/checkpoints/model), while **`ResNet`** works with ["ALP-trained ResNet-v2-50" weights](https://github.com/tensorflow/models/tree/master/research/adversarial_logit_pairing#pre-trained-models).
 
 The classes inheriting from `BaselineResNet` and `ResNet` are our experiments: **`BaselineLESCIResNet`**, **`LESCIResNet`**, **`PCAResNet`**, **`ParallelVQResNet`**, **`VQResNet`**, and **`ActivationsResNet`**. They are typically using the functions provided by the `vq_layer` module.
 
-Our **input pipeline** provides the models with images from the Tiny ImageNet dataset. It follows [the official recommendation](https://www.tensorflow.org/guide/datasets) by using TF's `tf.data` API. The code is split into more generic functions, which might be reused in pipelines for other datasets (`BasePipeline` class), and the things specific to Tiny ImageNet (`TinyImageNetPipeline` class), e.g. reading label text files or image augmentation.
+Our **input pipeline** provides the models with images from the Tiny ImageNet dataset. It follows [the official recommendation](https://www.tensorflow.org/guide/datasets) by using TF's `tf.data` API. The code is split into more generic functions, which might be reused in pipelines for other datasets (`BasePipeline` class), and the code specific to the Tiny ImageNet dataset (`TinyImageNetPipeline` class), for instance reading label text files or image augmentation.
 
-Our **logging** is quite comprehensive. Because we accumulated gradients over several _physical batches_, we could not use the plain `tf.summary` API and had to accumulate scalars and histograms manually in order to create a `tf.Summary` object manually. This functionality is placed in `Logger`, `Accumulator`, and inheriting classes.
+Our **logging** is quite comprehensive. Because we accumulate gradients over several _physical batches_, we cannot use the plain `tf.summary` API and have to accumulate scalars and histograms in order to create a `tf.Summary` object manually. This functionality is placed in `Logger`, `Accumulator`, and inheriting classes.
 
 ![resnet_base class diagram](https://user-images.githubusercontent.com/6556307/48197117-09be6c80-e355-11e8-8a97-7e2b43edc8e6.png)  
 _Fig.: Class diagram of the module `resnet_base`. Accumulators are on the left, the different models are in the middle, the pipeline and misc. is on the right._
