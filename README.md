@@ -81,3 +81,14 @@ _Fig.: Gradient (right) of loss wrt. input for a sample (left) from the MNIST da
 Our dev ops unit (Samed) has set up a training pipeline that simplifies the empirical evaluation of ML ideas. For the researcher, triggering a training run is a simple as tagging a commit and pushing it. The tag triggers a pipeline which creates a new virtual machine (VM) on the Google Cloud Platform (GCP). The VM is configured to have a GPU and to run the training job (Python files). The results (e.g. model weights and logged metrics) were streamed to a persistent storage which the ML researcher could access through the GCP user interface and a TensorBoard instance which we kept running.
 
 More details about the pipeline can be found [here](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Training-Pipeline) and an analysis of GCP's capabilities (from our perspective) is written down [here](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Google-Cloud-Platform).
+
+## Results
+Our final submission was intended to be a pre-trained ResNet (baseline supplied by the challenge) which uses a LESCI-layer at a level in the network that gives a good balance between robustness and accuracy 
+(you can learn more about our reasoning behind this in our [PDF article](./docs/article/article.pdf)).
+
+Computing the PCA on the activations from early layers turned out to be infeasible, which is why we had to constrain our hyperparameter search to only one position late in the network where the dimension of an
+activation was only 512 (instead of 131,072-262,144 in higher layers). 
+
+Unfortunately, this hyperparameter grid search gave us no combination of parameters that resulted in an accuracy of more than 50.0% and a good percentage of inputs that were projected at the same time (calculated based on the Tiny ImageNet validation set).
+
+Future work should focus on inserting a LESCI-layer at an earlier layer in the network, which we were not able to do for a lack of computational resources.
