@@ -15,3 +15,15 @@ We have formalized our approach in [this PDF](./docs/article/article.pdf).
 The annual NIPS conference has a [competition track](https://nips.cc/Conferences/2018/CompetitionTrack).
 We have participated in the [Adversarial Vision Challenge "Robust Model Track"](https://www.crowdai.org/challenges/adversarial-vision-challenge):
 > The overall goal of this challenge is to facilitate measurable progress towards robust machine vision models and more generally applicable adversarial attacks. As of right now, modern machine vision algorithms are extremely susceptible to small and almost imperceptible perturbations of their inputs (so-called adversarial examples). This property reveals an astonishing difference in the information processing of humans and machines and raises security concerns for many deployed machine vision systems like autonomous cars. Improving the robustness of vision algorithms is thus important to close the gap between human and machine perception and to enable safety-critical applications.
+
+## Team
+
+We are three CS students from Germany who worked on the NIPS project in their leisure time.
+
+![team picture](https://user-images.githubusercontent.com/6556307/48194510-88171080-e34d-11e8-8d9a-705f82b6a50d.png)
+
+These were our responsibilities:
+
+* **Timo Denk** _(left)_: Team lead, architectural decisions, Python development, ML research and ideas.
+* **Florian Pfisterer** _(middle)_: Architectural decisions, Python development, ML research and ideas.
+* **Samed Güner** _(right)_: Training pipeline design, cloud administration, pipeline implementation, Go tool development.
