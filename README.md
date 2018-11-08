@@ -27,3 +27,12 @@ These were our responsibilities:
 * **Timo Denk** _(left)_: Team lead, architectural decisions, Python development, ML research and ideas.
 * **Florian Pfisterer** _(middle)_: Architectural decisions, Python development, ML research and ideas.
 * **Samed Güner** _(right)_: Training pipeline design, cloud administration, pipeline implementation, Go tool development.
+
+## Repository
+
+This repository is an integral component of our work and served the following purposes:
+* **Code**. Version control our code base and keeping track of contributions other team members have made.
+* **Project management tool**. We have used issues quite extensively to keep track of [work items](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/issues?q=label%3Awork-item+) and [meetings](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/issues?q=label%3Ameeting). For each meeting we took notes of assignments and documented the progress we had made.
+* **Knowledge base**. The repository's [wiki](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki) contains enduring information, such as [how our pipeline is set up](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Training-Pipeline), which [papers we consider relevant](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Reading-List), or [how we name our commits](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Repository-Conventions), just to name a few.
+* **Review**. Every contribution to the `master` branch had to go through a review process. In total we have have opened [more than 25 pull requests](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/pulls?q=is%3Apr); some of which have received more than 30 comments.
+
