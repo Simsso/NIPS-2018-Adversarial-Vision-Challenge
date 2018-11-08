@@ -3,14 +3,14 @@ from os import path
 import scipy.io
 import tensorflow as tf
 from resnet_base.data.tiny_imagenet_pipeline import TinyImageNetPipeline
-from resnet_base.model.activations_resnet import ActivationsResNet
+from resnet_base.model.baseline_resnet import BaselineResNet
 from resnet_base.util.logger.factory import LoggerFactory
 from resnet_base.util.logger.tf_logger_init import init as logger_init
 from typing import Dict, List
 
 
-tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/data_100k_act5_block3.mat'),
-                       'File to export the activations to.')
+tf.flags.DEFINE_string('activations_export_file', path.expanduser('~/.data/activations/baseline/act8_global_avg'),
+                       'File to export the activations to, without file extension.')
 FLAGS = tf.flags.FLAGS
 
 
@@ -34,48 +34,55 @@ def main(args) -> None:
 
         # model
         logger_factory = LoggerFactory(num_valid_steps=1)
-        model = ActivationsResNet(logger_factory, imgs, labels)
+        model = BaselineResNet(logger_factory, imgs, labels)
 
-        # restore pre-trained weights
+        # init and restore pre-trained weights
+        init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+        sess.run(init, feed_dict=model.init_feed_dict)
         model.restore(sess)
 
-        export_vals = gather_activations(sess, pipeline, model, tf.estimator.ModeKeys.TRAIN)
-        save_activations(FLAGS.activations_export_file, export_vals)
+        gather_activations(sess, pipeline, model, tf.estimator.ModeKeys.TRAIN)
 
 
-def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: ActivationsResNet,
-                       mode: tf.estimator.ModeKeys, only_correct_ones: bool = True) -> Dict[str, List]:
+def gather_activations(sess: tf.Session, pipeline: TinyImageNetPipeline, model: BaselineResNet,
+                       mode: tf.estimator.ModeKeys, only_correct_ones: bool = True) -> None:
     """
     Feeds samples of the given mode through the given model and accumulates the activation values for correctly
-    classified samples.
-    :return: Dictionary mapping from activation name to list of occurred value. All lists in the dictionary have the
-             same length.
+    classified samples. Writes the activations to .mat files.
     """
-
-    n = min(pipeline.get_num_samples(mode), 100000)
+    values_per_file = 100000
+    n = pipeline.get_num_samples(mode)
 
     pipeline.switch_to(mode)
     export_tensors = model.activations.copy()
     export_tensors['target_labels'] = model.labels
 
-    export_vals = {}
-    for key in export_tensors.keys():
-        export_vals[key] = []
+    def get_blank_export_vals() -> Dict:
+        blank_dict = {}
+        for k in export_tensors.keys():
+            blank_dict[k] = []
+        return blank_dict
 
-    skipped_ctr = 0
+    export_vals = get_blank_export_vals()
+
+    skipped_ctr, file_ctr = 0, 0
     for i in range(n):
         sample_export_val, accuracy = sess.run([export_tensors, model.accuracy])
         if accuracy < 1 and only_correct_ones:
             skipped_ctr += 1
             tf.logging.info("Skipping misclassified sample #{}".format(skipped_ctr))
-            continue
-        for key in sample_export_val.keys():
-            export_vals[key].append(sample_export_val[key][0])  # unpack batches and push into storage
+        else:
+            for key in sample_export_val.keys():
+                export_vals[key].append(sample_export_val[key][0])  # unpack batches and push into storage
         tf.logging.info("Progress: {}/{}".format(i, n))
-    return export_vals
+        if (i > 0 and i % values_per_file == 0) or (i+1) == n:
+            save_activations(file_ctr, FLAGS.activations_export_file, export_vals)
+            export_vals = get_blank_export_vals()
+            file_ctr += 1
 
 
-def save_activations(export_path: str, val_dict: Dict[str, any]) -> None:
+def save_activations(i: int, export_path: str, val_dict: Dict[str, any]) -> None:
+    export_path = "{}_{}.mat".format(export_path, str(i).zfill(3))
     tf.logging.info("Exporting to {}".format(export_path))
     scipy.io.savemat(export_path, mdict=val_dict)
 

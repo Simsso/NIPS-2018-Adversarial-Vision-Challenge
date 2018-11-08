@@ -4,7 +4,7 @@ https://github.com/MrGemy95/Tensorflow-Project-Template/blob/master/base/base_mo
 """
 
 import tensorflow as tf
-from typing import Optional
+from typing import Optional, List
 import os
 
 from resnet_base.util.logger.factory import LoggerFactory
@@ -41,6 +41,9 @@ class BaseModel:
         # dictionary of tensor value mappings
         # should be passed when initializing the model variables, i.e. sess.run(init, feed_dict=init_feed_dict)
         self.init_feed_dict = {}
+
+        # may be filled with [str, Tensor] values if activations need to be exposed
+        self.activations = {}
 
     def post_build_init(self):
         self.init_saver()
@@ -84,8 +87,12 @@ class BaseModel:
     def _create_saver(collection_name: str) -> Optional[tf.train.Saver]:
         var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, collection_name)
         if var_list:
-            return tf.train.Saver(var_list=var_list)
+            return BaseModel._create_saver_from_var_list(var_list)
         return None
+
+    @staticmethod
+    def _create_saver_from_var_list(var_list: List[tf.Tensor]) -> tf.train.Saver:
+        return tf.train.Saver(var_list)
 
     @staticmethod
     def _save_to_path(sess: tf.Session, saver: Optional[tf.train.Saver], global_step: tf.Tensor, path: Optional[str]):

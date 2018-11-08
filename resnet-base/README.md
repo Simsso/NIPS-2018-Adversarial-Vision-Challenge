@@ -33,8 +33,10 @@ The current code is still not production-ready.
 | `train_log_dir` | ../tf_logs/train | The directory used to save the training summaries. |
 | `val_log_dir` | ../tf_logs/val | The directory used to save the validation summaries. |
 | `pca_mat_file` | ~/.data/activations/pca.mat | Path to the file (*.mat) where the PCA matrices are being stored. |
-| `activations_export_file` | ~/.data/activations/data_100k_act5_block3.mat | File to export the activations to. |
-
+| `activations_export_file` | ~/.data/activations/data_100k_act5_block3 | File to export the activations to, without file extension. |
+| `baseline_checkpoint` | ~/.models/resnet-baseline/model.ckpt | Checkpoint file for the baseline ResNet model. |
+| `lesci_emb_space_file` | ~/.data/activations/data_lesci_emb_space_small.mat | Path to the file (*.mat) where embedding space values ('act_compressed') and labels ('labels') are being stored. |
+| `pca_compression_file` | ~/.data/activations/pca.mat | Path to the file (*.mat) where the PCA compression matrix ('pca_out') is stored. |
 
 ### Local Execution
 Install with 
