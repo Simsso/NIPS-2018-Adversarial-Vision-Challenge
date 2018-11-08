@@ -24,9 +24,9 @@ We are three CS students from Germany who worked on the NIPS project in their le
 
 These were our responsibilities:
 
-* **Timo Denk** _(left)_: Team lead, architectural decisions, Python development, ML research and ideas.
-* **Florian Pfisterer** _(middle)_: Architectural decisions, Python development, ML research and ideas.
-* **Samed Güner** _(right)_: Training pipeline design, cloud administration, pipeline implementation, Go tool development.
+* **Timo Denk** _(left; [@simsso](https://github.com/simsso))_: Team lead, architectural decisions, Python development, ML research and ideas.
+* **Florian Pfisterer** _(middle; [@florianpfisterer](https://github.com/florianpfisterer))_: Architectural decisions, Python development, ML research and ideas.
+* **Samed Güner** _(right; [@doktorgibson](https://github.com/doktorgibson))_: Training pipeline design, cloud administration, pipeline implementation, Go tool development.
 
 ## Repository
 
