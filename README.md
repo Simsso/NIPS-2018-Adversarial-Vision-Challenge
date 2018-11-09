@@ -4,10 +4,10 @@ _[Timo I. Denk](https://timodenk.com/), [Florian Pfisterer](https://twitter.com/
 
 ## Abstract
 This repository contains code, documents, and deployment configuration files, related to our participation in the 2018 NIPS Adversarial Vision Challenge "Robust Model Track".  
-We implemented a technique called a _LESCI-layer_ which is supposed to increase the robustness of a neural network classifier.
+We implemented a technique called a _LESCI-layer_ which is based on vector quantization (VQ) and supposed to increase the robustness of a neural network classifier.
 It compresses the representation at a certain layer with a matrix computed using PCA on representations induced by correctly classified training samples at this layer.
 The compressed vector is being compared to an embedding space; and replaced with an embedding vector if a certain percentage of the _k_ most similar vectors belong to the same output label.  
-In the current configuration, our method did not increase the robustness of the model (a ResNet trained on Tiny ImageNet) as measured by the challenge, presumably because it comes with a decrease in classification accuracy.
+In the current configuration, our method did not increase the robustness of the ResNet-based classifier for Tiny ImageNet, as measured by the challenge, presumably because it comes with a decrease in classification accuracy.
 We have documented our approach formally in [this PDF](./docs/article/article.pdf).
 
 
@@ -27,7 +27,7 @@ These were our responsibilities:
 
 * **Timo Denk** _(left; [@simsso](https://github.com/simsso))_: Team lead, architectural decisions, Python development, ML research and ideas.
 * **Florian Pfisterer** _(middle; [@florianpfisterer](https://github.com/florianpfisterer))_: Architectural decisions, Python development, ML research and ideas.
-* **Samed Güner** _(right; [@doktorgibson](https://github.com/doktorgibson))_: Training pipeline design, cloud administration, pipeline implementation, Go tool development.
+* **Samed Güner** _(right; [@doktorgibson](https://github.com/doktorgibson))_: Training pipeline design, cloud administration, pipeline implementation.
 
 ## Repository
 
@@ -36,7 +36,7 @@ This repository is an integral component of our work and served the following pu
 * **Project management tool**. We used issues quite extensively to keep track of [work items](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/issues?q=label%3Awork-item+) and [meetings](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/issues?q=label%3Ameeting). For each meeting we took notes of assignments and documented the progress we had made.
 * **Knowledge base**. The repository's [wiki](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki) contains enduring ideas and documentation, such as [how our pipeline is set up](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Training-Pipeline), which [papers we consider relevant](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Reading-List), or [how we name our commits](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Repository-Conventions), just to name a few.
 * **Review**. Every contribution to the `master` branch had to be reviewed. In total we opened [more than 25 pull requests](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/pulls?q=is%3Apr); some of which received more than 30 comments.
-* **Dev ops**. We set up webhooks to the Google Cloud Platform to be able to automatically spin up new instances for training, once a commit was flagged with a certain tag.
+* **DevOps**. We set up webhooks to the Google Cloud Platform to be able to automatically spin up new instances for training, once a commit was flagged with a certain tag.
 
 ## Codebase
 Our codebase consists of two Python modules, namely `resnet_base` and `vq_layer`. In addition to that we publish an `experiments` folder which contains _dirty_ code that was written for the sake of testing ideas. This section mentions some specifics and references the actual documentation. The class diagrams were generated with `pyreverse`. TODO(florianpfisterer): update resnet_base to match the new name and update links accordingly.
@@ -78,7 +78,7 @@ Our [experiments](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challen
 _Fig.: Gradient (right) of loss wrt. input for a sample (left) from the MNIST dataset._
 
 ## Training Pipeline
-Our dev ops unit (Samed) has set up a training pipeline that simplifies the empirical evaluation of ML ideas. For the researcher, triggering a training run is a simple as tagging a commit and pushing it. The tag triggers a pipeline which creates a new virtual machine (VM) on the Google Cloud Platform (GCP). The VM is configured to have a GPU and to run the training job (Python files). The results (e.g. model weights and logged metrics) were streamed to a persistent storage which the ML researcher could access through the GCP user interface and a TensorBoard instance which we kept running.
+Our DevOps unit (Samed) has set up a training pipeline that simplifies the empirical evaluation of ML ideas. For the researcher, triggering a training run is a simple as tagging a commit and pushing it. The tag triggers a pipeline which creates a new virtual machine (VM) on the Google Cloud Platform (GCP). The VM is configured to have a GPU and to run the training job (Python files). The results (e.g. model weights and logged metrics) were streamed to a persistent storage which the ML researcher could access through the GCP user interface and a TensorBoard instance which we kept running.
 
 More details about the pipeline can be found [here](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Training-Pipeline) and an analysis of GCP's capabilities (from our perspective) is written down [here](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/wiki/Google-Cloud-Platform).
 
