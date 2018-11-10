@@ -1,22 +1,22 @@
 # NIPS Defense
-_This folder contains a self-contained ResNet model which provides the basis for our future experiments._
+_This folder contains a self-contained ResNet model which provides the basis for our experiments._
 
-At its core, it is a transferred
-[official ResNet model](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/slim/python/slim/nets/resnet_v2.py)
+At its core, it consists of two ResNet models, namely 
+[ALP-ResNet model](https://github.com/tensorflow/models/tree/master/research/adversarial_logit_pairing) and [NIPS challenge baseline ResNet](https://gitlab.crowdai.org/florianpfisterer/resnet18_model_baseline),
 incorporated into a popular [TensorFlow project template](https://github.com/MrGemy95/Tensorflow-Project-Template)
-(which we have adapted to our needs). 
+(which we have adapted to our needs). The two ResNet models are classes which we extend in sub-classes that add new functionality to the models, trying to increase robustness.
 
-### Current Functionality
-As of now, the following features are implemented:
-* restore the pre-trained [ALP weights](https://github.com/tensorflow/models/tree/master/research/adversarial_logit_pairing)
+### Highlights
+The following features are implemented:
+* restore the pre-trained [ALP weights](https://github.com/tensorflow/models/tree/master/research/adversarial_logit_pairing); class `ResNet`.
+* restore the pre-trained [challenge baseline weights](https://gitlab.crowdai.org/florianpfisterer/resnet18_model_baseline); class `BaselineResNet`.
 * load the [Tiny ImageNet](https://tiny-imagenet.herokuapp.com/) training and validation set
-* channel training and validation data via a `tf.data` input pipeline
+* channel training and validation data via a `tf.data` input pipeline, apply pre-processing
 * evaluate the model on the validation set (using [`eval.py`](nips_defense/mains/eval.py))
 * support multiple savers to restore and save different parts of the graph, namely pre-trained, custom and global weights
 * perform training using [`resnet_trainer.py`](nips_defense/trainer/resnet_trainer.py)
 (can be tested with [`test_train.py`](nips_defense/mains/test_train.py))
-
-The current code is still not production-ready.
+* validate new techniques against foolbox attacks [`score.py`](nips_defense/mains/score.py)
 
 
 ### Flags
@@ -43,7 +43,7 @@ Install with
 ```bash
 python setup.py install
 ```
-and run using
+Point the `__main__.py` file to the desired Python script in the `main` folder and run using
 ```bash
 python -m nips_defense
 ```
