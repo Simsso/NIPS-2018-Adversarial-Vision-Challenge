@@ -2,7 +2,7 @@
 
 cd vq-layer && pip install . && cd ..
 python setup.py install && \
-python -m resnet_base \
+python -m nips_defense \
     --name "${MODEL_ID}" \
     --learning_rate 1 \
     --num_epochs 1 \

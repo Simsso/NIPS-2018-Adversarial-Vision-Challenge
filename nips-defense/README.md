@@ -1,7 +1,7 @@
-# ResNet Base
+# NIPS Defense
 _This folder contains a self-contained ResNet model which provides the basis for our future experiments._
 
-It's core is a transferred
+At its core, it is a transferred
 [official ResNet model](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/slim/python/slim/nets/resnet_v2.py)
 incorporated into a popular [TensorFlow project template](https://github.com/MrGemy95/Tensorflow-Project-Template)
 (which we have adapted to our needs). 
@@ -45,5 +45,5 @@ python setup.py install
 ```
 and run using
 ```bash
-python -m resnet_base
+python -m nips_defense
 ```
