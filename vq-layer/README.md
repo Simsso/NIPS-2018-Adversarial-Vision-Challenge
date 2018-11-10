@@ -3,7 +3,7 @@
 This folder contains a Python module which exports the following functions: 
 * [`vector_quantization`](./vq_layer/vq_layer.py#L15): Standard vector quantization layer that allows quantization based on L1-norm, L2-norm or infinity-norm. Trainable, with different loss terms added to the `tf.GraphKeys.LOSSES` collection.
 * [`cosine_vector_quantization`](./vq_layer/vq_layer.py#L119): Vector quantization layer performing the lookup based on the largest cosine similarity (argmax of dot product). Not trainable, since it does not add loss terms.
-* [`cosine_knn_vector_quantization`](./vq_layer/vq_layer.py#L160): Vector quantization layer performing the lookup based on an `emb_label` majority vote (_k_-nearest-neighbors) of the _k_ embedding vectors with largest cosine similarity.  Not trainable, since it does not add loss terms.
+* [`cosine_knn_vector_quantization`](./vq_layer/vq_layer.py#L159): Vector quantization layer performing the lookup based on an `emb_label` majority vote (_k_-nearest-neighbors) of the _k_ embedding vectors with largest cosine similarity.  Not trainable, since it does not add loss terms.
 
 And uses the following named tuples as return types:
 * `VQEndpoints`:
