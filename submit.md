@@ -3,8 +3,8 @@
 The root folder contains the necessary meta-files and references to submit a model to the challenge.
 
 ### The Model
-[`run.sh`](./run.sh) first runs the [`setup.py`](./resnet-base/setup.py) script, which installs the 
-[`SubmittableResNet`](./resnet-base/resnet_base/model/submittable_resnet.py). This is a simple wrapper around 
+[`run.sh`](./run.sh) first runs the [`setup.py`](./nips-defense/setup.py) script, which installs the 
+[`SubmittableResNet`](./nips-defense/nips_defense/model/submittable_resnet.py). This is a simple wrapper around 
 a `BaseModel` and provides a function that returns a foolbox model, representing the model itself.
 
 ### Submitting a New Model
@@ -12,9 +12,9 @@ If one wants to submit a newly implemented model (call it `MyModel`), the steps 
 
 1. Train `MyModel` and create a checkpoint with the flag `save_directory`.
 Note the `CHECKPOINT_PATH` where the checkpoint can be found. The checkpoint needs to be added to the repository.
-2. Change [`SubmittableResNet`](./resnet-base/resnet_base/model/submittable_resnet.py) to use `MyModel` as
+2. Change [`SubmittableResNet`](./nips-defense/nips_defense/model/submittable_resnet.py) to use `MyModel` as
 its base class. 
-3. If necessary, adjust [`submit.py`](./resnet-base/resnet_base/mains/submit.py) (e.g. change the placeholder
+3. If necessary, adjust [`submit.py`](./nips-defense/nips_defense/mains/submit.py) (e.g. change the placeholder
 tensor if needed). In most cases however, this step should not be necessary.
 4. Move the requirements of all dependencies into a new file called `requirements.txt` placed in the root folder.
 5. Update [`run.sh`](./run.sh) and set the `CHECKPOINT_PATH` as the `global_checkpoint` argument
