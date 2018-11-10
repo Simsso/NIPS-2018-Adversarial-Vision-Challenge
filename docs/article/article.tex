@@ -86,7 +86,9 @@ All samples used to compute the representations with which $\bm{E}$ is initializ
 Multiple LESCI layers can be applied to different parts of a representation vector, with shared or distinct embedding spaces.
 
 \subsection{Measuring Similarity after Dimensionality Reduction}
-Because the input $\bm{x}$ of a LESCI-layer is usually high-dimensional (e.g. in the image classification domain), measuring the distance using common distance functions $d$ such as the L2-norm, L1-norm, or the cosine similarity (Equation \ref{cos-sim}) may not result in representations belonging to the same class actually having a high similarity as measured by $d$.
+Because the input $\bm{x}$ of a LESCI-layer is usually high-dimensional e.g. representations of size more than 100,000 in the image classification domain.
+Therefore, measuring the distance using common distance functions $d$ such as the L2-norm, L1-norm, or the cosine similarity (Equation \ref{cos-sim}) may result in unwanted behavior:
+Representation vectors belonging to the same class might have a large distance according to $d$.
 
 Dimensionality reduction techniques serve as a way to mitigate this problem by projecting both the input $\bm{x} \in \mathbb{R}^m$ as well as the embedding space $\bm{E} \in \mathbb{R}^{n \times m}$ down to a lower dimension $r << m$.
 Let $\bm{\hat{x}} \in \mathbb{R}^r$ be the lower-dimension input vector and $\bm{\hat{E}} \in \mathbb{R}^{n \times r}$ the lower-dimension embedding space. Then, the $\arg\min$ in Equation \ref{vq-argmin} is calculated over the lower-dimensional values $\bm{\hat{x}}$ and $\bm{\hat{E}}$ as follows:
@@ -100,7 +102,7 @@ The projection that is forwarded to the next layer is taken from the original $\
 Principal Component Analysis (PCA) is a common technique for dimensionality reduction which we have employed.
 
 \subsection{Majority Vote}
-We extend $\bm{l}_\text{LESCI}$ with a majority vote that is intended to further improve the classifier's accuracy.
+We extend $\bm{l}_\text{LESCI}$ with a \enquote{majority vote} that is intended to improve the classifier's accuracy.
 Every vector $\bm{E}_{i,:}$ is associated with a particular label $l_i\in\mathbb{Y}$. For an input $\bm{x}$, we extract the top $k$ nearest neighbors from $\bm{E}$, i.e. most similar vectors $\bm{E}_{i,:}$ as measured by $d$.
 We then concatenate the labels of these embedding vectors into a vector $l_\text{knn} \in \mathbb{Y}^k$. 
 
