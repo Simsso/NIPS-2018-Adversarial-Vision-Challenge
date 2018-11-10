@@ -39,7 +39,7 @@ This repository is an integral component of our work and served the following pu
 * **DevOps**. We set up webhooks to the Google Cloud Platform to be able to automatically spin up new instances for training, once a commit was flagged with a certain tag.
 
 ## Codebase
-Our codebase consists of two Python modules, namely `resnet_base` and `vq_layer`. In addition to that we publish an `experiments` folder which contains _dirty_ code that was written for the sake of testing ideas. This section mentions some specifics and references the actual documentation. The class diagrams were generated with `pyreverse`. TODO(florianpfisterer): update resnet_base to match the new name and update links accordingly.
+Our codebase consists of two Python modules, namely `nips_defense` and `vq_layer`. In addition to that we publish an `experiments` folder which contains _dirty_ code that was written for the sake of testing ideas. This section mentions some specifics and references the actual documentation. The class diagrams were generated with `pyreverse`. TODO(florianpfisterer): update nips_defense to match the new name and update links accordingly.
 
 ### VQ-Layer
 The `vq_layer` module contains TensorFlow (TF) implementations of our vector quantization ideas. Following the TF API, that is a [number of functions](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/master/vq-layer/vq_layer/vq_layer.py) which work with `tf.Tensor` objects. The features as well as install instructions can be found in the [README file of the module](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/master/vq-layer/README.md).
@@ -49,9 +49,9 @@ We prioritized a good test coverage to ensure the proper functioning of the modu
 ![vq_layer class diagram](https://user-images.githubusercontent.com/6556307/48197469-1c857100-e356-11e8-9469-2451c8e38654.png)  
 _Fig.: Class diagram of the module `vq_layer`. It shows the test classes which inherit from `TFTestCase`. Each class is responsible for testing a specific aspect for which it implements a plurality of test cases (methods)._
 
-### ResNet Base
+### NIPS Defense
 
-The `resnet_base` module contains our approaches to developing a more robust classifier for the Tiny ImageNet dataset. The documentation can be found [in the README file](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/master/resnet-base/README.md).
+The `nips_defense` module contains our approaches to developing a more robust classifier for the Tiny ImageNet dataset. The documentation can be found [in the README file](https://github.com/Simsso/NIPS-2018-Adversarial-Vision-Challenge/blob/master/nips-defense/README.md).
 
 Our basic idea was to be able to try out new things by inheriting from some `Model` class and overriding its graph construction method. The new method would then contain some special features that we want to test. This idea is reflected in the class diagram below. 
 
@@ -65,8 +65,8 @@ Our **input pipeline** provides the models with images from the Tiny ImageNet da
 
 Our **logging** is quite comprehensive. Because we accumulate gradients over several _physical batches_, we cannot use the plain `tf.summary` API and have to accumulate scalars and histograms in order to create a `tf.Summary` object manually. This functionality is placed in `Logger`, `Accumulator`, and inheriting classes.
 
-![resnet_base class diagram](https://user-images.githubusercontent.com/6556307/48197117-09be6c80-e355-11e8-8a97-7e2b43edc8e6.png)  
-_Fig.: Class diagram of the module `resnet_base`. Accumulators are on the left, the different models are in the middle, the pipeline and misc. is on the right._
+![nips_defense class diagram](https://user-images.githubusercontent.com/6556307/48197117-09be6c80-e355-11e8-8a97-7e2b43edc8e6.png)  
+_Fig.: Class diagram of the module `nips_defense`. Accumulators are on the left, the different models are in the middle, the pipeline and misc. is on the right._
 
 
 ### Experiments
