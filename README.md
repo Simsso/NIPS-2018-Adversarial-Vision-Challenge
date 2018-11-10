@@ -84,10 +84,10 @@ More details about the pipeline can be found [here](https://github.com/Simsso/NI
 
 ## Results
 Our final submission was intended to be a pre-trained ResNet (baseline supplied by the challenge) which uses a LESCI-layer at a level in the network that gives a good balance between robustness and accuracy 
-(you can learn more about our reasoning behind this in our [PDF article](./docs/article/article.pdf)).
+(more about our reasoning behind this in our [PDF article](./docs/article/article.pdf)).
 
-Computing the PCA on the activations from early layers turned out to be infeasible, which is why we had to constrain our hyperparameter search to only one position late in the network where the dimension of an
-activation was only 512 (instead of 131,072-262,144 in higher layers). 
+Computing the PCA on the activations from early layers turned out to be computationally infeasible in terms of memory requirement, which is why we had to constrain our hyperparameter search to only one position late in the network where the dimension of an
+activation was only 512 (instead of 131,072 up to 262,144 in higher layers). 
 
 Unfortunately, this hyperparameter grid search gave us no combination of parameters that resulted in an accuracy of more than 50.0% and a good percentage of inputs that were projected at the same time (calculated based on the Tiny ImageNet validation set).
 
